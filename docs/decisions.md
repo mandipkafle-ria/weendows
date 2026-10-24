@@ -49,3 +49,30 @@
 - **Alternatives considered:** Choosing a final reverse-DNS ID now. That would require a domain
   decision before the release phase.
 - **Follow-up:** Replace the placeholder app ID and finalize icons in Phase 8 before publishing.
+
+## 2026-10-24 — Repository name is `weendows`
+
+- **Phase:** 0
+- **Context:** The owner supplied the public repository URL
+  `https://github.com/mandipkafle-ria/weendows.git`. The plan's working name was `homelayer`.
+- **Decision:** Use the supplied `weendows` repository as `origin`; keep `HomeLayer` as the
+  product name in the app metadata.
+- **Evidence:** `git push -u origin main` succeeded and GitHub Actions CI #1 passed on `main`.
+- **Alternatives considered:** Creating a separate `homelayer` repository. Rejected because the
+  owner already supplied the public repository.
+- **Follow-up:** Keep the product name `HomeLayer` in installer and window metadata; the
+  repository name is only the remote.
+
+## 2026-10-24 — Phase 0 acceptance verification
+
+- **Phase:** 0
+- **Context:** Final Phase 0 verification on Windows 10.0.26200 x64 with Electron 44.9.3.
+- **Decision:** Use the results below as the Phase 0 acceptance record.
+- **Evidence:** `npm run typecheck`, `npm run lint`, `npm test` (2 files, 6 tests), `npm run build`
+  and `npx electron-builder --win --dir` passed. The unpacked app returned
+  `Progman handle: 0x101d0` and `Tick count: 367387859`. UI Automation found the `HomeLayer`
+  tray icon in the notification overflow, with `Open settings` and `Quit` in its context menu.
+  `app.quit()` exited with code 0. GitHub Actions CI #1 passed:
+  https://github.com/mandipkafle-ria/weendows/actions/runs/40101123995.
+- **Alternatives considered:** none.
+- **Follow-up:** Await owner approval, then start Phase 1.
