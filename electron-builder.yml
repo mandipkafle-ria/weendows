@@ -1,0 +1,15 @@
+appId: com.yourname.homelayer
+productName: HomeLayer
+# koffi 3.x loads its native addon from the @koromix/koffi-* optional package.
+# Both paths must stay outside the asar archive in packaged builds.
+asarUnpack:
+  - node_modules/koffi/**
+  - node_modules/@koromix/koffi-*/**
+win:
+  target: [nsis, portable]
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+npmRebuild: false
