@@ -8,7 +8,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          'settings-preload': resolve('src/preload/settings-preload.ts')
+          'settings-preload': resolve('src/preload/settings-preload.ts'),
+          'shell-preload': resolve('src/preload/shell-preload.ts')
         }
       }
     }
@@ -22,7 +23,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          settings: resolve('src/renderer/settings/index.html')
+          settings: resolve('src/renderer/settings/index.html'),
+          'widget-shell': resolve('src/renderer/widget-shell/index.html')
         }
       }
     },

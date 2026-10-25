@@ -19,6 +19,9 @@
     "dist": "npm run build && electron-builder --win",
     "postinstall": "install-electron && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
+    "run:widget": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-widget.ps1",
+    "stop:widget": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Get-Process HomeLayer -ErrorAction SilentlyContinue | Stop-Process -Force\"",
+    "phase1": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/phase-1-manual-test.ps1 -Strategy auto -WidgetCount 1",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
