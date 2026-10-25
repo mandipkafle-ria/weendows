@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Date</title>
+    <style>
+      @font-face {
+        font-family: 'DotGothic16';
+        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        font-family: 'DotGothic16', 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 100%;
+        height: 100%;
+        padding: 14px 18px 13px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 12% 88%, rgba(255, 138, 91, 0.18), transparent 46%),
+          linear-gradient(145deg, rgba(33, 23, 30, 0.95), rgba(14, 11, 16, 0.92));
+        box-shadow:
+          0 14px 40px rgba(0, 0, 0, 0.38),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .label {
+        color: rgba(255, 201, 176, 0.64);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .weekday {
+        color: rgba(244, 232, 226, 0.64);
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+
+      .body {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .day {
+        margin: 0;
+        color: #fff4ee;
+        font-size: 58px;
+        font-variant-numeric: tabular-nums;
+        line-height: 0.86;
+        letter-spacing: -0.02em;
+        text-shadow: 0 0 26px rgba(255, 132, 86, 0.2);
+      }
+
+      .meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        padding-bottom: 4px;
+      }
+
+      .month {
+        margin: 0;
+        color: #ffc9b3;
+        font-size: 15px;
+      }
+
+      .year {
+        margin: 0;
+        color: rgba(231, 216, 210, 0.5);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+      }
+
+      .accent {
+        width: 34px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #ff8a5b, rgba(255, 138, 91, 0));
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="top">
+        <span class="label">Today</span>
+        <span class="weekday" id="weekday"></span>
+      </div>
+      <div class="body">
+        <p class="day" id="day">--</p>
+        <div class="meta">
+          <p class="month" id="month"></p>
+          <p class="year" id="year"></p>
+        </div>
+      </div>
+      <div class="accent"></div>
+    </main>
+    <script>
+      ;(function () {
+        'use strict'
+
+        var weekdayNode = document.getElementById('weekday')
+        var dayNode = document.getElementById('day')
+        var monthNode = document.getElementById('month')
+        var yearNode = document.getElementById('year')
+
+        function render() {
+          var now = new Date()
+          if (weekdayNode) {
+            weekdayNode.textContent = now.toLocaleDateString([], { weekday: 'long' })
+          }
+          if (dayNode) {
+            dayNode.textContent = now.toLocaleDateString([], { day: '2-digit' })
+          }
+          if (monthNode) {
+            monthNode.textContent = now.toLocaleDateString([], { month: 'long' })
+          }
+          if (yearNode) {
+            yearNode.textContent = now.toLocaleDateString([], { year: 'numeric' })
+          }
+        }
+
+        render()
+        setInterval(render, 60000)
+
+        if (window.hl && typeof window.hl.ready === 'function') {
+          window.hl.ready(function (context) {
+            document.documentElement.dataset.widget = context.id
+          })
+        }
+      })()
+    </script>
+  </body>
+</html>

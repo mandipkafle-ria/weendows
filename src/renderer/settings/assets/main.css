@@ -188,6 +188,226 @@ button {
   font-size: 12px;
 }
 
+.panel-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.section-count {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.widget-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.widget-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.widget-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.widget-card p {
+  flex: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.widget-size {
+  color: var(--muted);
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.widget-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.widget-count {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.widget-card button {
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.widget-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  list-style: none;
+}
+
+.widget-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.widget-row:last-child {
+  border-bottom: 0;
+}
+
+.widget-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.widget-row-copy strong {
+  font-size: 13px;
+}
+
+.widget-row-copy span {
+  color: var(--muted);
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 11px;
+}
+
+.panel .button-danger {
+  flex: none;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 123, 114, 0.35);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--error);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.panel .button-danger:hover:not(:disabled) {
+  background: rgba(255, 123, 114, 0.08);
+  filter: none;
+}
+
+.panel .button-secondary {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.layout-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.layout-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.hotkey {
+  color: var(--muted);
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 11px;
+}
+
+.empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.notices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notice {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.notice-info {
+  border-left-color: var(--accent);
+}
+
+.notice-warning {
+  border-left-color: #e3b341;
+}
+
+.notice-error {
+  border-left-color: var(--error);
+}
+
+.action-message {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--ok);
+  font-size: 12px;
+}
+
+.action-error {
+  border-color: rgba(255, 123, 114, 0.35);
+  color: var(--error);
+}
+
 .settings-footer {
   display: flex;
   justify-content: space-between;
@@ -200,6 +420,23 @@ button {
 }
 
 @media (max-width: 620px) {
+  .section-head {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .layout-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-actions {
+    align-items: flex-start;
+  }
+
+  .widget-grid {
+    grid-template-columns: 1fr;
+  }
+
   .settings {
     padding: 24px 20px 18px;
   }

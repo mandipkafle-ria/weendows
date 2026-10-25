@@ -4,6 +4,19 @@ import { APP_NAME } from '../shared/constants'
 import trayIcon16 from '../../resources/tray.png?asset'
 import trayIcon32 from '../../resources/tray@2x.png?asset'
 
+export interface TrayActions {
+  openSettings: () => void
+  quit: () => void
+  getEditMode: () => boolean
+  toggleEditMode: () => void
+}
+
+export interface TrayController {
+  tray: Tray
+  refresh: () => void
+  destroy: () => void
+}
+
 function toDataUrl(path: string): string {
   return `data:image/png;base64,${readFileSync(path).toString('base64')}`
 }
@@ -15,15 +28,35 @@ function createTrayImage(): NativeImage {
   return image
 }
 
-export function createTray(onOpenSettings: () => void, onQuit: () => void): Tray {
+function buildMenu(actions: TrayActions): Menu {
+  return Menu.buildFromTemplate([
+    {
+      label: 'Edit layout',
+      type: 'checkbox',
+      checked: actions.getEditMode(),
+      click: actions.toggleEditMode
+    },
+    { type: 'separator' },
+    { label: 'Open settings', click: actions.openSettings },
+    { type: 'separator' },
+    { label: 'Quit', click: actions.quit }
+  ])
+}
+
+export function createTray(actions: TrayActions): TrayController {
   const tray = new Tray(createTrayImage())
   tray.setToolTip(APP_NAME)
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: 'Open settings', click: onOpenSettings },
-      { type: 'separator' },
-      { label: 'Quit', click: onQuit }
-    ])
-  )
-  return tray
+
+  const refresh = (): void => {
+    tray.setContextMenu(buildMenu(actions))
+  }
+
+  tray.on('click', () => actions.openSettings())
+  refresh()
+
+  return {
+    tray,
+    refresh,
+    destroy: () => tray.destroy()
+  }
 }

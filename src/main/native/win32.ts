@@ -21,6 +21,7 @@ type SetWindowPosFunction = (
 type SetParentFunction = (child: bigint, parent: bigint) => number | bigint | null
 type GetParentFunction = (hwnd: bigint) => number | bigint | null
 type IsWindowFunction = (hwnd: bigint) => number
+type GetAsyncKeyStateFunction = (key: number) => number
 
 let user32: LibraryHandle | null = null
 let kernel32: LibraryHandle | null = null
@@ -32,7 +33,9 @@ let setWindowPosRaw: SetWindowPosFunction | null = null
 let setParentRaw: SetParentFunction | null = null
 let getParentRaw: GetParentFunction | null = null
 let isWindowRaw: IsWindowFunction | null = null
+let getAsyncKeyStateRaw: GetAsyncKeyStateFunction | null = null
 
+export const VK_MENU = 0x12
 export const HWND_TOP = 0n
 export const HWND_BOTTOM = 1n
 export const GW_HWNDPREV = 3
@@ -50,7 +53,8 @@ function ensureNativeApi(): void {
     setWindowPosRaw &&
     setParentRaw &&
     getParentRaw &&
-    isWindowRaw
+    isWindowRaw &&
+    getAsyncKeyStateRaw
   ) {
     return
   }
@@ -76,6 +80,9 @@ function ensureNativeApi(): void {
   ) as SetParentFunction
   getParentRaw = user32.func('uintptr_t __stdcall GetParent(uintptr_t hwnd)') as GetParentFunction
   isWindowRaw = user32.func('int __stdcall IsWindow(uintptr_t hwnd)') as IsWindowFunction
+  getAsyncKeyStateRaw = user32.func(
+    'int16_t __stdcall GetAsyncKeyState(int key)'
+  ) as GetAsyncKeyStateFunction
 }
 
 function normalizeHandle(value: number | bigint | null | undefined): bigint | null {
@@ -125,6 +132,16 @@ export function getParent(hwnd: bigint): bigint | null {
 export function isWindow(hwnd: bigint): boolean {
   ensureNativeApi()
   return Boolean(isWindowRaw?.(hwnd))
+}
+
+export function isAltDown(): boolean {
+  try {
+    ensureNativeApi()
+    const state = getAsyncKeyStateRaw?.(VK_MENU) ?? 0
+    return (Number(state) & 0x8000) !== 0
+  } catch {
+    return false
+  }
 }
 
 export interface NativeSmokeTest {

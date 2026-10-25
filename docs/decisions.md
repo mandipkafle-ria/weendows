@@ -166,3 +166,58 @@
   more fragile than B, which already passes the visible and Win+D rows.
 - **Follow-up:** Run the full Phase 1 table with `npm run phase1` (auto = B), including the
   lock/unlock and Explorer restart rows, and record the results before Phase 1 approval.
+
+## 2026-10-25 - Preloads must be isolated bundles for sandboxed windows
+
+- **Phase:** 2
+- **Context:** Both Phase 2 preloads import the shared `IPC` map. The default electron-vite
+  build split that map into `out/preload/chunks/ipc-*.js` and emitted
+  `require("./chunks/ipc-*.js")` in both preloads. Sandboxed Electron preloads only support a
+  limited `require` and cannot load relative chunks. The packaged Settings window showed a
+  blank page because `window.api` was undefined, and every widget shell showed its
+  "Widget bridge unavailable" error.
+- **Decision:** Set `preload.build.isolatedEntries: true` and
+  `preload.build.externalizeDeps: false` so each preload is standalone. Keep `sandbox: true`
+  on the Settings and widget windows.
+- **Evidence:** The broken packaged build logged
+  `Unable to load preload script ... module not found: ./chunks/ipc-*.js`. After the config
+  change, `out/preload` contained only `settings-preload.js` and `shell-preload.js`.
+  `window.api` and `window.shellApi` were present, Settings rendered its gallery, and the
+  clock widget rendered in the packaged app.
+- **Alternatives considered:** Disabling sandboxing for the preloads, or duplicating the IPC
+  strings in each preload. Both weaken the security model or add drift. Isolated bundles keep
+  one shared source of truth and preserve sandboxing.
+- **Follow-up:** Re-check preload output after adding any third-party preload dependency.
+
+## 2026-10-25 - First-run seeding only for missing or corrupt layouts
+
+- **Phase:** 2
+- **Context:** Seeding a default clock whenever the layout has zero placements would make it
+  impossible to keep an intentionally empty desktop. A valid empty layout is different from a
+  first run or a recovered corrupt file.
+- **Decision:** Seed the default clock only when `layout.json` was missing or was recovered
+  from corruption **and** there are no placements. A valid `{ "schema": 1, "placements": [] }`
+  stays empty.
+- **Evidence:** With a valid empty layout the Settings list showed "No widgets yet" and the
+  file stayed empty after startup. Deleting the file produced one Clock at `48,48`. Garbage
+  content produced a `layout.json.corrupt-<timestamp>` backup and one default Clock.
+- **Alternatives considered:** Seeding whenever the list is empty. Rejected because users need
+  to be able to remove every widget.
+- **Follow-up:** Keep this behavior when AI widgets add hide/delete lifecycle states.
+
+## 2026-10-25 - Missing displays fall back without overwriting saved placements
+
+- **Phase:** 2
+- **Context:** A monitor can be unplugged or disabled after a layout is saved. The plan
+  requires widgets to appear inside the primary work area but not to lose their saved
+  display/position until the user moves them.
+- **Decision:** Resolve a placement to its display by string id, fall back to the primary
+  display when it is missing, and clamp the window bounds for display only. Do not write the
+  fallback back to `layout.json` during restore. Persist a new display id and position only
+  when a drag or resize ends.
+- **Evidence:** Replacing a placement's `displayId` with `999999999` and its `x`/`y` with
+  `5000` placed the packaged window at `1488,816` (48 DIP visible) on the primary display,
+  while `layout.json` still contained the original `displayId`, `5000` and `5000`.
+- **Alternatives considered:** Clamping and saving on every startup. That would destroy the
+  saved multi-monitor layout whenever a monitor is temporarily absent.
+- **Follow-up:** Run the physical unplug/replug row before the Phase 3 gate.

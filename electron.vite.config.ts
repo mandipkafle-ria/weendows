@@ -6,6 +6,8 @@ export default defineConfig({
   main: {},
   preload: {
     build: {
+      isolatedEntries: true,
+      externalizeDeps: false,
       rollupOptions: {
         input: {
           'settings-preload': resolve('src/preload/settings-preload.ts'),

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendar</title>
+    <style>
+      @font-face {
+        font-family: 'DotGothic16';
+        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        font-family: 'DotGothic16', 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        height: 100%;
+        padding: 14px 14px 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 82% 4%, rgba(255, 138, 91, 0.17), transparent 48%),
+          linear-gradient(145deg, rgba(28, 22, 30, 0.95), rgba(13, 11, 16, 0.93));
+        box-shadow:
+          0 14px 40px rgba(0, 0, 0, 0.38),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      .header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .month {
+        margin: 0;
+        color: #fff1e9;
+        font-size: 16px;
+        letter-spacing: 0.01em;
+      }
+
+      .year {
+        color: rgba(255, 201, 176, 0.62);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+
+      .weekdays,
+      .days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 2px;
+      }
+
+      .weekdays {
+        margin-top: 1px;
+      }
+
+      .weekday {
+        color: rgba(231, 216, 210, 0.38);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .days {
+        flex: 1;
+        align-content: start;
+      }
+
+      .day {
+        display: grid;
+        height: 27px;
+        place-items: center;
+        border-radius: 7px;
+        color: rgba(245, 237, 232, 0.84);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .day.other {
+        color: rgba(245, 237, 232, 0.22);
+      }
+
+      .day.today {
+        background: linear-gradient(145deg, #ff9b6f, #f06d3f);
+        color: #1e0d07;
+        font-weight: 700;
+        box-shadow: 0 0 18px rgba(255, 122, 69, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="header">
+        <p class="month" id="month"></p>
+        <span class="year" id="year"></span>
+      </div>
+      <div class="weekdays" aria-hidden="true">
+        <span class="weekday">Sun</span>
+        <span class="weekday">Mon</span>
+        <span class="weekday">Tue</span>
+        <span class="weekday">Wed</span>
+        <span class="weekday">Thu</span>
+        <span class="weekday">Fri</span>
+        <span class="weekday">Sat</span>
+      </div>
+      <div class="days" id="days" role="grid" aria-label="Month calendar"></div>
+    </main>
+    <script>
+      ;(function () {
+        'use strict'
+
+        var monthNode = document.getElementById('month')
+        var yearNode = document.getElementById('year')
+        var daysNode = document.getElementById('days')
+
+        function render() {
+          var now = new Date()
+          var year = now.getFullYear()
+          var month = now.getMonth()
+          var first = new Date(year, month, 1)
+          var start = new Date(year, month, 1 - first.getDay())
+
+          if (monthNode) {
+            monthNode.textContent = first.toLocaleDateString([], { month: 'long' })
+          }
+          if (yearNode) {
+            yearNode.textContent = String(year)
+          }
+          if (!daysNode) {
+            return
+          }
+
+          var nodes = []
+          for (var index = 0; index < 42; index += 1) {
+            var date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index)
+            var node = document.createElement('div')
+            var sameMonth = date.getMonth() === month
+            var sameDay =
+              date.getFullYear() === now.getFullYear() &&
+              date.getMonth() === now.getMonth() &&
+              date.getDate() === now.getDate()
+
+            node.className = 'day' + (sameMonth ? '' : ' other') + (sameDay ? ' today' : '')
+            node.textContent = String(date.getDate())
+            node.title = date.toLocaleDateString([], {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            })
+            nodes.push(node)
+          }
+
+          daysNode.replaceChildren.apply(daysNode, nodes)
+        }
+
+        render()
+        setInterval(render, 60000)
+
+        if (window.hl && typeof window.hl.ready === 'function') {
+          window.hl.ready(function (context) {
+            document.documentElement.dataset.widget = context.id
+          })
+        }
+      })()
+    </script>
+  </body>
+</html>

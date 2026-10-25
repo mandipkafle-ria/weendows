@@ -12,12 +12,97 @@ body,
   background: transparent;
 }
 
+#root {
+  position: relative;
+}
+
 #widget-frame {
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
   background: transparent;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 2px dashed rgba(226, 218, 255, 0.86);
+  border-radius: 18px;
+  background: rgba(125, 95, 255, 0.04);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay:active {
+  cursor: grabbing;
+}
+
+.overlay.locked {
+  border-color: rgba(226, 218, 255, 0.4);
+  background: transparent;
+  cursor: default;
+}
+
+.overlay-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.overlay-button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(12, 10, 18, 0.82);
+  color: rgba(244, 241, 255, 0.9);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.overlay-button:hover {
+  background: rgba(36, 31, 52, 0.92);
+  color: #ffffff;
+}
+
+.overlay-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background-image: radial-gradient(circle, rgba(244, 241, 255, 0.82) 1.1px, transparent 1.4px);
+  background-position: 5px 5px;
+  background-size: 5px 5px;
+  cursor: nwse-resize;
+}
+
+.overlay.locked .overlay-toolbar,
+.overlay.locked .resize-handle {
+  display: none;
 }
 
 .shell-error {
