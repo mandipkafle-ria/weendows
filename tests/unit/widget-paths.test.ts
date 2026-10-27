@@ -2,6 +2,7 @@ import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   injectSdk,
+  isWallpaperHost,
   mimeFor,
   resolveWidgetFile,
   type WidgetProtocolPaths
@@ -59,6 +60,53 @@ describe('resolveWidgetFile', () => {
   })
 })
 
+describe('HTML wallpaper hosts', () => {
+  const wallpaperPaths: WidgetProtocolPaths = {
+    ...paths,
+    wallpapersDir: resolve('test-wallpapers')
+  }
+
+  it('maps a wp- host into the wallpaper library', () => {
+    expect(isWallpaperHost('wp-aurora')).toBe(true)
+    expect(isWallpaperHost('clock')).toBe(false)
+    expect(resolveWidgetFile(wallpaperPaths, 'widget://wp-aurora')).toBe(
+      join(wallpaperPaths.wallpapersDir ?? '', 'aurora', 'index.html')
+    )
+    expect(resolveWidgetFile(wallpaperPaths, 'widget://wp-aurora/assets/bg.png')).toBe(
+      join(wallpaperPaths.wallpapersDir ?? '', 'aurora', 'assets', 'bg.png')
+    )
+  })
+
+  it('rejects invalid wallpaper ids and missing wallpaper roots', () => {
+    expect(resolveWidgetFile(wallpaperPaths, 'widget://wp-../index.html')).toBeNull()
+    expect(resolveWidgetFile(paths, 'widget://wp-aurora/index.html')).toBeNull()
+  })
+})
+
+describe('built-in preview hosts', () => {
+  const previewPaths: WidgetProtocolPaths = {
+    ...paths,
+    builtinsDir: resolve('test-builtins')
+  }
+
+  it('maps a _builtins host into the bundled widget library', () => {
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins/clock/index.html')).toBe(
+      join(previewPaths.builtinsDir ?? '', 'clock', 'index.html')
+    )
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins/weather/assets/icon.svg')).toBe(
+      join(previewPaths.builtinsDir ?? '', 'weather', 'assets', 'icon.svg')
+    )
+  })
+
+  it('requires a valid built-in type and root', () => {
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins')).toBeNull()
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins/index.html')).toBeNull()
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins/Clock')).toBeNull()
+    expect(resolveWidgetFile(previewPaths, 'widget://_builtins/clock/..%2F..%2Fsecret')).toBeNull()
+    expect(resolveWidgetFile(paths, 'widget://_builtins/clock')).toBeNull()
+  })
+})
+
 describe('mimeFor', () => {
   it('returns known content types', () => {
     expect(mimeFor('index.html')).toBe('text/html; charset=utf-8')
@@ -72,16 +120,24 @@ describe('mimeFor', () => {
 })
 
 describe('injectSdk', () => {
-  it('injects the SDK after the head tag', () => {
+  it('injects the SDK after the head tag and transparency style before its close', () => {
     const html = '<!doctype html><html><head><title>x</title></head><body></body></html>'
-    expect(injectSdk(html)).toContain(
-      '<head><script src="widget://_sdk/sdk.js"></script><title>x</title>'
+    expect(injectSdk(html)).toBe(
+      '<!doctype html><html><head><script src="widget://_sdk/sdk.js"></script><title>x</title><style>html, body, :root { background: transparent !important; color-scheme: normal !important; }</style></head><body></body></html>'
     )
   })
 
-  it('prepends the SDK when there is no head tag', () => {
+  it('prepends the SDK and transparency style when there is no head tag', () => {
     expect(injectSdk('<p>hello</p>')).toBe(
-      '<script src="widget://_sdk/sdk.js"></script><p>hello</p>'
+      '<script src="widget://_sdk/sdk.js"></script><style>html, body, :root { background: transparent !important; color-scheme: normal !important; }</style><p>hello</p>'
     )
+  })
+
+  it('removes a legacy color-scheme meta tag', () => {
+    const html =
+      '<!doctype html><html><head><meta name="color-scheme" content="dark" /><title>x</title></head><body></body></html>'
+    const injected = injectSdk(html)
+    expect(injected).not.toContain('name="color-scheme"')
+    expect(injected).toContain('<title>x</title>')
   })
 })

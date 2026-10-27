@@ -1,0 +1,14 @@
+Sure, I can do that.
+
+<hl-manifest>
+{"name":"Prose clock","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head>
+<body><div>Prose</div><script>hl.ready()</script></body>
+</html>
+</hl-widget>
+
+Let me know if you want any changes.

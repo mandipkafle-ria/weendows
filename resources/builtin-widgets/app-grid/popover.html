@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src hl-icon: data:; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bundle</title>
+    <style>
+      :root {
+        color-scheme: normal;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .popover {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        padding: 9px 11px 10px;
+        overflow: hidden;
+        border: 0;
+        border-radius: 20px;
+        background:
+          radial-gradient(circle at 82% 4%, rgba(150, 130, 255, 0.2), transparent 46%),
+          linear-gradient(145deg, rgba(22, 27, 42, 0.97), rgba(11, 14, 22, 0.97));
+        background-clip: padding-box;
+        box-shadow:
+          0 20px 50px rgba(0, 0, 0, 0.5),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.13),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        animation: pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      @keyframes pop-in {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .header {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 36px;
+        padding: 0 2px 4px;
+      }
+
+      .title-input {
+        box-sizing: border-box;
+        min-width: 0;
+        flex: 1;
+        padding: 4px 5px;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        outline: 0;
+        background: transparent;
+        color: #f0f5ff;
+        font-family: 'DotGothic16', 'Segoe UI', system-ui, sans-serif;
+        font-size: 14px;
+        text-overflow: ellipsis;
+      }
+
+      .title-input:hover {
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+
+      .title-input:focus {
+        border-color: rgba(151, 190, 255, 0.65);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .count {
+        flex: none;
+        color: rgba(205, 224, 255, 0.46);
+        font-size: 9px;
+      }
+
+      .apps {
+        display: grid;
+        flex: 1;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        align-content: start;
+        min-height: 0;
+        padding: 2px;
+        overflow-y: auto;
+        scrollbar-color: rgba(220, 235, 255, 0.24) transparent;
+        scrollbar-width: thin;
+      }
+
+      .app-tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        height: 74px;
+        padding: 3px 2px;
+        border: 1px solid transparent;
+        border-radius: 11px;
+        background: transparent;
+        color: #eaf2ff;
+        cursor: pointer;
+        touch-action: none;
+        user-select: none;
+        transition:
+          background 120ms ease,
+          border-color 120ms ease,
+          transform 120ms ease;
+      }
+
+      .app-tile:hover {
+        border-color: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .app-tile:focus-visible {
+        outline: 2px solid rgba(151, 190, 255, 0.8);
+        outline-offset: 1px;
+      }
+
+      .app-tile.dragging {
+        opacity: 0.3;
+      }
+
+      .app-tile.drop-target {
+        border-color: rgba(151, 190, 255, 0.55);
+        background: rgba(125, 175, 255, 0.12);
+      }
+
+      .plate {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 11px;
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)),
+          rgba(255, 255, 255, 0.05);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.14),
+          0 4px 10px rgba(0, 0, 0, 0.24);
+      }
+
+      .plate img {
+        display: block;
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
+      }
+
+      .letter {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        border-radius: 11px;
+        color: #ffffff;
+        font-size: 17px;
+        font-weight: 700;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        text-transform: uppercase;
+      }
+
+      .label {
+        width: 100%;
+        overflow: hidden;
+        color: rgba(233, 242, 255, 0.9);
+        font-size: 9px;
+        line-height: 1.2;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .drag-ghost {
+        position: fixed;
+        z-index: 10;
+        width: 64px;
+        height: 74px;
+        opacity: 0.9;
+        pointer-events: none;
+        filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+        transform: translate(-50%, -50%) scale(1.05);
+      }
+
+      .context-menu {
+        position: fixed;
+        z-index: 20;
+        min-width: 132px;
+        padding: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 9px;
+        background: rgba(18, 23, 35, 0.98);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+      }
+
+      .context-menu[hidden] {
+        display: none;
+      }
+
+      .context-menu button {
+        width: 100%;
+        padding: 6px 8px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #ffd7cf;
+        cursor: pointer;
+        font-size: 10px;
+        text-align: left;
+      }
+
+      .context-menu button:hover {
+        background: rgba(255, 157, 138, 0.12);
+      }
+
+      .toast {
+        position: absolute;
+        right: 10px;
+        bottom: 8px;
+        left: 10px;
+        padding: 7px 8px;
+        border: 1px solid rgba(255, 157, 138, 0.3);
+        border-radius: 8px;
+        background: rgba(42, 22, 22, 0.97);
+        color: #ffd7cf;
+        font-size: 9px;
+        line-height: 1.35;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+      }
+
+      .toast[hidden] {
+        display: none;
+      }
+
+      .error {
+        margin: auto;
+        padding: 12px;
+        color: #ffb4a4;
+        font-size: 10px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="popover">
+      <header class="header">
+        <input
+          class="title-input"
+          id="title"
+          type="text"
+          maxlength="24"
+          readonly
+          aria-label="Bundle name"
+        />
+        <span class="count" id="count"></span>
+      </header>
+      <div class="apps" id="apps"></div>
+      <div class="toast" id="toast" role="status" hidden></div>
+    </section>
+    <div class="context-menu" id="context-menu" hidden>
+      <button id="remove-app" type="button">Remove from bundle</button>
+    </div>
+    <script>
+      ;(function () {
+        'use strict'
+
+        var DRAG_THRESHOLD = 8
+        var title = document.getElementById('title')
+        var count = document.getElementById('count')
+        var appsNode = document.getElementById('apps')
+        var toast = document.getElementById('toast')
+        var menu = document.getElementById('context-menu')
+        var removeButton = document.getElementById('remove-app')
+        var state = null
+        var toastTimer = null
+        var menuAppId = null
+        var drag = null
+        var suppressClick = false
+        var renameValue = ''
+
+        function hashHue(name) {
+          var hash = 0
+          for (var index = 0; index < name.length; index += 1) {
+            hash = (hash * 31 + name.charCodeAt(index)) >>> 0
+          }
+          return hash % 360
+        }
+
+        function plateStyle(name) {
+          var hue = hashHue(name)
+          return (
+            'background: linear-gradient(145deg, hsl(' +
+            hue +
+            ' 58% 44%), hsl(' +
+            ((hue + 38) % 360) +
+            ' 62% 28%));'
+          )
+        }
+
+        function letterNode(name) {
+          var node = document.createElement('span')
+          node.className = 'letter'
+          node.textContent = (name.trim().charAt(0) || '?').toUpperCase()
+          node.setAttribute('style', plateStyle(name))
+          return node
+        }
+
+        function appIcon(app) {
+          if (!app.iconUrl) {
+            return letterNode(app.name)
+          }
+          var image = document.createElement('img')
+          image.alt = ''
+          image.draggable = false
+          image.src = app.iconUrl
+          image.addEventListener('error', function () {
+            image.replaceWith(letterNode(app.name))
+          })
+          return image
+        }
+
+        function showToast(message) {
+          if (toastTimer) {
+            clearTimeout(toastTimer)
+          }
+          toast.textContent = message
+          toast.hidden = false
+          toastTimer = setTimeout(function () {
+            toast.hidden = true
+          }, 5000)
+        }
+
+        function hideMenu() {
+          menu.hidden = true
+          menuAppId = null
+        }
+
+        function showMenu(appId, x, y) {
+          menuAppId = appId
+          menu.hidden = false
+          var width = menu.offsetWidth || 140
+          var height = menu.offsetHeight || 34
+          menu.style.left = Math.min(x, window.innerWidth - width - 4) + 'px'
+          menu.style.top = Math.min(y, window.innerHeight - height - 4) + 'px'
+        }
+
+        function tile(app, index) {
+          var node = document.createElement('button')
+          node.type = 'button'
+          node.className = 'app-tile'
+          node.dataset.appId = app.id
+          node.dataset.index = String(index)
+          node.setAttribute('aria-label', app.name)
+          node.title = app.name
+
+          var plate = document.createElement('span')
+          plate.className = 'plate'
+          plate.appendChild(appIcon(app))
+
+          var label = document.createElement('span')
+          label.className = 'label'
+          label.textContent = app.name
+
+          node.appendChild(plate)
+          node.appendChild(label)
+          return node
+        }
+
+        function render() {
+          if (!state) {
+            return
+          }
+          title.value = state.bundle.name
+          count.textContent = state.bundle.apps.length + ' apps'
+          appsNode.replaceChildren()
+          for (var index = 0; index < state.bundle.apps.length; index += 1) {
+            appsNode.appendChild(tile(state.bundle.apps[index], index))
+          }
+        }
+
+        function apply(next) {
+          if (!next) {
+            window.bundleApi.close()
+            return
+          }
+          state = next
+          render()
+        }
+
+        function refresh() {
+          return window.bundleApi
+            .getState()
+            .then(apply)
+            .catch(function (error) {
+              showToast((error && error.message) || 'Could not load the bundle.')
+            })
+        }
+
+        function commitRename() {
+          if (!state || title.readOnly) {
+            return
+          }
+          var name = title.value.trim().slice(0, 24)
+          title.readOnly = true
+          if (!name || name === state.bundle.name) {
+            title.value = state.bundle.name
+            return
+          }
+          window.bundleApi
+            .rename(name)
+            .then(function (result) {
+              apply(result.state)
+            })
+            .catch(function (error) {
+              title.value = state.bundle.name
+              showToast((error && error.message) || 'Could not rename the bundle.')
+            })
+        }
+
+        function cancelRename() {
+          title.readOnly = true
+          title.value = state ? state.bundle.name : ''
+        }
+
+        function launch(appId) {
+          window.bundleApi
+            .launch(appId)
+            .then(function () {
+              window.bundleApi.close()
+            })
+            .catch(function (error) {
+              showToast((error && error.message) || 'Could not launch the app.')
+            })
+        }
+
+        function removeApp(appId) {
+          hideMenu()
+          window.bundleApi
+            .removeApp(appId)
+            .then(function (result) {
+              if (result.state) {
+                apply(result.state)
+              }
+            })
+            .catch(function (error) {
+              showToast((error && error.message) || 'Could not remove the app.')
+            })
+        }
+
+        function updateDrag(event) {
+          if (!drag) {
+            return
+          }
+          var dx = event.clientX - drag.startX
+          var dy = event.clientY - drag.startY
+          if (!drag.active && Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) {
+            return
+          }
+          if (!drag.active) {
+            drag.active = true
+            suppressClick = true
+            drag.tile.classList.add('dragging')
+            drag.ghost = drag.tile.cloneNode(true)
+            drag.ghost.className = 'app-tile drag-ghost'
+            drag.ghost.removeAttribute('data-index')
+            document.body.appendChild(drag.ghost)
+          }
+
+          drag.ghost.style.left = event.clientX + 'px'
+          drag.ghost.style.top = event.clientY + 'px'
+
+          var element = document.elementFromPoint(event.clientX, event.clientY)
+          var target = element ? element.closest('.app-tile') : null
+          if (drag.target && drag.target !== target) {
+            drag.target.classList.remove('drop-target')
+          }
+          drag.target = target && target !== drag.tile ? target : null
+          if (drag.target) {
+            drag.target.classList.add('drop-target')
+          }
+        }
+
+        function finishDrag(event) {
+          if (!drag) {
+            return
+          }
+          var current = drag
+          drag = null
+          if (current.ghost) {
+            current.ghost.remove()
+          }
+          current.tile.classList.remove('dragging')
+          if (current.target) {
+            current.target.classList.remove('drop-target')
+          }
+          if (!current.active) {
+            return
+          }
+
+          var element = document.elementFromPoint(event.clientX, event.clientY)
+          var target = element ? element.closest('.app-tile') : null
+          var to = target ? Number(target.dataset.index) : state.bundle.apps.length - 1
+          if (!Number.isInteger(to) || to === current.index) {
+            return
+          }
+          window.bundleApi
+            .reorder(current.index, to)
+            .then(function (result) {
+              if (result.state) {
+                apply(result.state)
+              }
+            })
+            .catch(function (error) {
+              showToast((error && error.message) || 'Could not reorder the bundle.')
+            })
+        }
+
+        title.addEventListener('click', function () {
+          if (title.readOnly) {
+            renameValue = title.value
+            title.readOnly = false
+            title.focus()
+            title.select()
+          }
+        })
+        title.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            commitRename()
+          } else if (event.key === 'Escape') {
+            event.preventDefault()
+            cancelRename()
+          }
+        })
+        title.addEventListener('blur', commitRename)
+
+        appsNode.addEventListener('click', function (event) {
+          if (suppressClick) {
+            suppressClick = false
+            return
+          }
+          var node = event.target.closest('.app-tile')
+          if (node && node.dataset.appId) {
+            launch(node.dataset.appId)
+          }
+        })
+
+        appsNode.addEventListener('contextmenu', function (event) {
+          var node = event.target.closest('.app-tile')
+          if (!node || !node.dataset.appId) {
+            return
+          }
+          event.preventDefault()
+          showMenu(node.dataset.appId, event.clientX, event.clientY)
+        })
+
+        appsNode.addEventListener('dragstart', function (event) {
+          event.preventDefault()
+        })
+        appsNode.addEventListener('pointerdown', function (event) {
+          if (event.button !== 0) {
+            return
+          }
+          var node = event.target.closest('.app-tile')
+          if (!node) {
+            return
+          }
+          suppressClick = false
+          drag = {
+            tile: node,
+            index: Number(node.dataset.index),
+            startX: event.clientX,
+            startY: event.clientY,
+            active: false,
+            ghost: null,
+            target: null
+          }
+          try {
+            node.setPointerCapture(event.pointerId)
+          } catch {
+            // Pointer capture is best-effort.
+          }
+        })
+        appsNode.addEventListener('pointermove', updateDrag)
+        appsNode.addEventListener('pointerup', finishDrag)
+        appsNode.addEventListener('pointercancel', function () {
+          if (drag && drag.ghost) {
+            drag.ghost.remove()
+          }
+          if (drag) {
+            drag.tile.classList.remove('dragging')
+          }
+          drag = null
+        })
+
+        removeButton.addEventListener('click', function () {
+          if (menuAppId) {
+            removeApp(menuAppId)
+          }
+        })
+
+        document.addEventListener('click', function (event) {
+          if (!menu.hidden && !menu.contains(event.target)) {
+            hideMenu()
+          }
+        })
+
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            if (!menu.hidden) {
+              hideMenu()
+            } else if (!title.readOnly) {
+              cancelRename()
+            } else {
+              window.bundleApi.close()
+            }
+          }
+        })
+
+        if (!window.bundleApi) {
+          appsNode.innerHTML = '<p class="error">The bundle popover needs its bridge.</p>'
+          return
+        }
+
+        window.addEventListener('blur', hideMenu)
+        window.bundleApi.onState(apply)
+        refresh()
+      })()
+    </script>
+  </body>
+</html>

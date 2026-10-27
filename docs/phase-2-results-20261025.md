@@ -49,11 +49,14 @@
 | Opacity 80/60 | PASS | User-verified live opacity changes through the right-click menu. |
 | Remove confirmation | PASS | Settings Cancel/Remove paths passed; the user also verified the right-click Remove option. |
 | Tray toggle | PASS | User confirmed Ctrl+Alt+E and the tray menu both toggle edit mode, including the menu checkmark. |
-| Physical monitor unplug/replug | DEFERRED | No second monitor available; not marked PASS. |
+| Physical monitor unplug/replug | MOVED | No second monitor available. Per owner instruction on 2026-10-25 this row moves to the last phase (Phase 8). Not marked PASS. |
 
 ## Deferred gate
 
-- **Physical second-monitor unplug/replug:** deferred because no second monitor is available. This is not marked PASS; the single-monitor fallback path is covered by the missing-display test above.
+- **Physical second-monitor unplug/replug:** deferred because no second monitor is available. Per
+  owner instruction, this row is moved out of Phase 2 and must be run in the last phase
+  (Phase 8) before release. This is not marked PASS; the single-monitor fallback path is covered
+  by the missing-display test above.
 
 Manual interaction used a single 1920x1080 primary display at 125% scaling (1536x864 DIP work area). Widget windows are intentionally pinned above the desktop, so OS automation temporarily forced the tested widget topmost; normal user clicks were also confirmed by the user.
 

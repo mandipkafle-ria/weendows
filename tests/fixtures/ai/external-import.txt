@@ -1,0 +1,10 @@
+<hl-manifest>
+{"name":"External import","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head>
+<body><div>Import</div><script type="module">import { value } from 'https://cdn.example.com/module.js'; hl.ready()</script></body>
+</html>
+</hl-widget>

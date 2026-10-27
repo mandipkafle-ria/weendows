@@ -5,6 +5,7 @@ productName: HomeLayer
 asarUnpack:
   - node_modules/koffi/**
   - node_modules/@koromix/koffi-*/**
+  - resources/cursors/**
 win:
   target: [nsis, portable]
   icon: resources/icon.ico

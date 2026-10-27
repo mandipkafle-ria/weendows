@@ -1,14 +1,31 @@
-import { Menu, Tray, nativeImage, type NativeImage } from 'electron'
+import {
+  Menu,
+  Tray,
+  nativeImage,
+  type MenuItemConstructorOptions,
+  type NativeImage
+} from 'electron'
 import { readFileSync } from 'node:fs'
 import { APP_NAME } from '../shared/constants'
+import { t } from './i18n'
 import trayIcon16 from '../../resources/tray.png?asset'
 import trayIcon32 from '../../resources/tray@2x.png?asset'
 
+export interface TrayWidgetOption {
+  type: string
+  name: string
+}
+
 export interface TrayActions {
+  version: string
   openSettings: () => void
   quit: () => void
   getEditMode: () => boolean
   toggleEditMode: () => void
+  getAddableWidgets: () => TrayWidgetOption[]
+  addWidget: (builtinType: string) => void
+  getLiveWallpaperPaused?: () => boolean
+  toggleLiveWallpaperPause?: () => void
 }
 
 export interface TrayController {
@@ -29,23 +46,50 @@ function createTrayImage(): NativeImage {
 }
 
 function buildMenu(actions: TrayActions): Menu {
-  return Menu.buildFromTemplate([
+  const widgets = actions.getAddableWidgets()
+  const addWidgetItems: MenuItemConstructorOptions[] =
+    widgets.length > 0
+      ? widgets.map((widget) => ({
+          label: widget.name,
+          click: () => actions.addWidget(widget.type)
+        }))
+      : [{ label: t('tray.noWidgets'), enabled: false }]
+
+  const template: MenuItemConstructorOptions[] = [
     {
-      label: 'Edit layout',
+      label: t('tray.editLayout'),
       type: 'checkbox',
       checked: actions.getEditMode(),
       click: actions.toggleEditMode
     },
+    { label: t('tray.addWidget'), submenu: addWidgetItems }
+  ]
+
+  if (actions.getLiveWallpaperPaused && actions.toggleLiveWallpaperPause) {
+    template.push(
+      { type: 'separator' },
+      {
+        label: t('tray.pauseLiveWallpaper'),
+        type: 'checkbox',
+        checked: actions.getLiveWallpaperPaused(),
+        click: () => actions.toggleLiveWallpaperPause?.()
+      }
+    )
+  }
+
+  template.push(
     { type: 'separator' },
-    { label: 'Open settings', click: actions.openSettings },
+    { label: t('tray.settings'), click: actions.openSettings },
     { type: 'separator' },
-    { label: 'Quit', click: actions.quit }
-  ])
+    { label: t('tray.quit'), click: actions.quit }
+  )
+
+  return Menu.buildFromTemplate(template)
 }
 
 export function createTray(actions: TrayActions): TrayController {
   const tray = new Tray(createTrayImage())
-  tray.setToolTip(APP_NAME)
+  tray.setToolTip(`${APP_NAME} ${actions.version}`)
 
   const refresh = (): void => {
     tray.setContextMenu(buildMenu(actions))

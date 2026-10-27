@@ -1,0 +1,10 @@
+<hl-manifest>
+{"name":"External script","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html>
+<head><script src="https://cdn.example.com/widget.js"></script></head>
+<body><div>External</div><script>hl.ready()</script></body>
+</html>
+</hl-widget>

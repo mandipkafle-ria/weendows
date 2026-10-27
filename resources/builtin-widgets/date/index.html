@@ -2,20 +2,40 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Date</title>
+    <script>
+      document.documentElement.dataset.variant =
+        new URLSearchParams(location.search).get('variant') || 'classic'
+    </script>
     <style>
-      @font-face {
-        font-family: 'DotGothic16';
-        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+      :root {
+        --ink: #f5f1e9;
+        --muted: #9b978f;
+        --faint: #67645e;
+        --surface: rgba(19, 18, 16, 0.95);
+        --surface-2: rgba(29, 27, 23, 0.96);
+        --line: rgba(255, 255, 255, 0.08);
+        --accent: #ff8a5b;
+        --accent-soft: rgba(255, 138, 91, 0.14);
+        --radius: 18px;
+        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
       }
 
-      :root {
-        color-scheme: dark;
+      html[data-theme='light'] {
+        --ink: #211e19;
+        --muted: #6d6860;
+        --faint: #948e84;
+        --surface: rgba(251, 249, 244, 0.97);
+        --surface-2: #ffffff;
+        --line: rgba(30, 25, 18, 0.09);
+        --accent: #c2410c;
+        --accent-soft: rgba(194, 65, 12, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       html,
@@ -28,27 +48,28 @@
       }
 
       body {
-        font-family: 'DotGothic16', 'Segoe UI', system-ui, sans-serif;
+        font-family: var(--font-ui);
         -webkit-font-smoothing: antialiased;
       }
 
       .card {
-        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         width: 100%;
         height: 100%;
-        padding: 14px 18px 13px;
+        min-height: 0;
+        padding: 14px 17px 12px;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 18px;
+        border: 0;
+        border-radius: var(--radius);
         background:
-          radial-gradient(circle at 12% 88%, rgba(255, 138, 91, 0.18), transparent 46%),
-          linear-gradient(145deg, rgba(33, 23, 30, 0.95), rgba(14, 11, 16, 0.92));
+          radial-gradient(13rem 9rem at 8% 92%, var(--accent-soft), transparent 62%),
+          linear-gradient(150deg, var(--surface-2), var(--surface));
         box-shadow:
-          0 14px 40px rgba(0, 0, 0, 0.38),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+        background-clip: padding-box;
       }
 
       .top {
@@ -59,18 +80,21 @@
       }
 
       .label {
-        color: rgba(255, 201, 176, 0.64);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 9px;
+        color: var(--faint);
+        font-size: 8px;
         font-weight: 700;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.17em;
         text-transform: uppercase;
       }
 
       .weekday {
-        color: rgba(244, 232, 226, 0.64);
-        font-size: 11px;
-        letter-spacing: 0.04em;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .body {
@@ -82,42 +106,154 @@
 
       .day {
         margin: 0;
-        color: #fff4ee;
+        color: var(--ink);
+        font-family: var(--font-display);
         font-size: 58px;
+        font-weight: 300;
         font-variant-numeric: tabular-nums;
-        line-height: 0.86;
-        letter-spacing: -0.02em;
-        text-shadow: 0 0 26px rgba(255, 132, 86, 0.2);
+        letter-spacing: -0.06em;
+        line-height: 0.82;
       }
 
       .meta {
         display: flex;
         flex-direction: column;
         align-items: flex-end;
-        gap: 2px;
-        padding-bottom: 4px;
+        gap: 1px;
+        padding-bottom: 2px;
+        text-align: right;
       }
 
       .month {
         margin: 0;
-        color: #ffc9b3;
+        color: var(--accent);
+        font-family: var(--font-display);
         font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
 
       .year {
         margin: 0;
-        color: rgba(231, 216, 210, 0.5);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.1em;
+        color: var(--faint);
+        font-family: var(--font-ui);
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.12em;
       }
 
-      .accent {
-        width: 34px;
-        height: 2px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #ff8a5b, rgba(255, 138, 91, 0));
+      .footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--faint);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .rule {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--accent-soft), transparent);
+      }
+
+      html[data-variant='editorial'] .card {
+        --ink: #2b2519;
+        --muted: #736a58;
+        --faint: #998e79;
+        --accent: #a33f1a;
+        --line: rgba(54, 44, 26, 0.14);
+        padding: 16px 18px 14px;
+        background:
+          linear-gradient(155deg, rgba(255, 255, 255, 0.42), transparent 52%),
+          #f2ecdf;
+        box-shadow:
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+      }
+
+      html[data-variant='editorial'] .top {
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      html[data-variant='editorial'] .label,
+      html[data-variant='editorial'] .weekday {
+        color: #736a58;
+      }
+
+      html[data-variant='editorial'] .day {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 76px;
+        font-weight: 400;
+        letter-spacing: -0.08em;
+      }
+
+      html[data-variant='editorial'] .meta {
+        padding-bottom: 7px;
+      }
+
+      html[data-variant='editorial'] .month {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 19px;
+        font-weight: 400;
+        font-style: italic;
+      }
+
+      html[data-variant='editorial'] .year {
+        color: #998e79;
+      }
+
+      html[data-variant='editorial'] .footer {
+        padding-top: 7px;
+        border-top: 1px solid var(--line);
+        color: #998e79;
+      }
+
+      html[data-variant='editorial'] .rule {
+        background: linear-gradient(90deg, rgba(163, 63, 26, 0.32), transparent);
+      }
+
+      html[data-variant='minimal'] .card {
+        justify-content: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      html[data-variant='minimal'] .top,
+      html[data-variant='minimal'] .footer {
+        display: none;
+      }
+
+      html[data-variant='minimal'] .body {
+        align-items: baseline;
+        justify-content: flex-start;
+        gap: 9px;
+      }
+
+      html[data-variant='minimal'] .day {
+        font-size: 44px;
+        font-weight: 300;
+      }
+
+      html[data-variant='minimal'] .meta {
+        align-items: flex-start;
+        padding: 0;
+        text-align: left;
+      }
+
+      html[data-variant='minimal'] .month {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      html[data-variant='minimal'] .year {
+        font-size: 8.5px;
       }
     </style>
   </head>
@@ -134,7 +270,11 @@
           <p class="year" id="year"></p>
         </div>
       </div>
-      <div class="accent"></div>
+      <div class="footer">
+        <span id="ordinal"></span>
+        <span class="rule"></span>
+        <span id="daypart"></span>
+      </div>
     </main>
     <script>
       ;(function () {
@@ -144,6 +284,15 @@
         var dayNode = document.getElementById('day')
         var monthNode = document.getElementById('month')
         var yearNode = document.getElementById('year')
+        var ordinalNode = document.getElementById('ordinal')
+        var daypartNode = document.getElementById('daypart')
+
+        function ordinal(day) {
+          if (day >= 11 && day <= 13) {
+            return 'th'
+          }
+          return ['th', 'st', 'nd', 'rd'][day % 10] || 'th'
+        }
 
         function render() {
           var now = new Date()
@@ -151,7 +300,7 @@
             weekdayNode.textContent = now.toLocaleDateString([], { weekday: 'long' })
           }
           if (dayNode) {
-            dayNode.textContent = now.toLocaleDateString([], { day: '2-digit' })
+            dayNode.textContent = String(now.getDate()).padStart(2, '0')
           }
           if (monthNode) {
             monthNode.textContent = now.toLocaleDateString([], { month: 'long' })
@@ -159,14 +308,34 @@
           if (yearNode) {
             yearNode.textContent = now.toLocaleDateString([], { year: 'numeric' })
           }
+          if (ordinalNode) {
+            ordinalNode.textContent = now.getDate() + ordinal(now.getDate())
+          }
+          if (daypartNode) {
+            daypartNode.textContent = 'Day ' + (
+              Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000)
+            )
+          }
         }
 
         render()
         setInterval(render, 60000)
 
-        if (window.hl && typeof window.hl.ready === 'function') {
-          window.hl.ready(function (context) {
-            document.documentElement.dataset.widget = context.id
+        function applyTheme(dark) {
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        }
+
+        if (window.hl) {
+          window.hl.ready()
+            .then(function () {
+              return window.hl.getContext()
+            })
+            .then(function (context) {
+              applyTheme(context.dark)
+            })
+            .catch(function () {})
+          window.hl.onTheme(function (state) {
+            applyTheme(state.dark)
           })
         }
       })()

@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { WIDGET_SESSION_PARTITION } from '../../shared/constants'
 import log from '../services/logger'
 import type { Rect } from './layout-math'
 
@@ -7,7 +8,7 @@ export interface WidgetWindowOptions {
   widgetId: string
   title: string
   bounds: Rect
-  opacity: number
+  focusable: boolean
 }
 
 export function createWidgetWindow(options: WidgetWindowOptions): BrowserWindow {
@@ -26,21 +27,22 @@ export function createWidgetWindow(options: WidgetWindowOptions): BrowserWindow 
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: true,
-    focusable: false,
+    focusable: options.focusable,
     hasShadow: false,
     type: 'toolbar',
     title: options.title,
     webPreferences: {
       preload: join(__dirname, '../preload/shell-preload.js'),
+      partition: WIDGET_SESSION_PARTITION,
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      webviewTag: false,
       spellcheck: false
     }
   })
 
   win.setMenu(null)
-  win.setOpacity(options.opacity)
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   win.webContents.on('will-navigate', (details) => details.preventDefault())
   win.webContents.on('will-frame-navigate', (details) => {
@@ -63,8 +65,14 @@ export function createWidgetWindow(options: WidgetWindowOptions): BrowserWindow 
   return win
 }
 
-export async function loadWidgetShell(win: BrowserWindow, widgetId: string): Promise<void> {
-  await win.loadFile(join(__dirname, '../renderer/widget-shell/index.html'), {
-    query: { id: widgetId }
-  })
+export async function loadWidgetShell(
+  win: BrowserWindow,
+  widgetId: string,
+  variant: string | null
+): Promise<void> {
+  const query: Record<string, string> = { id: widgetId }
+  if (variant) {
+    query['variant'] = variant
+  }
+  await win.loadFile(join(__dirname, '../renderer/widget-shell/index.html'), { query })
 }

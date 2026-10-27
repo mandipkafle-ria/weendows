@@ -2,20 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Calendar</title>
+    <script>
+      document.documentElement.dataset.variant =
+        new URLSearchParams(location.search).get('variant') || 'grid'
+    </script>
     <style>
-      @font-face {
-        font-family: 'DotGothic16';
-        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+      :root {
+        --ink: #f4f1ea;
+        --muted: #9399a4;
+        --faint: #616773;
+        --surface: rgba(17, 19, 24, 0.95);
+        --surface-2: rgba(25, 28, 35, 0.96);
+        --line: rgba(255, 255, 255, 0.075);
+        --accent: #ff7a45;
+        --accent-soft: rgba(255, 122, 69, 0.16);
+        --accent-ink: #1e0d06;
+        --radius: 18px;
+        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
       }
 
-      :root {
-        color-scheme: dark;
+      html[data-theme='light'] {
+        --ink: #1e1c18;
+        --muted: #66625a;
+        --faint: #948e84;
+        --surface: rgba(251, 250, 246, 0.97);
+        --surface-2: #ffffff;
+        --line: rgba(25, 22, 18, 0.09);
+        --accent: #c2410c;
+        --accent-soft: rgba(194, 65, 12, 0.1);
+        --accent-ink: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       html,
@@ -28,49 +50,67 @@
       }
 
       body {
-        font-family: 'DotGothic16', 'Segoe UI', system-ui, sans-serif;
+        font-family: var(--font-ui);
         -webkit-font-smoothing: antialiased;
       }
 
       .card {
-        box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 7px;
         width: 100%;
         height: 100%;
-        padding: 14px 14px 12px;
+        min-height: 0;
+        padding: 13px 13px 11px;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 18px;
+        border: 0;
+        border-radius: var(--radius);
         background:
-          radial-gradient(circle at 82% 4%, rgba(255, 138, 91, 0.17), transparent 48%),
-          linear-gradient(145deg, rgba(28, 22, 30, 0.95), rgba(13, 11, 16, 0.93));
+          radial-gradient(15rem 10rem at 88% -8%, var(--accent-soft), transparent 62%),
+          linear-gradient(150deg, var(--surface-2), var(--surface));
         box-shadow:
-          0 14px 40px rgba(0, 0, 0, 0.38),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+        background-clip: padding-box;
       }
 
       .header {
         display: flex;
-        align-items: baseline;
+        align-items: flex-end;
         justify-content: space-between;
         gap: 8px;
+        padding-bottom: 1px;
       }
 
       .month {
         margin: 0;
-        color: #fff1e9;
+        color: var(--ink);
+        font-family: var(--font-display);
         font-size: 16px;
-        letter-spacing: 0.01em;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
       }
 
       .year {
-        color: rgba(255, 201, 176, 0.62);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 10px;
+        display: block;
+        margin-top: 2px;
+        color: var(--faint);
+        font-size: 8px;
         font-weight: 700;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.14em;
+      }
+
+      .badge {
+        padding: 3px 6px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        color: var(--faint);
+        font-size: 7.5px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .weekdays,
@@ -80,16 +120,11 @@
         gap: 2px;
       }
 
-      .weekdays {
-        margin-top: 1px;
-      }
-
       .weekday {
-        color: rgba(231, 216, 210, 0.38);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 9px;
+        color: var(--faint);
+        font-size: 7.5px;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.05em;
         text-align: center;
         text-transform: uppercase;
       }
@@ -104,40 +139,160 @@
         height: 27px;
         place-items: center;
         border-radius: 7px;
-        color: rgba(245, 237, 232, 0.84);
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        font-size: 11px;
+        color: var(--muted);
+        font-size: 10.5px;
         font-variant-numeric: tabular-nums;
+        font-weight: 550;
       }
 
       .day.other {
-        color: rgba(245, 237, 232, 0.22);
+        color: var(--faint);
+        opacity: 0.38;
       }
 
       .day.today {
-        background: linear-gradient(145deg, #ff9b6f, #f06d3f);
-        color: #1e0d07;
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 750;
+        box-shadow: 0 4px 14px var(--accent-soft);
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 5px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 7.5px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .footer-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      html[data-variant='compact'] .card {
+        gap: 4px;
+        padding: 9px 11px 8px;
+      }
+
+      html[data-variant='compact'] .header {
+        align-items: center;
+      }
+
+      html[data-variant='compact'] .month {
+        font-size: 13px;
+      }
+
+      html[data-variant='compact'] .year {
+        display: inline;
+        margin-left: 5px;
+      }
+
+      html[data-variant='compact'] .badge,
+      html[data-variant='compact'] .footer {
+        display: none;
+      }
+
+      html[data-variant='compact'] .weekdays {
+        display: none;
+      }
+
+      html[data-variant='compact'] .day {
+        height: 20px;
+        border-radius: 5px;
+        font-size: 9px;
+      }
+
+      html[data-variant='compact'] .day.today {
+        box-shadow: none;
+      }
+
+      html[data-variant='paper'] .card {
+        --ink: #2f281d;
+        --muted: #776d5a;
+        --faint: #a1957e;
+        --line: rgba(59, 48, 30, 0.14);
+        --accent: #a33f1a;
+        --accent-soft: rgba(163, 63, 26, 0.12);
+        --accent-ink: #fff9ee;
+        padding: 18px 16px 13px;
+        background:
+          linear-gradient(90deg, transparent 0 7px, rgba(163, 63, 26, 0.16) 7px 8px, transparent 8px),
+          repeating-linear-gradient(0deg, transparent 0 23px, rgba(59, 48, 30, 0.055) 23px 24px),
+          #f3ecdd;
+        box-shadow:
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+      }
+
+      html[data-variant='paper'] .header {
+        padding-bottom: 7px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      html[data-variant='paper'] .month {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 19px;
+        font-weight: 400;
+        font-style: italic;
+      }
+
+      html[data-variant='paper'] .year {
+        color: var(--faint);
+      }
+
+      html[data-variant='paper'] .badge {
+        color: var(--faint);
+      }
+
+      html[data-variant='paper'] .weekday {
+        color: #a1957e;
+      }
+
+      html[data-variant='paper'] .day {
+        height: 26px;
+        border-radius: 3px;
+        color: var(--muted);
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 11px;
+      }
+
+      html[data-variant='paper'] .day.today {
+        border: 1px solid rgba(163, 63, 26, 0.35);
+        background: transparent;
+        color: #a33f1a;
+        box-shadow: none;
         font-weight: 700;
-        box-shadow: 0 0 18px rgba(255, 122, 69, 0.3);
+      }
+
+      html[data-variant='paper'] .footer {
+        border-top-color: var(--line);
       }
     </style>
   </head>
   <body>
     <main class="card">
       <div class="header">
-        <p class="month" id="month"></p>
-        <span class="year" id="year"></span>
+        <div>
+          <p class="month" id="month"></p>
+          <span class="year" id="year"></span>
+        </div>
+        <span class="badge" id="badge">This month</span>
       </div>
-      <div class="weekdays" aria-hidden="true">
-        <span class="weekday">Sun</span>
-        <span class="weekday">Mon</span>
-        <span class="weekday">Tue</span>
-        <span class="weekday">Wed</span>
-        <span class="weekday">Thu</span>
-        <span class="weekday">Fri</span>
-        <span class="weekday">Sat</span>
-      </div>
+      <div class="weekdays" id="weekdays" aria-hidden="true"></div>
       <div class="days" id="days" role="grid" aria-label="Month calendar"></div>
+      <div class="footer">
+        <span id="today"></span>
+        <span class="footer-dot"></span>
+      </div>
     </main>
     <script>
       ;(function () {
@@ -145,7 +300,28 @@
 
         var monthNode = document.getElementById('month')
         var yearNode = document.getElementById('year')
+        var weekdayNode = document.getElementById('weekdays')
         var daysNode = document.getElementById('days')
+        var todayNode = document.getElementById('today')
+
+        function buildWeekdays() {
+          if (!weekdayNode) {
+            return
+          }
+          var reference = new Date(2024, 0, 7)
+          var nodes = []
+          for (var index = 0; index < 7; index += 1) {
+            var node = document.createElement('span')
+            node.className = 'weekday'
+            node.textContent = new Date(
+              reference.getFullYear(),
+              reference.getMonth(),
+              reference.getDate() + index
+            ).toLocaleDateString([], { weekday: 'narrow' })
+            nodes.push(node)
+          }
+          weekdayNode.replaceChildren.apply(weekdayNode, nodes)
+        }
 
         function render() {
           var now = new Date()
@@ -159,6 +335,13 @@
           }
           if (yearNode) {
             yearNode.textContent = String(year)
+          }
+          if (todayNode) {
+            todayNode.textContent = now.toLocaleDateString([], {
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric'
+            })
           }
           if (!daysNode) {
             return
@@ -188,12 +371,25 @@
           daysNode.replaceChildren.apply(daysNode, nodes)
         }
 
+        buildWeekdays()
         render()
         setInterval(render, 60000)
 
-        if (window.hl && typeof window.hl.ready === 'function') {
-          window.hl.ready(function (context) {
-            document.documentElement.dataset.widget = context.id
+        function applyTheme(dark) {
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        }
+
+        if (window.hl) {
+          window.hl.ready()
+            .then(function () {
+              return window.hl.getContext()
+            })
+            .then(function (context) {
+              applyTheme(context.dark)
+            })
+            .catch(function () {})
+          window.hl.onTheme(function (state) {
+            applyTheme(state.dark)
           })
         }
       })()

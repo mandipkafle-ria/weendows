@@ -1,0 +1,7 @@
+<hl-manifest>
+{"name":"No ready","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>No ready call</div></body></html>
+</hl-widget>

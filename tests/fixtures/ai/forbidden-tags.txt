@@ -1,0 +1,16 @@
+<hl-manifest>
+{"name":"Forbidden tags","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html>
+<body>
+<iframe src="https://example.com"></iframe>
+<script>
+localStorage.setItem('x', '1')
+eval('1 + 1')
+hl.ready()
+</script>
+</body>
+</html>
+</hl-widget>

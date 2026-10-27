@@ -1,8 +1,14 @@
-import { protocol } from 'electron'
+import { protocol, session } from 'electron'
 import { readFile } from 'node:fs/promises'
-import { WIDGET_CSP } from '../../shared/constants'
+import { WIDGET_CSP, WIDGET_SESSION_PARTITION } from '../../shared/constants'
 import log from '../services/logger'
-import { injectSdk, mimeFor, resolveWidgetFile, type WidgetProtocolPaths } from './widget-paths'
+import {
+  injectSdk,
+  isWallpaperHost,
+  mimeFor,
+  resolveWidgetFile,
+  type WidgetProtocolPaths
+} from './widget-paths'
 
 export type { WidgetProtocolPaths } from './widget-paths'
 export { injectSdk, mimeFor, resolveWidgetFile } from './widget-paths'
@@ -17,12 +23,38 @@ export function registerWidgetScheme(): void {
         supportFetchAPI: true,
         corsEnabled: true
       }
+    },
+    {
+      scheme: 'hl-icon',
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true
+      }
+    },
+    {
+      scheme: 'hl-wallpaper',
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true
+      }
     }
   ])
 }
 
+function requestHost(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
 export function registerWidgetProtocol(paths: WidgetProtocolPaths): void {
-  protocol.handle('widget', async (request) => {
+  const handle = async (request: Request): Promise<Response> => {
     const file = resolveWidgetFile(paths, request.url)
     if (!file) {
       return new Response('forbidden', { status: 403 })
@@ -30,7 +62,7 @@ export function registerWidgetProtocol(paths: WidgetProtocolPaths): void {
 
     try {
       let body: Buffer | string = await readFile(file)
-      if (file.toLowerCase().endsWith('index.html')) {
+      if (file.toLowerCase().endsWith('index.html') && !isWallpaperHost(requestHost(request.url))) {
         body = injectSdk(body.toString('utf8'))
       }
 
@@ -51,5 +83,8 @@ export function registerWidgetProtocol(paths: WidgetProtocolPaths): void {
       }
       return new Response('not found', { status: 404 })
     }
-  })
+  }
+
+  protocol.handle('widget', handle)
+  session.fromPartition(WIDGET_SESSION_PARTITION).protocol.handle('widget', handle)
 }

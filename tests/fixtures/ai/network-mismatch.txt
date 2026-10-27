@@ -1,0 +1,7 @@
+<hl-manifest>
+{"name":"Network mismatch","width":240,"height":240,"permissions":["network"],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>Network</div><script>hl.ready()</script></body></html>
+</hl-widget>

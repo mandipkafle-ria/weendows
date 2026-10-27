@@ -1,13 +1,33 @@
 import { extname, join, resolve, sep } from 'node:path'
-import { WIDGET_ID_RE } from '../../shared/constants'
+import { WALLPAPER_ID_RE, WIDGET_ID_RE } from '../../shared/constants'
 
 export interface WidgetProtocolPaths {
   widgetsDir: string
+  builtinsDir?: string
   sdkDir: string
   fontsDir: string
+  wallpapersDir?: string
+}
+
+const WALLPAPER_HOST_PREFIX = 'wp-'
+const BUILTIN_PREVIEW_HOST = '_builtins'
+const BUILTIN_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+export function isWallpaperHost(host: string): boolean {
+  return host.startsWith(WALLPAPER_HOST_PREFIX)
+}
+
+export function wallpaperHostId(host: string): string | null {
+  if (!isWallpaperHost(host)) {
+    return null
+  }
+  const id = host.slice(WALLPAPER_HOST_PREFIX.length)
+  return WALLPAPER_ID_RE.test(id) ? id : null
 }
 
 const SDK_TAG = '<script src="widget://_sdk/sdk.js"></script>'
+const BASE_STYLE =
+  '<style>html, body, :root { background: transparent !important; color-scheme: normal !important; }</style>'
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -22,7 +42,8 @@ const MIME_TYPES: Record<string, string> = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
-  '.mp4': 'video/mp4'
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm'
 }
 
 export function mimeFor(file: string): string {
@@ -30,10 +51,15 @@ export function mimeFor(file: string): string {
 }
 
 export function injectSdk(html: string): string {
-  if (/<head[^>]*>/i.test(html)) {
-    return html.replace(/<head[^>]*>/i, (match) => match + SDK_TAG)
+  const withoutColorScheme = html.replace(/<meta\s+name=["']color-scheme["'][^>]*>\s*/gi, '')
+  const withBaseStyle = /<\/head>/i.test(withoutColorScheme)
+    ? withoutColorScheme.replace(/<\/head>/i, (match) => BASE_STYLE + match)
+    : BASE_STYLE + withoutColorScheme
+
+  if (/<head[^>]*>/i.test(withBaseStyle)) {
+    return withBaseStyle.replace(/<head[^>]*>/i, (match) => match + SDK_TAG)
   }
-  return SDK_TAG + html
+  return SDK_TAG + withBaseStyle
 }
 
 export function resolveWidgetFile(paths: WidgetProtocolPaths, requestUrl: string): string | null {
@@ -50,8 +76,21 @@ export function resolveWidgetFile(paths: WidgetProtocolPaths, requestUrl: string
 
   const host = url.hostname.toLowerCase()
   let base: string
+  let requiresBuiltinId = false
 
-  if (host === '_sdk') {
+  if (isWallpaperHost(host)) {
+    const id = wallpaperHostId(host)
+    if (!id || !paths.wallpapersDir) {
+      return null
+    }
+    base = join(paths.wallpapersDir, id)
+  } else if (host === BUILTIN_PREVIEW_HOST) {
+    if (!paths.builtinsDir) {
+      return null
+    }
+    base = paths.builtinsDir
+    requiresBuiltinId = true
+  } else if (host === '_sdk') {
     base = paths.sdkDir
   } else if (host === '_fonts') {
     base = paths.fontsDir
@@ -71,6 +110,13 @@ export function resolveWidgetFile(paths: WidgetProtocolPaths, requestUrl: string
 
   if (pathname === '' || pathname === '/') {
     pathname = '/index.html'
+  }
+
+  if (requiresBuiltinId) {
+    const type = pathname.split('/').filter(Boolean)[0]
+    if (!type || !BUILTIN_ID_RE.test(type)) {
+      return null
+    }
   }
 
   const file = resolve(base, `.${pathname}`)

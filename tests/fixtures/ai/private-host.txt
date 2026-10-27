@@ -1,0 +1,7 @@
+<hl-manifest>
+{"name":"Private host","width":240,"height":240,"permissions":["network"],"allowedHosts":["localhost"]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>Private</div><script>hl.ready()</script></body></html>
+</hl-widget>

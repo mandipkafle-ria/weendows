@@ -1,0 +1,7 @@
+<hl-manifest>
+{"name":"Too small","width":50,"height":50,"permissions":["storage","storage"],"allowedHosts":["localhost"]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>Bad manifest</div><script>hl.ready()</script></body></html>
+</hl-widget>

@@ -1,13 +1,150 @@
 import { z } from 'zod'
-import { WIDGET_ID_RE } from './constants'
-import { WIDGET_PERMISSIONS } from './types'
+import { GRID_TITLE_MAX, WALLPAPER_ID_RE, WIDGET_ID_RE } from './constants'
+import {
+  ACCENT_COLORS,
+  CURSOR_STYLES,
+  WALLPAPER_FITS,
+  WALLPAPER_INTERVAL_MINUTES,
+  WIDGET_PERMISSIONS
+} from './types'
 
 export const noArgsSchema = z.undefined()
 
+export const themeSourceSchema = z.enum(['dark', 'light', 'system'])
+export const accentColorSchema = z.enum(ACCENT_COLORS)
+export const cursorStyleSchema = z.enum(CURSOR_STYLES)
+export const acceleratorSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(64)
+  .regex(/^[A-Za-z0-9+]+$/, 'Invalid shortcut')
+export const windowSizeSchema = z.object({
+  width: z.number().int().min(720).max(10000),
+  height: z.number().int().min(520).max(10000)
+})
+export const appSettingsSchema = z
+  .object({
+    schema: z.literal(1),
+    theme: themeSourceSchema,
+    accent: accentColorSchema.default('ember'),
+    cursorStyle: cursorStyleSchema.default('system'),
+    cursorSystemWide: z.boolean().default(false),
+    hotkey: acceleratorSchema,
+    window: windowSizeSchema,
+    onboardingCompleted: z.boolean()
+  })
+  .passthrough()
+export const startupFileSchema = z
+  .object({
+    schema: z.literal(1),
+    attempts: z.array(z.number().int().nonnegative()).max(50),
+    lastCleanAt: z.string().max(64).nullable()
+  })
+  .passthrough()
+
 export const widgetIdSchema = z.string().regex(WIDGET_ID_RE, 'Invalid widget id')
 export const builtinTypeSchema = z.string().min(1).max(64)
+export const widgetVariantSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Invalid widget variant')
 export const opacitySchema = z.number().min(0.2).max(1)
 export const permissionSchema = z.enum(WIDGET_PERMISSIONS)
+export const appIdSchema = z.string().min(1).max(128)
+export const bundleIdSchema = z.string().min(1).max(128)
+export const bundleNameSchema = z.string().trim().min(1).max(24)
+export const gridTitleSchema = z.string().trim().min(1).max(GRID_TITLE_MAX)
+export const gridIndexSchema = z.number().int().min(0).max(1000)
+export const appGridItemRefSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('app'), appId: appIdSchema }),
+  z.object({ type: z.literal('bundle'), bundleId: bundleIdSchema })
+])
+export const appGridFileSchema = z.object({
+  schema: z.literal(1),
+  grids: z.record(
+    z.string().min(1).max(128),
+    z.object({
+      items: z.array(appGridItemRefSchema).max(1000),
+      title: gridTitleSchema.optional()
+    })
+  )
+})
+export const appGroupsFileSchema = z.object({
+  schema: z.literal(1),
+  bundles: z
+    .array(
+      z.object({
+        id: bundleIdSchema,
+        gridId: z.string().min(1).max(128),
+        name: z.string().min(1).max(24),
+        appIds: z.array(appIdSchema).max(1000)
+      })
+    )
+    .max(1000)
+})
+export const appIdsSchema = z.array(appIdSchema).min(1).max(200)
+export const gridRenameTitleSchema = z.object({ title: gridTitleSchema })
+export const gridMoveSchema = z.object({ from: gridIndexSchema, to: gridIndexSchema })
+export const gridMergeSchema = z.object({
+  appId: appIdSchema,
+  targetKey: z.string().min(1).max(160)
+})
+export const gridOpenBundleSchema = z.object({
+  bundleId: bundleIdSchema,
+  rect: z.object({
+    x: z.number().finite(),
+    y: z.number().finite(),
+    width: z.number().positive().max(10000),
+    height: z.number().positive().max(10000)
+  })
+})
+export const bundleReorderSchema = z.object({ from: gridIndexSchema, to: gridIndexSchema })
+
+const hostnameSchema = z
+  .string()
+  .min(1)
+  .max(253)
+  .regex(
+    /^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))*$/i,
+    'allowedHosts must contain plain host names'
+  )
+  .transform((value) => value.toLowerCase())
+
+export const aiManifestSchema = z.object({
+  name: z.string().trim().min(1).max(40),
+  width: z.number().int().min(120).max(800),
+  height: z.number().int().min(120).max(800),
+  minWidth: z.number().int().min(1).max(800).optional(),
+  minHeight: z.number().int().min(1).max(800).optional(),
+  permissions: z
+    .array(permissionSchema)
+    .max(WIDGET_PERMISSIONS.length)
+    .refine((items) => new Set(items).size === items.length, 'permissions must not repeat'),
+  allowedHosts: z
+    .array(hostnameSchema)
+    .max(5)
+    .refine((items) => new Set(items).size === items.length, 'allowedHosts must not repeat'),
+  refreshSeconds: z.number().int().min(1).max(86400).nullable().optional()
+})
+
+export const aiProviderSchema = z.enum(['gemini', 'openai-compat'])
+export const aiSettingsSchema = z.object({
+  provider: aiProviderSchema,
+  baseUrl: z.string().trim().min(1).max(500),
+  model: z.string().trim().max(200),
+  width: z.number().int().min(120).max(800),
+  height: z.number().int().min(120).max(800)
+})
+export const aiPromptSchema = z.string().trim().min(1).max(4000)
+export const aiInstructionSchema = z.string().trim().min(1).max(4000)
+export const aiKeySchema = z.string().max(4096)
+export const aiApprovalSchema = z.object({
+  permissions: z.array(permissionSchema).max(WIDGET_PERMISSIONS.length),
+  allowedHosts: z.array(hostnameSchema).max(5)
+})
 
 export const widgetManifestSchema = z
   .object({
@@ -16,10 +153,13 @@ export const widgetManifestSchema = z
     name: z.string().min(1).max(40),
     kind: z.enum(['builtin', 'ai', 'imported']),
     builtinType: z.string().min(1).max(64).optional(),
+    variant: widgetVariantSchema.optional(),
     width: z.number().int().positive().max(10000),
     height: z.number().int().positive().max(10000),
     minWidth: z.number().int().positive().max(10000).optional(),
     minHeight: z.number().int().positive().max(10000).optional(),
+    focusable: z.boolean().optional(),
+    editPassthrough: z.boolean().optional(),
     permissions: z.array(permissionSchema).default([]),
     grantedPermissions: z.array(permissionSchema).default([]),
     allowedHosts: z.array(z.string()).default([]),
@@ -50,3 +190,64 @@ export const layoutFileSchema = z
     placements: z.array(widgetPlacementSchema)
   })
   .passthrough()
+
+export const wallpaperIdSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(WALLPAPER_ID_RE, 'Invalid wallpaper id')
+export const wallpaperFitSchema = z.enum(WALLPAPER_FITS)
+export const wallpaperIntervalSchema = z
+  .number()
+  .int()
+  .refine((value) => (WALLPAPER_INTERVAL_MINUTES as readonly number[]).includes(value), {
+    message: 'Invalid slideshow interval'
+  })
+
+export const wallpaperItemSchema = z
+  .object({
+    id: wallpaperIdSchema,
+    name: z.string().min(1).max(120),
+    type: z.enum(['image', 'video', 'html']),
+    file: z.string().min(1).max(4096),
+    fit: wallpaperFitSchema,
+    posterFile: z.string().min(1).max(4096).optional(),
+    interactive: z.boolean().optional()
+  })
+  .passthrough()
+
+export const wallpaperConfigSchema = z
+  .object({
+    mode: z.enum(['static', 'slideshow', 'live']),
+    currentId: wallpaperIdSchema.nullable(),
+    slideshowIds: z.array(wallpaperIdSchema).max(1000),
+    intervalMinutes: wallpaperIntervalSchema,
+    shuffle: z.boolean(),
+    pauseOnFullscreen: z.boolean(),
+    pauseOnBattery: z.boolean(),
+    videoMuted: z.boolean(),
+    originalWallpaperPath: z.string().max(4096).nullable(),
+    originalWallpaperStyle: z.string().max(16).nullable().default(null),
+    originalWallpaperTile: z.string().max(16).nullable().default(null),
+    lastChangeAt: z.string().max(64).nullable()
+  })
+  .passthrough()
+
+export const wallpaperFileSchema = z
+  .object({
+    schema: z.literal(1),
+    items: z.array(wallpaperItemSchema).max(1000),
+    config: wallpaperConfigSchema
+  })
+  .passthrough()
+
+export const wallpaperSlideshowSchema = z.object({
+  enabled: z.boolean(),
+  intervalMinutes: wallpaperIntervalSchema,
+  shuffle: z.boolean()
+})
+
+export const wallpaperLiveOptionsSchema = z.object({
+  pauseOnBattery: z.boolean(),
+  videoMuted: z.boolean()
+})

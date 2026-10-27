@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Notes</title>
+    <script>
+      document.documentElement.dataset.variant =
+        new URLSearchParams(location.search).get('variant') || 'warm'
+    </script>
+    <style>
+      :root {
+        --ink: #f7f0df;
+        --muted: #a89c84;
+        --faint: #6f6657;
+        --surface: rgba(23, 20, 15, 0.95);
+        --surface-2: rgba(33, 29, 21, 0.96);
+        --line: rgba(255, 255, 255, 0.075);
+        --accent: #ffcf7a;
+        --accent-soft: rgba(255, 207, 122, 0.11);
+        --radius: 18px;
+        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+      }
+
+      html[data-theme='light'] {
+        --ink: #241f17;
+        --muted: #6c6253;
+        --faint: #9a8f7d;
+        --surface: rgba(252, 250, 244, 0.97);
+        --surface-2: #ffffff;
+        --line: rgba(30, 25, 16, 0.09);
+        --accent: #9a5b00;
+        --accent-soft: rgba(154, 91, 0, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        font-family: var(--font-ui);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        padding: 13px 15px 10px;
+        overflow: hidden;
+        border: 0;
+        border-radius: var(--radius);
+        background:
+          radial-gradient(13rem 8rem at 12% 0%, var(--accent-soft), transparent 62%),
+          linear-gradient(150deg, var(--surface-2), var(--surface));
+        box-shadow:
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+        background-clip: padding-box;
+      }
+
+      .header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .mark {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent-soft);
+      }
+
+      .title {
+        margin: 0;
+        color: var(--ink);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+      }
+
+      .status {
+        overflow: hidden;
+        color: var(--faint);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status.error {
+        color: #ff9d8a;
+      }
+
+      .note {
+        box-sizing: border-box;
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        padding: 3px 2px 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--ink);
+        color-scheme: dark;
+        font-family: var(--font-ui);
+        font-size: 11.5px;
+        line-height: 1.55;
+        resize: none;
+      }
+
+      html[data-theme='light'] .note {
+        color-scheme: light;
+      }
+
+      .note::placeholder {
+        color: var(--faint);
+        opacity: 0.7;
+      }
+
+      .note::selection {
+        background: var(--accent-soft);
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--faint);
+        font-size: 7.5px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .rule {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, var(--accent-soft), transparent);
+      }
+
+      html[data-variant='paper'] .card {
+        --ink: #2d271c;
+        --muted: #746a58;
+        --faint: #a09682;
+        --line: rgba(60, 48, 29, 0.14);
+        --accent: #a33f1a;
+        --accent-soft: rgba(163, 63, 26, 0.1);
+        padding: 16px 17px 12px;
+        background:
+          linear-gradient(90deg, transparent 0 9px, rgba(163, 63, 26, 0.17) 9px 10px, transparent 10px),
+          repeating-linear-gradient(0deg, transparent 0 24px, rgba(60, 48, 29, 0.07) 24px 25px),
+          #f3ecdd;
+        box-shadow:
+          inset 0 0 0 1px var(--line),
+          0 12px 34px rgba(0, 0, 0, 0.2);
+      }
+
+      html[data-variant='paper'] .title {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 17px;
+        font-weight: 400;
+        font-style: italic;
+      }
+
+      html[data-variant='paper'] .mark {
+        border-radius: 0;
+        background: #a33f1a;
+        box-shadow: none;
+      }
+
+      html[data-variant='paper'] .note {
+        padding-left: 2px;
+        color: #2d271c;
+        color-scheme: light;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 12.5px;
+        line-height: 25px;
+      }
+
+      html[data-variant='paper'] .note::placeholder {
+        color: #a09682;
+      }
+
+      html[data-variant='paper'] .footer {
+        padding-top: 7px;
+        border-top: 1px solid var(--line);
+      }
+
+      html[data-variant='slate'] {
+        --ink: #edf3fb;
+        --muted: #94a0b1;
+        --faint: #626d7d;
+        --accent: #7dd3fc;
+        --accent-soft: rgba(125, 211, 252, 0.1);
+      }
+
+      html[data-theme='light'][data-variant='slate'] {
+        --ink: #17202b;
+        --muted: #5a6573;
+        --faint: #8f99a6;
+        --accent: #0369a1;
+        --accent-soft: rgba(3, 105, 161, 0.08);
+      }
+
+      html[data-variant='slate'] .card {
+        background:
+          linear-gradient(160deg, rgba(125, 211, 252, 0.08), transparent 44%),
+          linear-gradient(150deg, #1a202a, #10141b);
+      }
+
+      html[data-theme='light'][data-variant='slate'] .card {
+        background:
+          linear-gradient(160deg, rgba(3, 105, 161, 0.06), transparent 44%),
+          linear-gradient(150deg, #ffffff, #f3f6f9);
+      }
+
+      html[data-variant='slate'] .title {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      html[data-variant='slate'] .footer {
+        border-top: 1px solid var(--line);
+        padding-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="header">
+        <div class="title-row">
+          <span class="mark" aria-hidden="true"></span>
+          <p class="title">Notes</p>
+        </div>
+        <span class="status" id="status">Loading…</span>
+      </div>
+      <textarea
+        class="note"
+        id="note"
+        spellcheck="false"
+        placeholder="Write something. It saves on this device after you pause."
+        aria-label="Scratch pad"
+      ></textarea>
+      <div class="footer">
+        <span class="rule"></span>
+        <span id="count">0 characters</span>
+      </div>
+    </main>
+    <script>
+      ;(function () {
+        'use strict'
+
+        var note = document.getElementById('note')
+        var statusNode = document.getElementById('status')
+        var countNode = document.getElementById('count')
+        var loaded = false
+        var lastSaved = ''
+        var saveTimer = null
+
+        function updateCount() {
+          if (countNode && note) {
+            var length = note.value.length
+            countNode.textContent = length === 1 ? '1 character' : length + ' characters'
+          }
+        }
+
+        function setStatus(text, isError) {
+          if (!statusNode) {
+            return
+          }
+          statusNode.textContent = text
+          statusNode.classList.toggle('error', Boolean(isError))
+        }
+
+        function save() {
+          if (!loaded || !note || !window.hl || !window.hl.storage) {
+            return
+          }
+          if (saveTimer) {
+            clearTimeout(saveTimer)
+            saveTimer = null
+          }
+          var value = note.value
+          if (value === lastSaved) {
+            return
+          }
+
+          setStatus('Saving…', false)
+          window.hl.storage.set('note', value).then(function () {
+            lastSaved = value
+            setStatus('Saved', false)
+          }).catch(function (error) {
+            var code = error && error.code
+            if (code === 'permission_denied') {
+              setStatus('Storage permission is off', true)
+            } else if (code === 'too_large') {
+              setStatus('This note is too large to save', true)
+            } else {
+              setStatus('Could not save', true)
+            }
+          })
+        }
+
+        function scheduleSave() {
+          if (!loaded) {
+            return
+          }
+          updateCount()
+          if (saveTimer) {
+            clearTimeout(saveTimer)
+          }
+          saveTimer = setTimeout(save, 500)
+        }
+
+        if (note) {
+          note.addEventListener('input', scheduleSave)
+          note.addEventListener('blur', save)
+          updateCount()
+        }
+
+        if (window.hl && window.hl.storage) {
+          window.hl.ready()
+            .then(function () {
+              return window.hl.storage.get('note')
+            })
+            .then(function (value) {
+              var text = typeof value === 'string' ? value : ''
+              if (note) {
+                note.value = text
+              }
+              lastSaved = text
+              loaded = true
+              updateCount()
+              setStatus('Saved', false)
+            })
+            .catch(function (error) {
+              loaded = true
+              setStatus(
+                error && error.code === 'permission_denied'
+                  ? 'Storage permission is off'
+                  : 'Could not load this note',
+                true
+              )
+            })
+        } else {
+          setStatus('Storage unavailable', true)
+        }
+
+        function applyTheme(dark) {
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        }
+
+        if (window.hl) {
+          window.hl.ready()
+            .then(function () {
+              return window.hl.getContext()
+            })
+            .then(function (context) {
+              applyTheme(context.dark)
+            })
+            .catch(function () {})
+          window.hl.onTheme(function (state) {
+            applyTheme(state.dark)
+          })
+        }
+      })()
+    </script>
+  </body>
+</html>

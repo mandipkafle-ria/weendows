@@ -1,0 +1,10 @@
+<hl-manifest>
+{"name":"Direct fetch","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}</style></head>
+<body><div>Fetch</div><script>fetch('https://api.example.com/data'); hl.ready()</script></body>
+</html>
+</hl-widget>

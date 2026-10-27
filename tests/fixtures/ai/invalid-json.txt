@@ -1,0 +1,7 @@
+<hl-manifest>
+{"name": "Broken", "width": 240, "height": 240, "permissions": []
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>Broken</div><script>hl.ready()</script></body></html>
+</hl-widget>

@@ -1,44 +1,133 @@
-import { useEffect, useState, type JSX } from 'react'
-import type { AppInfo, NativeCheckResult } from '../../shared/ipc'
-import type { BuiltinWidget, Notice, WidgetSummary } from '../../shared/types'
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
+import type {
+  BuiltinWidget,
+  GeneralState,
+  Notice,
+  WidgetManifest,
+  WidgetRuntimeInfo,
+  WidgetSummary
+} from '../../shared/types'
+import { t } from '../i18n'
+import AboutPanel from './AboutPanel'
+import AppAiPanel from './AiPanel'
+import AppsPanel from './AppsPanel'
+import GeneralPanel from './GeneralPanel'
+import Onboarding from './Onboarding'
+import { ToastStack } from './Toasts'
+import { useToasts } from './useToasts'
+import WallpaperPanel from './WallpaperPanel'
+import WidgetsPanel from './WidgetsPanel'
+
+type TabId = 'general' | 'widgets' | 'apps' | 'wallpapers' | 'ai' | 'about'
+type NavGroup = 'desktop' | 'tools' | 'app'
+
+const DEFAULT_TAB: { id: TabId; label: string; subtitle: string; group: NavGroup } = {
+  id: 'general',
+  label: 'app.tabs.general',
+  subtitle: 'app.tabs.generalBody',
+  group: 'desktop'
+}
+
+const TABS: Array<{ id: TabId; label: string; subtitle: string; group: NavGroup }> = [
+  DEFAULT_TAB,
+  {
+    id: 'widgets',
+    label: 'app.tabs.widgets',
+    subtitle: 'app.tabs.widgetsBody',
+    group: 'desktop'
+  },
+  {
+    id: 'wallpapers',
+    label: 'app.tabs.wallpapers',
+    subtitle: 'app.tabs.wallpapersBody',
+    group: 'desktop'
+  },
+  { id: 'apps', label: 'app.tabs.apps', subtitle: 'app.tabs.appsBody', group: 'tools' },
+  { id: 'ai', label: 'app.tabs.ai', subtitle: 'app.tabs.aiBody', group: 'tools' },
+  { id: 'about', label: 'app.tabs.about', subtitle: 'app.tabs.aboutBody', group: 'app' }
+]
+
+const NAV_GROUPS: Array<{ id: NavGroup; label: string }> = [
+  { id: 'desktop', label: 'app.nav.desktop' },
+  { id: 'tools', label: 'app.nav.tools' },
+  { id: 'app', label: 'app.nav.app' }
+]
+
+const ICON_PATHS: Record<TabId, string> = {
+  general: 'M4 7h9M4 17h5M17 17h3M13 7h7M9 4v6M9 14v6M17 14v6M7 14v6',
+  widgets: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  wallpapers: 'M4 5h16v14H4zM4 15l4.5-4.5 4 4L16 11l4 4M15 8.5h.01',
+  apps: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+  ai: 'M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8zM5 16l.6 1.6 1.6.6-1.6.6L5 20.4l-.6-1.6-1.6-.6 1.6-.6z',
+  about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 10v6M12 7h.01'
+}
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+function initialEditWidgetId(): string | null {
+  return new URLSearchParams(window.location.search).get('editWidget')
+}
+
+function TabIcon({ id }: { id: TabId }): JSX.Element {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={ICON_PATHS[id]} />
+    </svg>
+  )
+}
+
 function App(): JSX.Element {
-  const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
+  const [general, setGeneral] = useState<GeneralState | null>(null)
   const [builtins, setBuiltins] = useState<BuiltinWidget[]>([])
   const [widgets, setWidgets] = useState<WidgetSummary[]>([])
+  const [savedAiWidgets, setSavedAiWidgets] = useState<WidgetManifest[]>([])
+  const [runtime, setRuntime] = useState<WidgetRuntimeInfo[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
-  const [editMode, setEditMode] = useState(false)
+  const [editWidgetId, setEditWidgetId] = useState<string | null>(initialEditWidgetId)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [pending, setPending] = useState<string | null>(null)
-  const [nativeResult, setNativeResult] = useState<NativeCheckResult | null>(null)
-  const [checking, setChecking] = useState(false)
+  const [starting, setStarting] = useState(false)
+  const [tab, setTab] = useState<TabId>(() => (initialEditWidgetId() ? 'ai' : 'general'))
+  const workspaceRef = useRef<HTMLDivElement>(null)
+  const { toasts, pushToast, dismissToast } = useToasts()
+
+  const refreshWidgets = useCallback(async (): Promise<void> => {
+    const [widgetList, savedList] = await Promise.all([
+      window.api.getWidgets(),
+      window.api.getSavedAiWidgets()
+    ])
+    setWidgets(widgetList)
+    setSavedAiWidgets(savedList)
+  }, [])
+
+  const refreshRuntime = useCallback(async (): Promise<void> => {
+    setRuntime(await window.api.getWidgetRuntime())
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
     const load = async (): Promise<void> => {
       try {
-        const [info, builtinList, widgetList, editing, noticeList] = await Promise.all([
-          window.api.getAppInfo(),
-          window.api.getBuiltins(),
-          window.api.getWidgets(),
-          window.api.getEditMode(),
-          window.api.getNotices()
-        ])
+        const [generalState, builtinList, widgetList, savedList, noticeList, runtimeList] =
+          await Promise.all([
+            window.api.getGeneralState(),
+            window.api.getBuiltins(),
+            window.api.getWidgets(),
+            window.api.getSavedAiWidgets(),
+            window.api.getNotices(),
+            window.api.getWidgetRuntime()
+          ])
         if (cancelled) {
           return
         }
-        setAppInfo(info)
+        setGeneral(generalState)
         setBuiltins(builtinList)
         setWidgets(widgetList)
-        setEditMode(editing)
+        setSavedAiWidgets(savedList)
         setNotices(noticeList)
+        setRuntime(runtimeList)
       } catch (error) {
         if (!cancelled) {
           setLoadError(messageOf(error))
@@ -49,267 +138,238 @@ function App(): JSX.Element {
     void load()
 
     const offWidgets = window.api.onWidgetsChanged(() => {
-      void window.api
-        .getWidgets()
-        .then((widgetList) => {
-          if (!cancelled) {
-            setWidgets(widgetList)
-          }
-        })
-        .catch(() => undefined)
-    })
-    const offEditMode = window.api.onEditModeChanged((enabled) => {
-      if (!cancelled) {
-        setEditMode(enabled)
-      }
+      void refreshWidgets().catch(() => undefined)
+      void refreshRuntime().catch(() => undefined)
     })
     const offNotices = window.api.onNoticesChanged((noticeList) => {
       if (!cancelled) {
         setNotices(noticeList)
       }
     })
+    const offTheme = window.api.onThemeChanged((theme) => {
+      if (!cancelled) {
+        setGeneral((current) =>
+          current
+            ? { ...current, theme: theme.theme, resolvedTheme: theme.dark ? 'dark' : 'light' }
+            : current
+        )
+      }
+    })
 
     return () => {
       cancelled = true
       offWidgets()
-      offEditMode()
       offNotices()
+      offTheme()
     }
-  }, [])
+  }, [refreshRuntime, refreshWidgets])
 
-  const runNativeCheck = async (): Promise<void> => {
-    setChecking(true)
-    setNativeResult(null)
+  useEffect(() => {
+    const root = document.documentElement
+    const resolved =
+      general?.resolvedTheme ??
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    root.dataset['theme'] = resolved
+    root.dataset['accent'] = general?.accent ?? 'ember'
+    root.dataset['cursor'] = general?.cursorStyle ?? 'system'
+  }, [general?.accent, general?.cursorStyle, general?.resolvedTheme])
 
+  useEffect(() => {
+    workspaceRef.current?.scrollTo({ top: 0 })
+  }, [tab])
+
+  useEffect(() => {
+    if (tab !== 'widgets') {
+      return
+    }
+    const timer = window.setInterval(() => {
+      void refreshRuntime().catch(() => undefined)
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [refreshRuntime, tab])
+
+  const startNormally = async (): Promise<void> => {
+    setStarting(true)
     try {
-      const result = await window.api.nativeCheck()
-      setNativeResult(result)
+      await window.api.startNormally()
     } catch (error) {
-      setNativeResult({ ok: false, error: messageOf(error) })
-    } finally {
-      setChecking(false)
+      pushToast(messageOf(error), 'error')
+      setStarting(false)
     }
   }
 
-  const refreshWidgets = async (): Promise<void> => {
-    setWidgets(await window.api.getWidgets())
+  const openAiEditor = (widgetId: string): void => {
+    setEditWidgetId(widgetId)
+    setTab('ai')
   }
 
-  const addWidget = async (builtinType: string): Promise<void> => {
-    setPending(`add:${builtinType}`)
-    setActionError(null)
-    setStatus(null)
-
-    try {
-      const summary = await window.api.addWidget(builtinType)
-      await refreshWidgets()
-      setStatus(`${summary.manifest.name} added to the desktop.`)
-    } catch (error) {
-      setActionError(messageOf(error))
-    } finally {
-      setPending(null)
-    }
+  if (loadError) {
+    return (
+      <main className="load-screen">
+        <p className="load-error">{t('app.loadError', { error: loadError })}</p>
+      </main>
+    )
   }
 
-  const removeWidget = async (widgetId: string): Promise<void> => {
-    setPending(`remove:${widgetId}`)
-    setActionError(null)
-    setStatus(null)
-
-    try {
-      const removed = await window.api.removeWidget(widgetId)
-      await refreshWidgets()
-      setStatus(removed ? 'Widget removed from the desktop.' : 'Removal cancelled.')
-    } catch (error) {
-      setActionError(messageOf(error))
-    } finally {
-      setPending(null)
-    }
+  if (!general) {
+    return (
+      <main className="load-screen">
+        <p className="empty">{t('common.loading')}</p>
+      </main>
+    )
   }
 
-  const toggleEditMode = async (): Promise<void> => {
-    setPending('edit-mode')
-    setActionError(null)
-
-    try {
-      const next = await window.api.setEditMode(!editMode)
-      setEditMode(next)
-      setStatus(next ? 'Edit mode is on. Drag or resize any widget.' : 'Edit mode is off.')
-    } catch (error) {
-      setActionError(messageOf(error))
-    } finally {
-      setPending(null)
-    }
+  if (!general.onboardingCompleted) {
+    return (
+      <>
+        <Onboarding
+          builtins={builtins}
+          widgets={widgets}
+          onComplete={(next) => {
+            setGeneral(next)
+            void refreshWidgets()
+            void refreshRuntime()
+          }}
+          toast={pushToast}
+        />
+        <ToastStack toasts={toasts} onDismiss={dismissToast} />
+      </>
+    )
   }
 
-  const nativePassed = nativeResult?.ok === true && nativeResult.progmanHandle !== null
-  const tickCount = nativeResult !== null && nativeResult.ok ? nativeResult.tickCount : null
-  const resultClass = nativeResult ? (nativePassed ? 'status-ok' : 'status-error') : 'status-idle'
-  const resultLabel = nativeResult ? (nativePassed ? 'PASS' : 'FAIL') : 'Not run'
-  const resultDetail = nativeResult
-    ? nativeResult.ok
-      ? nativeResult.progmanHandle
-        ? `Progman handle: ${nativeResult.progmanHandle}`
-        : 'Progman window not found'
-      : `Native check failed: ${nativeResult.error}`
-    : null
+  const activeTab = TABS.find((entry) => entry.id === tab) ?? DEFAULT_TAB
+  const activeGroup = NAV_GROUPS.find((entry) => entry.id === activeTab.group)
 
   return (
-    <main className="settings">
-      <header className="settings-header">
-        <div className="brand">
-          <span className="brand-dots" aria-hidden="true" />
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <span className="brand-mark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </span>
           <div>
-            <h1>HomeLayer</h1>
-            <p>Desktop settings</p>
+            <strong>{t('app.name')}</strong>
+            <span>{t('app.subtitle')}</span>
           </div>
         </div>
-        <div className="build">
-          <span className="build-label">Version</span>
-          <span className="build-value">{appInfo?.version ?? '...'}</span>
-        </div>
-      </header>
 
-      {notices.length > 0 && (
-        <section className="notices" aria-live="polite">
-          {notices.map((notice) => (
-            <div className={`notice notice-${notice.level}`} key={notice.id}>
-              {notice.message}
+        <nav className="sidebar-nav" role="tablist" aria-label={t('app.sectionsLabel')}>
+          {NAV_GROUPS.map((group) => (
+            <div className="nav-group" key={group.id}>
+              <span className="nav-label">{t(group.label)}</span>
+              {TABS.filter((entry) => entry.group === group.id).map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === entry.id}
+                  aria-controls="settings-panel"
+                  className={tab === entry.id ? 'nav-item nav-active' : 'nav-item'}
+                  onClick={() => setTab(entry.id)}
+                >
+                  <TabIcon id={entry.id} />
+                  <span>{t(entry.label)}</span>
+                  {entry.id === 'widgets' && widgets.length > 0 && (
+                    <span className="nav-count">{widgets.length}</span>
+                  )}
+                </button>
+              ))}
             </div>
           ))}
-        </section>
-      )}
+        </nav>
 
-      <section className="panel panel-wide">
-        <div className="section-head">
-          <div className="panel-copy">
-            <h2>Widget gallery</h2>
-            <p>
-              Add a built-in widget to the desktop. New widgets appear in the centre of the primary
-              display.
-            </p>
+        <div className="sidebar-footer">
+          <span>
+            {t('app.versionLabel')} {general.version}
+          </span>
+          <span>
+            {general.platform} / {general.arch}
+          </span>
+        </div>
+      </aside>
+
+      <section className="workspace">
+        <header className="workspace-header">
+          <div className="workspace-heading">
+            <span className="eyebrow">{activeGroup ? t(activeGroup.label) : t('app.name')}</span>
+            <h1>{t(activeTab.label)}</h1>
+            <p>{t(activeTab.subtitle)}</p>
           </div>
-          <span className="section-count">{widgets.length} on desktop</span>
-        </div>
-        <div className="widget-grid">
-          {builtins.map((builtin) => {
-            const count = widgets.filter(
-              (widget) => widget.manifest.builtinType === builtin.type
-            ).length
-            const busy = pending === `add:${builtin.type}`
-            return (
-              <article className="widget-card" key={builtin.type}>
-                <div className="widget-card-head">
-                  <h3>{builtin.name}</h3>
-                  <span className="widget-size">
-                    {builtin.width} × {builtin.height}
-                  </span>
-                </div>
-                <p>{builtin.description}</p>
-                <div className="widget-card-foot">
-                  <span className="widget-count">
-                    {count === 0 ? 'Not added' : `${count} on desktop`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void addWidget(builtin.type)}
-                    disabled={pending !== null}
-                  >
-                    {busy ? 'Adding...' : 'Add'}
-                  </button>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="panel panel-wide">
-        <div className="section-head">
-          <div className="panel-copy">
-            <h2>On the desktop</h2>
-            <p>Lock a widget to keep it fixed, or remove it from the desktop.</p>
+          <div className="header-status">
+            <span className={general.safeMode ? 'status-pill status-warn' : 'status-pill'}>
+              <span className="status-dot" aria-hidden="true" />
+              {general.safeMode ? t('app.safeModeShort') : t('app.runningShort')}
+            </span>
+            <span className="build-value">v{general.version}</span>
           </div>
-        </div>
-        {widgets.length === 0 ? (
-          <p className="empty">No widgets yet. Add one from the gallery above.</p>
-        ) : (
-          <ul className="widget-list">
-            {widgets.map(({ manifest, placement }) => (
-              <li className="widget-row" key={placement.widgetId}>
-                <div className="widget-row-copy">
-                  <strong>{manifest.name}</strong>
-                  <span>
-                    {placement.width} × {placement.height} ·{' '}
-                    {placement.locked ? 'Locked' : 'Unlocked'} ·{' '}
-                    {Math.round(placement.opacity * 100)}%
-                  </span>
+        </header>
+
+        <div className="workspace-body" id="settings-panel" role="tabpanel" ref={workspaceRef}>
+          {general.safeMode && (
+            <section className="safe-banner" role="alert">
+              <div>
+                <strong>{t('app.safe.title')}</strong>
+                <span>
+                  {general.safeModeReason === 'crashes'
+                    ? t('app.safe.crashes', { count: general.failedStarts })
+                    : t('app.safe.flag')}
+                </span>
+              </div>
+              <button type="button" onClick={() => void startNormally()} disabled={starting}>
+                {starting ? t('app.safe.restarting') : t('app.safe.tryNormal')}
+              </button>
+            </section>
+          )}
+
+          {notices.length > 0 && (
+            <section className="notices" aria-live="polite" aria-label={t('app.noticesLabel')}>
+              {notices.map((notice) => (
+                <div className={`notice notice-${notice.level}`} key={notice.id}>
+                  {notice.message}
                 </div>
-                <button
-                  type="button"
-                  className="button-danger"
-                  onClick={() => void removeWidget(placement.widgetId)}
-                  disabled={pending !== null}
-                >
-                  {pending === `remove:${placement.widgetId}` ? 'Removing...' : 'Remove'}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              ))}
+            </section>
+          )}
+
+          {tab === 'general' && (
+            <GeneralPanel general={general} onGeneral={setGeneral} toast={pushToast} />
+          )}
+          {tab === 'widgets' && (
+            <WidgetsPanel
+              widgets={widgets}
+              builtins={builtins}
+              savedAiWidgets={savedAiWidgets}
+              runtime={runtime}
+              general={general}
+              onRefresh={refreshWidgets}
+              onEditWithAi={openAiEditor}
+              onOpenAiStudio={() => {
+                setEditWidgetId(null)
+                setTab('ai')
+              }}
+              toast={pushToast}
+            />
+          )}
+          {tab === 'apps' && <AppsPanel toast={pushToast} />}
+          {tab === 'wallpapers' && <WallpaperPanel />}
+          {tab === 'ai' && (
+            <AppAiPanel
+              key={editWidgetId ?? 'new'}
+              editWidgetId={editWidgetId}
+              onChanged={() => {
+                void refreshWidgets()
+                void refreshRuntime()
+              }}
+            />
+          )}
+          {tab === 'about' && <AboutPanel general={general} toast={pushToast} />}
+        </div>
       </section>
 
-      <section className="panel panel-wide layout-panel">
-        <div className="panel-copy">
-          <h2>Desktop layout</h2>
-          <p>
-            Edit mode adds a dashed border and resize handle to every widget. Drag to move; hold Alt
-            while dragging to bypass edge magnetism. Locked widgets cannot be moved.
-          </p>
-        </div>
-        <div className="layout-actions">
-          <button
-            type="button"
-            className={editMode ? 'button-secondary' : ''}
-            onClick={() => void toggleEditMode()}
-            disabled={pending !== null}
-          >
-            {pending === 'edit-mode'
-              ? 'Please wait...'
-              : editMode
-                ? 'Finish editing'
-                : 'Edit layout'}
-          </button>
-          <span className="hotkey">Ctrl + Alt + E</span>
-        </div>
-      </section>
-
-      {(actionError || status) && (
-        <p className={actionError ? 'action-message action-error' : 'action-message'} role="status">
-          {actionError ?? status}
-        </p>
-      )}
-
-      <section className="panel">
-        <div className="panel-copy">
-          <h2>Native check</h2>
-          <p>Call user32.dll through koffi and find the Windows Progman window.</p>
-        </div>
-        <button type="button" onClick={() => void runNativeCheck()} disabled={checking}>
-          {checking ? 'Checking...' : 'Native check'}
-        </button>
-        <div className="native-result" data-testid="native-result" role="status" aria-live="polite">
-          <span className={resultClass}>{resultLabel}</span>
-          {resultDetail && <span>{resultDetail}</span>}
-          {tickCount !== null && <span className="tick">Tick count: {tickCount}</span>}
-        </div>
-        {loadError && <p className="load-error">Could not read app info: {loadError}</p>}
-      </section>
-
-      <footer className="settings-footer">
-        <span>HomeLayer is a work in progress.</span>
-        <span>{appInfo ? `${appInfo.platform} / ${appInfo.arch}` : ''}</span>
-      </footer>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </main>
   )
 }

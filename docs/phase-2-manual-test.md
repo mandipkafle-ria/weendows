@@ -121,9 +121,11 @@ A valid empty layout is different from a missing or corrupt one. Put
 `{ "schema": 1, "placements": [] }` in `layout.json`, start the app, and confirm it shows
 **No widgets yet** without adding a Clock.
 
-## 4. Monitor unplug and replug
+## 4. Monitor unplug and replug (moved to Phase 8)
 
-This row needs a second physical monitor. Do not mark it PASS on a single-monitor machine.
+This row needs a second physical monitor. Do not mark it PASS on a single-monitor machine. By
+owner instruction it is moved from Phase 2 to the last phase (Phase 8) and must run there before
+release. The steps stay here for reference; Phase 8 records the result.
 
 1. Add widgets on the second monitor.
 2. Note each widget's `displayId`, `x` and `y` in `layout.json`.

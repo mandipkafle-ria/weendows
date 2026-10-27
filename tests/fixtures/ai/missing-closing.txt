@@ -1,0 +1,6 @@
+<hl-manifest>
+{"name":"Cut off","width":240,"height":240,"permissions":[],"allowedHosts":[]}
+</hl-manifest>
+<hl-widget>
+<!doctype html>
+<html><body><div>still writing</div>
