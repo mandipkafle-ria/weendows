@@ -8,9 +8,101 @@
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bundle</title>
+    <script>
+      document.documentElement.dataset.variant =
+        new URLSearchParams(location.search).get('variant') || 'classic'
+    </script>
     <style>
       :root {
         color-scheme: normal;
+      }
+
+      /* Monochrome in Popover - Solid Opaque */
+      html[data-variant='monochrome'] .popover {
+        background-color: #121215;
+        background:
+          radial-gradient(circle at 82% 4%, rgba(255, 255, 255, 0.08), transparent 46%),
+          linear-gradient(145deg, #18181c, #0e0e11);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+      }
+      html[data-variant='monochrome'] .plate img {
+        filter: grayscale(100%) contrast(1.2) brightness(0.95);
+      }
+      html[data-variant='monochrome'] .letter {
+        background: #242428 !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      html[data-variant='monochrome'] .title-input:focus {
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+      html[data-variant='monochrome'] .app-tile:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* Frosted Glass in Popover - Solid Opaque backing with luminous crystal borders */
+      html[data-variant='glass'] .popover {
+        background-color: #161e2e;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(125, 175, 255, 0.25), transparent 60%),
+          linear-gradient(145deg, #1b2438, #0f1522);
+        border: 1px solid rgba(255, 255, 255, 0.32);
+        box-shadow:
+          0 28px 70px rgba(0, 0, 0, 0.9),
+          0 8px 24px rgba(0, 0, 0, 0.6),
+          inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      }
+
+      /* Cyberpunk in Popover - Solid Opaque */
+      html[data-variant='cyberpunk'] .popover {
+        background-color: #0d0f17;
+        background:
+          radial-gradient(circle at 80% 10%, rgba(0, 240, 255, 0.18), transparent 45%),
+          linear-gradient(145deg, #0f121d, #07090e);
+        border: 1px solid #00f0ff;
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.9),
+          0 0 25px rgba(0, 240, 255, 0.35);
+      }
+      html[data-variant='cyberpunk'] .title-input {
+        color: #00f0ff;
+      }
+      html[data-variant='cyberpunk'] .app-tile:hover {
+        border-color: #ff007f;
+        box-shadow: 0 0 12px rgba(255, 0, 127, 0.4);
+      }
+
+      /* Minimal in Popover - Solid Opaque */
+      html[data-variant='minimal'] .popover {
+        background-color: #13151b;
+        background: linear-gradient(145deg, #181a22, #0f1016);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+      }
+
+      /* Retro in Popover - Solid Opaque */
+      html[data-variant='retro'] .popover {
+        background-color: #f7f1e6;
+        background: linear-gradient(145deg, #fbf7ef, #ede4d3);
+        border: 2px solid #2d261e;
+        color: #2d261e;
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.5),
+          4px 4px 0 #2d261e;
+      }
+      html[data-variant='retro'] .title-input {
+        color: #2d261e;
+      }
+      html[data-variant='retro'] .count {
+        color: rgba(45, 38, 30, 0.6);
+      }
+      html[data-variant='retro'] .label {
+        color: #2d261e;
+      }
+      html[data-variant='retro'] .app-tile:hover {
+        background: rgba(45, 38, 30, 0.08);
       }
 
       html,
@@ -35,16 +127,17 @@
         height: 100%;
         padding: 9px 11px 10px;
         overflow: hidden;
-        border: 0;
+        border: 1px solid rgba(255, 255, 255, 0.16);
         border-radius: 20px;
+        background-color: #181d2a;
         background:
-          radial-gradient(circle at 82% 4%, rgba(150, 130, 255, 0.2), transparent 46%),
-          linear-gradient(145deg, rgba(22, 27, 42, 0.97), rgba(11, 14, 22, 0.97));
+          radial-gradient(circle at 82% 4%, rgba(150, 130, 255, 0.15), transparent 46%),
+          linear-gradient(145deg, #1d2334, #10131d);
         background-clip: padding-box;
         box-shadow:
-          0 20px 50px rgba(0, 0, 0, 0.5),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.13),
-          inset 0 1px 0 rgba(255, 255, 255, 0.08);
+          0 24px 60px rgba(0, 0, 0, 0.85),
+          0 4px 14px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.14);
         animation: pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
       }
 

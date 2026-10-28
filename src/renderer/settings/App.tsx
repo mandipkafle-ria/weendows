@@ -7,6 +7,7 @@ import type {
   WidgetRuntimeInfo,
   WidgetSummary
 } from '../../shared/types'
+import { cursorImage } from '../../shared/cursor'
 import { t } from '../i18n'
 import AboutPanel from './AboutPanel'
 import AppAiPanel from './AiPanel'
@@ -146,14 +147,15 @@ function App(): JSX.Element {
         setNotices(noticeList)
       }
     })
-    const offTheme = window.api.onThemeChanged((theme) => {
-      if (!cancelled) {
-        setGeneral((current) =>
-          current
-            ? { ...current, theme: theme.theme, resolvedTheme: theme.dark ? 'dark' : 'light' }
-            : current
-        )
-      }
+    const offTheme = window.api.onThemeChanged(() => {
+      void window.api
+        .getGeneralState()
+        .then((next) => {
+          if (!cancelled) {
+            setGeneral(next)
+          }
+        })
+        .catch(() => undefined)
     })
 
     return () => {
@@ -171,8 +173,14 @@ function App(): JSX.Element {
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     root.dataset['theme'] = resolved
     root.dataset['accent'] = general?.accent ?? 'ember'
-    root.dataset['cursor'] = general?.cursorStyle ?? 'system'
-  }, [general?.accent, general?.cursorStyle, general?.resolvedTheme])
+    root.dataset['cursor'] = general?.cursor.style ?? 'system'
+    const cursor = general?.cursor
+    const image = cursor && cursor.style !== 'system' ? cursorImage(cursor) : null
+    root.style.setProperty(
+      '--hl-app-cursor',
+      image ? `url("${image.url}") ${image.hotspotX} ${image.hotspotY}, auto` : 'auto'
+    )
+  }, [general?.accent, general?.cursor, general?.resolvedTheme])
 
   useEffect(() => {
     workspaceRef.current?.scrollTo({ top: 0 })

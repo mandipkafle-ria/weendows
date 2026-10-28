@@ -172,7 +172,12 @@
         --accent-soft: rgba(163, 63, 26, 0.1);
         padding: 16px 17px 12px;
         background:
-          linear-gradient(90deg, transparent 0 9px, rgba(163, 63, 26, 0.17) 9px 10px, transparent 10px),
+          linear-gradient(
+            90deg,
+            transparent 0 9px,
+            rgba(163, 63, 26, 0.17) 9px 10px,
+            transparent 10px
+          ),
           repeating-linear-gradient(0deg, transparent 0 24px, rgba(60, 48, 29, 0.07) 24px 25px),
           #f3ecdd;
         box-shadow:
@@ -312,19 +317,22 @@
           }
 
           setStatus('Saving…', false)
-          window.hl.storage.set('note', value).then(function () {
-            lastSaved = value
-            setStatus('Saved', false)
-          }).catch(function (error) {
-            var code = error && error.code
-            if (code === 'permission_denied') {
-              setStatus('Storage permission is off', true)
-            } else if (code === 'too_large') {
-              setStatus('This note is too large to save', true)
-            } else {
-              setStatus('Could not save', true)
-            }
-          })
+          window.hl.storage
+            .set('note', value)
+            .then(function () {
+              lastSaved = value
+              setStatus('Saved', false)
+            })
+            .catch(function (error) {
+              var code = error && error.code
+              if (code === 'permission_denied') {
+                setStatus('Storage permission is off', true)
+              } else if (code === 'too_large') {
+                setStatus('This note is too large to save', true)
+              } else {
+                setStatus('Could not save', true)
+              }
+            })
         }
 
         function scheduleSave() {
@@ -345,7 +353,8 @@
         }
 
         if (window.hl && window.hl.storage) {
-          window.hl.ready()
+          window.hl
+            .ready()
             .then(function () {
               return window.hl.storage.get('note')
             })
@@ -377,7 +386,8 @@
         }
 
         if (window.hl) {
-          window.hl.ready()
+          window.hl
+            .ready()
             .then(function () {
               return window.hl.getContext()
             })

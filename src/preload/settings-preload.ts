@@ -7,9 +7,18 @@ const api: SettingsApi = {
   nativeCheck: () => ipcRenderer.invoke(IPC.nativeCheck),
   getGeneralState: () => ipcRenderer.invoke(IPC.settingsGetGeneral),
   setTheme: (theme) => ipcRenderer.invoke(IPC.settingsSetTheme, theme),
+  setWidgetDefaultTheme: (theme) => ipcRenderer.invoke(IPC.settingsSetWidgetDefaultTheme, theme),
   setAccent: (accent) => ipcRenderer.invoke(IPC.settingsSetAccent, accent),
   setCursorStyle: (cursorStyle) => ipcRenderer.invoke(IPC.settingsSetCursorStyle, cursorStyle),
   setCursorSystemWide: (enabled) => ipcRenderer.invoke(IPC.settingsSetCursorSystemWide, enabled),
+  setCursor: (config) => ipcRenderer.invoke(IPC.settingsSetCursor, config),
+  createWidgetPreview: (appearance, theme, assetWidgetId) =>
+    ipcRenderer.invoke(IPC.settingsCreateWidgetPreview, appearance, theme, assetWidgetId),
+  releaseWidgetPreview: (token) => ipcRenderer.invoke(IPC.settingsReleaseWidgetPreview, token),
+  pickWidgetBackground: () => ipcRenderer.invoke(IPC.settingsPickWidgetBackground),
+  getWidgetBackground: (widgetId) => ipcRenderer.invoke(IPC.settingsGetWidgetBackground, widgetId),
+  setWidgetAppearance: (widgetId, appearance) =>
+    ipcRenderer.invoke(IPC.settingsSetWidgetAppearance, widgetId, appearance),
   getPreviewStats: () => ipcRenderer.invoke(IPC.settingsGetPreviewStats),
   setHotkey: (accelerator) => ipcRenderer.invoke(IPC.settingsSetHotkey, accelerator),
   setStartWithWindows: (enabled) => ipcRenderer.invoke(IPC.settingsSetLoginItem, enabled),
@@ -35,7 +44,8 @@ const api: SettingsApi = {
   setWallpaperLiveOptions: (options) => ipcRenderer.invoke(IPC.wallpaperSetLiveOptions, options),
   setWallpaperSlideshow: (settings) => ipcRenderer.invoke(IPC.wallpaperSlideshow, settings),
   restoreOriginalWallpaper: () => ipcRenderer.invoke(IPC.wallpaperRestore),
-  addWidget: (builtinType, variant) => ipcRenderer.invoke(IPC.addWidget, builtinType, variant),
+  addWidget: (builtinType, variant, appearance) =>
+    ipcRenderer.invoke(IPC.addWidget, builtinType, variant, appearance),
   addAiWidgetCopy: (widgetId) => ipcRenderer.invoke(IPC.addAiWidgetCopy, widgetId),
   duplicateWidget: (widgetId) => ipcRenderer.invoke(IPC.duplicateWidget, widgetId),
   removeWidget: (widgetId) => ipcRenderer.invoke(IPC.removeWidget, widgetId),
@@ -50,6 +60,13 @@ const api: SettingsApi = {
   reloadWidget: (widgetId) => ipcRenderer.invoke(IPC.reloadWidget, widgetId),
   getAppsAndBundles: () => ipcRenderer.invoke(IPC.appsGetState),
   refreshApps: () => ipcRenderer.invoke(IPC.appsRefresh),
+  addAppToHomescreen: (appId, targetWidgetId) =>
+    ipcRenderer.invoke(IPC.appAddToHomescreen, appId, targetWidgetId),
+  createBundle: (name, appIds, targetWidgetId) =>
+    ipcRenderer.invoke(IPC.bundleCreate, name, appIds, targetWidgetId),
+  addBundleToHomescreen: (bundleId, targetWidgetId) =>
+    ipcRenderer.invoke(IPC.bundleAddToHomescreen, bundleId, targetWidgetId),
+  deleteBundle: (bundleId) => ipcRenderer.invoke(IPC.bundleDelete, bundleId),
   setWidgetPermission: (widgetId, permission, granted) =>
     ipcRenderer.invoke(IPC.setWidgetPermission, widgetId, permission, granted),
   getEditMode: () => ipcRenderer.invoke(IPC.getEditMode),

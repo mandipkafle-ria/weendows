@@ -17,8 +17,50 @@ export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number]
 export const ACCENT_COLORS = ['ember', 'violet', 'teal', 'rose'] as const
 export type AccentColor = (typeof ACCENT_COLORS)[number]
 
-export const CURSOR_STYLES = ['system', 'dot', 'neon', 'pixel'] as const
+export const CURSOR_STYLES = [
+  'system',
+  'dot',
+  'neon',
+  'pixel',
+  'ring',
+  'crosshair',
+  'arrow'
+] as const
 export type CursorStyle = (typeof CURSOR_STYLES)[number]
+export const SYSTEM_CURSOR_STYLES = ['system', 'dot', 'neon', 'pixel'] as const
+
+export const CURSOR_CLICK_ANIMATIONS = ['ripple', 'burst', 'none'] as const
+export type CursorClickAnimation = (typeof CURSOR_CLICK_ANIMATIONS)[number]
+
+export interface CursorConfig {
+  style: CursorStyle
+  color: string
+  size: number
+  opacity: number
+  glowIntensity: number
+  clickAnimation: CursorClickAnimation
+  systemWide: boolean
+}
+
+export const WIDGET_BG_STYLES = ['solid', 'blur', 'transparent'] as const
+export type WidgetBgStyle = (typeof WIDGET_BG_STYLES)[number]
+
+export const WIDGET_BG_IMAGE_FITS = ['cover', 'contain', 'tile'] as const
+export type WidgetBgImageFit = (typeof WIDGET_BG_IMAGE_FITS)[number]
+
+export interface WidgetAppearance {
+  themeOverride: 'dark' | 'light' | null
+  bgColor: string | null
+  bgOpacity: number
+  bgBlur: number
+  bgStyle: WidgetBgStyle
+  bgImage: string | null
+  bgImageFit: WidgetBgImageFit
+  cornerRadius: number
+  borderOpacity: number
+  borderColor: string | null
+  contentOpacity: number
+}
 
 export interface WidgetVariant {
   id: string
@@ -26,6 +68,7 @@ export interface WidgetVariant {
   height: number
   minWidth: number
   minHeight: number
+  tags?: string[]
 }
 
 export interface WidgetManifest {
@@ -49,7 +92,7 @@ export interface WidgetManifest {
   updatedAt: string
 }
 
-export interface WidgetPlacement {
+export interface WidgetPlacement extends WidgetAppearance {
   widgetId: string
   displayId: string
   x: number
@@ -93,9 +136,15 @@ export type ThemeSource = 'dark' | 'light' | 'system'
 export interface AppSettingsFile {
   schema: 1
   theme: ThemeSource
+  widgetDefaultTheme: ThemeSource
   accent: AccentColor
   cursorStyle: CursorStyle
   cursorSystemWide: boolean
+  cursorColor: string
+  cursorSize: number
+  cursorOpacity: number
+  cursorGlow: number
+  cursorClickAnimation: CursorClickAnimation
   hotkey: string
   window: {
     width: number
@@ -112,9 +161,10 @@ export interface GeneralState {
   arch: string
   theme: ThemeSource
   resolvedTheme: 'dark' | 'light'
+  widgetDefaultTheme: ThemeSource
+  resolvedWidgetTheme: 'dark' | 'light'
   accent: AccentColor
-  cursorStyle: CursorStyle
-  cursorSystemWide: boolean
+  cursor: CursorConfig
   hotkey: string
   loginItemAvailable: boolean
   loginItemEnabled: boolean
@@ -155,12 +205,19 @@ export interface AppBundleSummary {
   apps: AppEntry[]
 }
 
+export interface AppGridWidgetOption {
+  widgetId: string
+  title: string
+  enabled: boolean
+}
+
 export interface AppsAndBundlesState {
   apps: AppEntry[]
   hiddenCount: number
   bundles: AppBundleSummary[]
   scanning: boolean
   lastScanAt: string | null
+  gridWidgets?: AppGridWidgetOption[]
 }
 
 export interface DiagnosticsExport {
@@ -183,7 +240,9 @@ export interface ShellState {
   editMode: boolean
   locked: boolean
   opacity: number
-  cursorStyle: CursorStyle
+  theme: 'dark' | 'light'
+  appearance: WidgetAppearance
+  cursor: CursorConfig
   editPassthrough: boolean
 }
 

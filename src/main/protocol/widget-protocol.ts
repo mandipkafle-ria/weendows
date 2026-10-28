@@ -2,6 +2,8 @@ import { protocol, session } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { WIDGET_CSP, WIDGET_SESSION_PARTITION } from '../../shared/constants'
 import log from '../services/logger'
+import type { WidgetAppearance } from '../../shared/types'
+import { injectAppearance } from './widget-appearance'
 import {
   injectSdk,
   isWallpaperHost,
@@ -12,6 +14,18 @@ import {
 
 export type { WidgetProtocolPaths } from './widget-paths'
 export { injectSdk, mimeFor, resolveWidgetFile } from './widget-paths'
+
+export interface ResolvedWidgetAppearance {
+  appearance: WidgetAppearance
+  theme: 'dark' | 'light'
+}
+
+export interface WidgetProtocolOptions {
+  resolveAppearance?: (
+    host: string,
+    requestUrl: string
+  ) => ResolvedWidgetAppearance | null | Promise<ResolvedWidgetAppearance | null>
+}
 
 export function registerWidgetScheme(): void {
   protocol.registerSchemesAsPrivileged([
@@ -53,7 +67,10 @@ function requestHost(url: string): string {
   }
 }
 
-export function registerWidgetProtocol(paths: WidgetProtocolPaths): void {
+export function registerWidgetProtocol(
+  paths: WidgetProtocolPaths,
+  options: WidgetProtocolOptions = {}
+): void {
   const handle = async (request: Request): Promise<Response> => {
     const file = resolveWidgetFile(paths, request.url)
     if (!file) {
@@ -63,7 +80,18 @@ export function registerWidgetProtocol(paths: WidgetProtocolPaths): void {
     try {
       let body: Buffer | string = await readFile(file)
       if (file.toLowerCase().endsWith('index.html') && !isWallpaperHost(requestHost(request.url))) {
-        body = injectSdk(body.toString('utf8'))
+        let html = injectSdk(body.toString('utf8'))
+        if (options.resolveAppearance) {
+          try {
+            const resolved = await options.resolveAppearance(requestHost(request.url), request.url)
+            if (resolved) {
+              html = injectAppearance(html, resolved.appearance)
+            }
+          } catch (error) {
+            log.warn('Could not resolve widget appearance', error)
+          }
+        }
+        body = html
       }
 
       const responseBody = typeof body === 'string' ? body : new Uint8Array(body)

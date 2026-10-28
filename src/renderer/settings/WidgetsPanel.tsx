@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
+import { resolveWidgetAppearance } from '../../shared/appearance'
 import { findBuiltin, findBuiltinVariant } from '../../shared/builtins'
 import type {
   BuiltinWidget,
@@ -9,9 +10,11 @@ import type {
   WidgetRuntimeInfo,
   WidgetSummary
 } from '../../shared/types'
-import { WIDGET_CATEGORIES } from '../../shared/types'
 import { t } from '../i18n'
 import type { ToastLevel } from './useToasts'
+import WidgetCatalog from './WidgetCatalog'
+import WidgetCategoryPage from './WidgetCategoryPage'
+import WidgetCustomizeSheet from './WidgetCustomizeSheet'
 import WidgetPreview, { type PreviewSource } from './WidgetPreview'
 
 interface WidgetsPanelProps {
@@ -27,7 +30,6 @@ interface WidgetsPanelProps {
 }
 
 type StudioView = 'browse' | 'desktop' | 'saved'
-type CategoryFilter = 'all' | WidgetCategory
 
 const OPACITY_VALUES = [1, 0.8, 0.6]
 
@@ -110,14 +112,12 @@ export default function WidgetsPanel({
   const [sortByRam, setSortByRam] = useState(false)
   const [view, setView] = useState<StudioView>('browse')
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<CategoryFilter>('all')
-  const [variants, setVariants] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      builtins.flatMap((builtin) =>
-        builtin.variants[0] ? [[builtin.type, builtin.variants[0].id]] : []
-      )
-    )
-  )
+  const [categoryPage, setCategoryPage] = useState<WidgetCategory | null>(null)
+  const [customize, setCustomize] = useState<{
+    builtin: BuiltinWidget
+    variant: string
+    existing?: WidgetSummary
+  } | null>(null)
 
   useEffect(() => {
     void window.api
@@ -145,9 +145,6 @@ export default function WidgetsPanel({
   const filteredBuiltins = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return builtins.filter((builtin) => {
-      if (category !== 'all' && builtin.category !== category) {
-        return false
-      }
       if (!needle) {
         return true
       }
@@ -157,14 +154,11 @@ export default function WidgetsPanel({
         builtin.type.includes(needle)
       )
     })
-  }, [builtins, category, query])
+  }, [builtins, query])
 
   const permissionText = (permission: WidgetPermission): string => t(`permissions.${permission}`)
 
-  const variantFor = (builtin: BuiltinWidget): string =>
-    builtin.variants.find((variant) => variant.id === variants[builtin.type])?.id ??
-    builtin.variants[0]?.id ??
-    'classic'
+  const variantFor = (builtin: BuiltinWidget): string => builtin.variants[0]?.id ?? 'classic'
 
   const run = async (
     key: string,
@@ -185,8 +179,8 @@ export default function WidgetsPanel({
     }
   }
 
-  const addWidget = async (builtin: BuiltinWidget): Promise<void> => {
-    const variant = variantFor(builtin)
+  const addWidget = async (builtin: BuiltinWidget, variantId?: string): Promise<void> => {
+    const variant = variantId ?? variantFor(builtin)
     await run(
       `add:${builtin.type}`,
       () => window.api.addWidget(builtin.type, variant),
@@ -195,6 +189,25 @@ export default function WidgetsPanel({
         design: variantName(variant)
       })
     )
+  }
+
+  const openCustomize = (builtin: BuiltinWidget, variant: string): void => {
+    setCustomize({ builtin, variant })
+  }
+
+  const openCustomizeExisting = (widget: WidgetSummary): void => {
+    if (!widget.manifest.builtinType) {
+      return
+    }
+    const builtin = builtins.find((entry) => entry.type === widget.manifest.builtinType)
+    if (!builtin) {
+      return
+    }
+    setCustomize({
+      builtin,
+      variant: findBuiltinVariant(builtin, widget.manifest.variant).id,
+      existing: widget
+    })
   }
 
   const removeWidget = async (widgetId: string): Promise<void> => {
@@ -328,12 +341,12 @@ export default function WidgetsPanel({
     )
   }
 
-  const categoryCount = (id: CategoryFilter): number =>
-    id === 'all' ? builtins.length : builtins.filter((builtin) => builtin.category === id).length
-
-  const activeCategories = WIDGET_CATEGORIES.filter((id) =>
-    builtins.some((builtin) => builtin.category === id)
-  )
+  const changeTheme = async (widget: WidgetSummary, value: string): Promise<void> => {
+    const themeOverride = value === 'auto' ? null : (value as 'dark' | 'light')
+    await run(`theme:${widget.placement.widgetId}`, () =>
+      window.api.setWidgetAppearance(widget.placement.widgetId, { themeOverride })
+    )
+  }
 
   return (
     <div className="studio">
@@ -387,153 +400,56 @@ export default function WidgetsPanel({
 
       {view === 'browse' && (
         <>
-          <div className="studio-toolbar">
-            <label className="search-field">
-              <SearchIcon />
-              <span className="sr-only">{t('widgets.searchLabel')}</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('widgets.searchPlaceholder')}
-                spellCheck={false}
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="search-clear"
-                  onClick={() => setQuery('')}
-                  aria-label={t('widgets.clearSearch')}
-                >
-                  ×
-                </button>
-              )}
-            </label>
-            <div className="filter-chips" role="group" aria-label={t('widgets.categoriesLabel')}>
-              <button
-                type="button"
-                className={category === 'all' ? 'filter-chip chip-active' : 'filter-chip'}
-                onClick={() => setCategory('all')}
-              >
-                {t('widgets.categoryAll')}
-                <span>{categoryCount('all')}</span>
-              </button>
-              {activeCategories.map((id) => (
-                <button
-                  type="button"
-                  key={id}
-                  className={category === id ? 'filter-chip chip-active' : 'filter-chip'}
-                  onClick={() => setCategory(id)}
-                >
-                  {t(`widgets.categories.${id}`)}
-                  <span>{categoryCount(id)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filteredBuiltins.length === 0 ? (
-            <div className="empty-state">
-              <strong>{t('widgets.noMatchesTitle')}</strong>
-              <span>{t('widgets.noMatchesBody')}</span>
-            </div>
+          {categoryPage ? (
+            <WidgetCategoryPage
+              category={categoryPage}
+              builtins={builtins}
+              widgets={widgets}
+              general={general}
+              pending={pending}
+              onBack={() => setCategoryPage(null)}
+              onAdd={(builtin, variant) => void addWidget(builtin, variant)}
+              onCustomize={openCustomize}
+              onOpenAiStudio={onOpenAiStudio}
+            />
           ) : (
-            <div className="studio-grid">
-              {filteredBuiltins.map((builtin) => {
-                const count = widgets.filter(
-                  (widget) => widget.manifest.builtinType === builtin.type
-                ).length
-                const selectedVariant = findBuiltinVariant(builtin, variantFor(builtin))
-                const busy = pending === `add:${builtin.type}`
-                return (
-                  <article className="studio-card" key={builtin.type}>
-                    <div className="studio-preview">
-                      <WidgetPreview
-                        source={{
-                          kind: 'builtin',
-                          type: builtin.type,
-                          variant: selectedVariant.id
-                        }}
-                        width={selectedVariant.width}
-                        height={selectedVariant.height}
-                        dark={general.resolvedTheme === 'dark'}
-                        cursorStyle={general.cursorStyle}
-                        title={catalogName(builtin.type, builtin.name)}
-                      />
-                      <span className="preview-badge">
-                        <span className="live-dot" aria-hidden="true" />
-                        {t('widgets.livePreview')}
-                      </span>
-                      {count > 0 && (
-                        <span className="preview-count">
-                          {t('widgets.onDesktopCount', { count })}
-                        </span>
-                      )}
-                    </div>
-                    <div className="studio-card-body">
-                      <div className="studio-card-head">
-                        <div>
-                          <h3>{catalogName(builtin.type, builtin.name)}</h3>
-                          <span className="category-tag">
-                            {t(`widgets.categories.${builtin.category}`)}
-                          </span>
-                        </div>
-                        <span className="dimension-tag">
-                          {t('widgets.dimensions', {
-                            width: selectedVariant.width,
-                            height: selectedVariant.height
-                          })}
-                        </span>
-                      </div>
-                      <p>{catalogBody(builtin.type, builtin.description)}</p>
-                      <div
-                        className="variant-row"
-                        role="radiogroup"
-                        aria-label={t('widgets.designFor', {
-                          name: catalogName(builtin.type, builtin.name)
-                        })}
-                      >
-                        {builtin.variants.map((variant) => (
-                          <button
-                            type="button"
-                            key={variant.id}
-                            role="radio"
-                            aria-checked={selectedVariant.id === variant.id}
-                            className={
-                              selectedVariant.id === variant.id
-                                ? 'variant-pill variant-active'
-                                : 'variant-pill'
-                            }
-                            onClick={() =>
-                              setVariants((current) => ({
-                                ...current,
-                                [builtin.type]: variant.id
-                              }))
-                            }
-                          >
-                            {variantName(variant.id)}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="studio-card-foot">
-                        <span className="design-label">
-                          {t('widgets.selectedDesign', {
-                            design: variantName(selectedVariant.id)
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void addWidget(builtin)}
-                          disabled={pending !== null || general.safeMode}
-                          title={general.safeMode ? t('widgets.safeMode') : undefined}
-                        >
-                          {busy ? t('common.adding') : t('widgets.addToDesktop')}
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
+            <>
+              <div className="studio-toolbar">
+                <label className="search-field">
+                  <SearchIcon />
+                  <span className="sr-only">{t('widgets.searchLabel')}</span>
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t('widgets.searchPlaceholder')}
+                    spellCheck={false}
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      className="search-clear"
+                      onClick={() => setQuery('')}
+                      aria-label={t('widgets.clearSearch')}
+                    >
+                      &#10005;
+                    </button>
+                  )}
+                </label>
+                <button type="button" className="button-secondary" onClick={onOpenAiStudio}>
+                  {t('widgets.createWithAi')}
+                </button>
+              </div>
+
+              <WidgetCatalog
+                builtins={filteredBuiltins}
+                widgets={widgets}
+                general={general}
+                pending={pending}
+                onAdd={(builtin, variant) => void addWidget(builtin, variant)}
+                onCustomize={openCustomize}
+                onSeeAll={setCategoryPage}
+              />
+            </>
           )}
         </>
       )}
@@ -584,8 +500,10 @@ export default function WidgetsPanel({
                         source={previewSource(manifest)}
                         width={dimensions.width}
                         height={dimensions.height}
-                        dark={general.resolvedTheme === 'dark'}
-                        cursorStyle={general.cursorStyle}
+                        dark={(placement.themeOverride ?? general.resolvedWidgetTheme) === 'dark'}
+                        appearance={resolveWidgetAppearance(placement)}
+                        assetWidgetId={placement.widgetId}
+                        cursorStyle={general.cursor.style}
                         title={manifest.name}
                       />
                       <span className={placement.enabled ? 'state-dot state-on' : 'state-dot'} />
@@ -643,6 +561,18 @@ export default function WidgetsPanel({
                             </select>
                           </label>
                         )}
+                        <label className="inline-field">
+                          <span>{t('widgets.customize.theme')}</span>
+                          <select
+                            value={placement.themeOverride ?? 'auto'}
+                            disabled={pending !== null}
+                            onChange={(event) => void changeTheme(widget, event.target.value)}
+                          >
+                            <option value="auto">{t('widgets.customize.themeAuto')}</option>
+                            <option value="dark">{t('general.themeDark')}</option>
+                            <option value="light">{t('general.themeLight')}</option>
+                          </select>
+                        </label>
                         <label className="inline-field">
                           <span>{t('widgets.opacity')}</span>
                           <select
@@ -719,6 +649,15 @@ export default function WidgetsPanel({
                         </details>
 
                         <div className="desktop-row-actions">
+                          {builtin && (
+                            <button
+                              type="button"
+                              className="button-secondary button-compact"
+                              onClick={() => openCustomizeExisting(widget)}
+                            >
+                              {t('widgets.customize.action')}
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="button-secondary button-compact"
@@ -802,8 +741,8 @@ export default function WidgetsPanel({
                       source={{ kind: 'widget', id: manifest.id }}
                       width={manifest.width}
                       height={manifest.height}
-                      dark={general.resolvedTheme === 'dark'}
-                      cursorStyle={general.cursorStyle}
+                      dark={general.resolvedWidgetTheme === 'dark'}
+                      cursorStyle={general.cursor.style}
                       title={manifest.name}
                     />
                   </div>
@@ -848,6 +787,18 @@ export default function WidgetsPanel({
             </div>
           )}
         </section>
+      )}
+
+      {customize && (
+        <WidgetCustomizeSheet
+          builtin={customize.builtin}
+          defaultVariant={customize.variant}
+          general={general}
+          existing={customize.existing}
+          onClose={() => setCustomize(null)}
+          onSaved={onRefresh}
+          toast={toast}
+        />
       )}
     </div>
   )

@@ -31,9 +31,16 @@ import {
 } from '../../shared/constants'
 import { IPC } from '../../shared/ipc'
 import { effectiveMinSize } from '../../shared/widget-size'
+import {
+  DEFAULT_WIDGET_APPEARANCE,
+  resolveWidgetAppearance,
+  resolveWidgetTheme
+} from '../../shared/appearance'
 import type {
-  CursorStyle,
+  CursorConfig,
   ShellState,
+  ThemeSource,
+  WidgetAppearance,
   WidgetEventName,
   WidgetManifest,
   WidgetPlacement,
@@ -73,7 +80,9 @@ export interface LayoutServiceOptions {
   widgetService: WidgetService
   notices: NoticeService
   safe: boolean
-  cursorStyle?: () => CursorStyle
+  cursor?: () => CursorConfig
+  widgetDefaultTheme?: () => ThemeSource
+  systemDark?: () => boolean
 }
 
 interface ManagedWidget {
@@ -113,24 +122,18 @@ function toDisplayLike(display: Display): DisplayLike {
 }
 
 function withoutWidgetId(placement: WidgetPlacement): Omit<WidgetPlacement, 'widgetId'> {
-  return {
-    displayId: placement.displayId,
-    x: placement.x,
-    y: placement.y,
-    width: placement.width,
-    height: placement.height,
-    zOrder: placement.zOrder,
-    locked: placement.locked,
-    enabled: placement.enabled,
-    opacity: placement.opacity
-  }
+  const rest = { ...placement }
+  Reflect.deleteProperty(rest, 'widgetId')
+  return rest
 }
 
 export class LayoutService {
   private readonly widgetService: WidgetService
   private readonly notices: NoticeService
   private readonly safe: boolean
-  private readonly cursorStyle: () => CursorStyle
+  private readonly cursor: () => CursorConfig
+  private readonly widgetDefaultTheme: () => ThemeSource
+  private readonly systemDark: () => boolean
   private readonly managed = new Map<string, ManagedWidget>()
   private readonly previews = new Map<string, WidgetPlacement>()
   private readonly changeListeners = new Set<() => void>()
@@ -155,7 +158,19 @@ export class LayoutService {
     this.widgetService = options.widgetService
     this.notices = options.notices
     this.safe = options.safe
-    this.cursorStyle = options.cursorStyle ?? (() => 'system')
+    this.cursor =
+      options.cursor ??
+      (() => ({
+        style: 'system',
+        color: '#ffffff',
+        size: 12,
+        opacity: 1,
+        glowIntensity: 0.5,
+        clickAnimation: 'ripple',
+        systemWide: false
+      }))
+    this.widgetDefaultTheme = options.widgetDefaultTheme ?? (() => 'system')
+    this.systemDark = options.systemDark ?? (() => false)
   }
 
   start(): void {
@@ -239,7 +254,8 @@ export class LayoutService {
         zOrder: this.widgetService.nextZOrder(),
         locked: false,
         enabled: true,
-        opacity: 1
+        opacity: 1,
+        ...DEFAULT_WIDGET_APPEARANCE
       }
       this.widgetService.addPlacement(clampPlacement(placement, display, MIN_VISIBLE_DIP))
     } catch (error) {
@@ -263,7 +279,11 @@ export class LayoutService {
     }
   }
 
-  async addWidget(builtinType: string, variantId?: string): Promise<WidgetSummary> {
+  async addWidget(
+    builtinType: string,
+    variantId?: string,
+    appearance?: Partial<WidgetAppearance>
+  ): Promise<WidgetSummary> {
     if (this.safe) {
       throw new Error('Safe mode is enabled')
     }
@@ -279,6 +299,14 @@ export class LayoutService {
     const variant = findBuiltinVariant(builtin, variantId)
     const placement = this.nextPlacementForSize(variant.width, variant.height)
     const summary = await this.widgetService.create(builtin, placement, variant.id)
+    if (appearance) {
+      const saved = await this.setWidgetAppearance(summary.manifest.id, appearance)
+      if (saved) {
+        await this.openWidget(saved.manifest, saved.placement)
+        this.emitChanged()
+        return saved
+      }
+    }
     await this.openWidget(summary.manifest, summary.placement)
     this.emitChanged()
     return summary
@@ -321,7 +349,8 @@ export class LayoutService {
         zOrder: this.widgetService.nextZOrder(),
         locked: true,
         enabled: true,
-        opacity: 1
+        opacity: 1,
+        ...DEFAULT_WIDGET_APPEARANCE
       },
       display,
       MIN_VISIBLE_DIP
@@ -451,7 +480,8 @@ export class LayoutService {
       zOrder: this.widgetService.nextZOrder(),
       locked: false,
       enabled: true,
-      opacity: 1
+      opacity: 1,
+      ...DEFAULT_WIDGET_APPEARANCE
     }
     return withoutWidgetId(clampPlacement(placement, display, MIN_VISIBLE_DIP))
   }
@@ -557,6 +587,32 @@ export class LayoutService {
     return true
   }
 
+  async setWidgetAppearance(
+    widgetId: string,
+    patch: Partial<WidgetAppearance>
+  ): Promise<WidgetSummary | null> {
+    const current = this.widgetService.getPlacement(widgetId)
+    if (!current) {
+      return null
+    }
+
+    const next: Partial<WidgetAppearance> = { ...patch }
+    if (typeof next.bgImage === 'string' && next.bgImage.startsWith('data:image/')) {
+      next.bgImage = await this.widgetService.saveBackgroundImage(widgetId, next.bgImage)
+    }
+
+    const placement = this.widgetService.updatePlacement(widgetId, next)
+    if (!placement) {
+      return null
+    }
+    const managed = this.managed.get(widgetId)
+    if (managed) {
+      this.sendState(managed)
+    }
+    this.emitChanged()
+    return this.widgetService.getSummary(widgetId)
+  }
+
   async setWidgetVariant(widgetId: string, variantId: string): Promise<WidgetSummary | null> {
     const manifest = await this.widgetService.setBuiltinVariant(widgetId, variantId)
     const managed = this.managed.get(widgetId)
@@ -584,6 +640,18 @@ export class LayoutService {
     void this.openWidget(manifest, placement).finally(() => {
       this.reloading.delete(widgetId)
     })
+  }
+
+  widgetIsDark(widgetId: string): boolean | null {
+    const placement = this.previews.get(widgetId) ?? this.widgetService.getPlacement(widgetId)
+    if (!placement) {
+      return null
+    }
+    const appearance = resolveWidgetAppearance(placement)
+    return (
+      resolveWidgetTheme(appearance.themeOverride, this.widgetDefaultTheme(), this.systemDark()) ===
+      'dark'
+    )
   }
 
   widgetIdForSender(sender: WebContents): string | null {
@@ -842,13 +910,20 @@ export class LayoutService {
   private stateFor(managed: ManagedWidget): ShellState {
     const placement =
       this.previews.get(managed.widgetId) ?? this.widgetService.getPlacement(managed.widgetId)
+    const appearance = resolveWidgetAppearance(placement)
     return {
       widgetId: managed.widgetId,
       variant: this.variantFor(managed.manifest),
       editMode: getEditMode(),
       locked: placement?.locked ?? false,
       opacity: placement?.opacity ?? 1,
-      cursorStyle: this.cursorStyle(),
+      theme: resolveWidgetTheme(
+        appearance.themeOverride,
+        this.widgetDefaultTheme(),
+        this.systemDark()
+      ),
+      appearance,
+      cursor: this.cursor(),
       editPassthrough: isEditPassthroughWidget(managed.manifest)
     }
   }

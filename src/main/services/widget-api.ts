@@ -16,9 +16,11 @@ import {
 import {
   appIdsSchema,
   appIdSchema,
+  gridCreateBundleSchema,
   gridMergeSchema,
   gridMoveSchema,
   gridOpenBundleSchema,
+  gridRemoveBundleSchema,
   gridRenameTitleSchema
 } from '../../shared/schemas'
 import type {
@@ -60,6 +62,7 @@ export interface WidgetApiOptions {
   appGrid: AppGridService
   popover: BundlePopoverService
   logs?: WidgetLogService
+  darkFor?: (widgetId: string) => boolean
   now?: () => number
 }
 
@@ -103,6 +106,7 @@ export class WidgetApiService {
   private readonly appGrid: AppGridService
   private readonly popover: BundlePopoverService
   private readonly logs: WidgetLogService
+  private readonly darkFor: (widgetId: string) => boolean
   private readonly now: () => number
   private readonly rateLimits = new WidgetRateLimitRegistry()
   private readonly linkApprovals = new Map<string, boolean>()
@@ -119,6 +123,7 @@ export class WidgetApiService {
     this.appGrid = options.appGrid
     this.popover = options.popover
     this.logs = options.logs ?? new WidgetLogService()
+    this.darkFor = options.darkFor ?? (() => nativeTheme.shouldUseDarkColors)
     this.now = options.now ?? Date.now
   }
 
@@ -319,6 +324,20 @@ export class WidgetApiService {
         return { ok: true }
       }
 
+      case 'grid.createBundle': {
+        this.requireAppGrid(manifest)
+        const params = objectParams(request)
+        const { name, appIds } = gridCreateBundleSchema.parse(params)
+        return this.appGrid.createBundle(widgetId, name, appIds)
+      }
+
+      case 'grid.removeBundle': {
+        this.requireAppGrid(manifest)
+        const params = objectParams(request)
+        const { bundleId } = gridRemoveBundleSchema.parse(params)
+        return this.appGrid.removeBundle(widgetId, bundleId)
+      }
+
       case 'openLink': {
         this.requirePermission(manifest, 'openLink')
         const params = objectParams(request)
@@ -334,10 +353,11 @@ export class WidgetApiService {
   private getContext(sender: WebContents): WidgetContext {
     const window = BrowserWindow.fromWebContents(sender)
     const [width = 0, height = 0] = window ? window.getContentSize() : []
+    const widgetId = this.layout.widgetIdForSender(sender)
     return {
       width,
       height,
-      dark: nativeTheme.shouldUseDarkColors,
+      dark: widgetId ? this.darkFor(widgetId) : nativeTheme.shouldUseDarkColors,
       locale: app.getLocale(),
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     }

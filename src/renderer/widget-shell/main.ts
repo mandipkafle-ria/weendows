@@ -13,6 +13,7 @@ import type {
   WidgetApiResponse,
   WidgetEvent
 } from '../../shared/types'
+import { cursorImage } from '../../shared/cursor'
 import { t } from '../i18n'
 
 const root = document.getElementById('root')
@@ -86,6 +87,8 @@ if (!root) {
   root.replaceChildren(frame, overlay)
 
   let state: ShellState | null = null
+  let appearanceKey: string | null = null
+  let frameLoads = 0
   let active: 'drag' | 'resize' | null = null
   let port: MessagePort | null = null
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
@@ -135,13 +138,48 @@ if (!root) {
     void window.shellApi.invoke(kind === 'drag' ? 'drag-end' : 'resize-end')
   }
 
+  function applyCursor(next: ShellState): void {
+    const style = next.cursor.style
+    const image = style === 'system' ? null : cursorImage(next.cursor)
+    const rootStyle = document.documentElement.style
+    rootStyle.setProperty(
+      '--hl-cursor',
+      image ? `url("${image.url}") ${image.hotspotX} ${image.hotspotY}, auto` : 'auto'
+    )
+    document.documentElement.dataset['cursor'] = style
+  }
+
+  function loadFrame(): void {
+    const frameUrl = new URL(`widget://${widgetId}/index.html`)
+    if (widgetVariant) {
+      frameUrl.searchParams.set('variant', widgetVariant)
+    }
+    if (frameLoads > 0) {
+      frameUrl.searchParams.set('rev', String(frameLoads))
+    }
+    frame.src = frameUrl.toString()
+  }
+
   function applyState(next: ShellState): void {
+    const initial = state === null
     state = next
     overlay.hidden = !next.editMode
     overlay.classList.toggle('locked', next.locked)
     overlay.classList.toggle('passthrough', next.editPassthrough)
     frame.style.opacity = String(next.opacity)
-    document.documentElement.dataset['cursor'] = next.cursorStyle
+    document.documentElement.dataset['theme'] = next.theme
+    applyCursor(next)
+    const key = JSON.stringify([next.appearance, next.theme])
+    if (appearanceKey === null) {
+      appearanceKey = key
+    } else if (appearanceKey !== key) {
+      appearanceKey = key
+      frameLoads += 1
+      loadFrame()
+    }
+    if (!initial) {
+      postWidgetEvent({ event: 'theme', data: { dark: next.theme === 'dark' } })
+    }
     if (!next.editMode) {
       endPointer()
     }
@@ -312,11 +350,7 @@ if (!root) {
 
   window.addEventListener('beforeunload', stopHeartbeat)
   setupBridge()
-  const frameUrl = new URL(`widget://${widgetId}/index.html`)
-  if (widgetVariant) {
-    frameUrl.searchParams.set('variant', widgetVariant)
-  }
-  frame.src = frameUrl.toString()
+  loadFrame()
 
   void window.shellApi
     .invoke('get-state')

@@ -20,6 +20,7 @@ export interface PopoverAnchor {
   y: number
   width: number
   height: number
+  variant?: string
 }
 
 export interface OpenPopoverOptions {
@@ -177,8 +178,16 @@ export class BundlePopoverService {
     })
 
     try {
+      const query: Record<string, string> = {
+        widgetId: options.widgetId,
+        bundleId: options.bundleId
+      }
+      if (options.rect.variant) {
+        query['variant'] = options.rect.variant
+      }
       await win.loadFile(
-        join(app.getAppPath(), 'resources', 'builtin-widgets', 'app-grid', 'popover.html')
+        join(app.getAppPath(), 'resources', 'builtin-widgets', 'app-grid', 'popover.html'),
+        { query }
       )
     } catch (error) {
       log.error('Could not load bundle popover', error)

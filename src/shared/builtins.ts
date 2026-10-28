@@ -5,9 +5,10 @@ function variant(
   width: number,
   height: number,
   minWidth: number,
-  minHeight: number
+  minHeight: number,
+  tags: string[] = []
 ): WidgetVariant {
-  return { id, width, height, minWidth, minHeight }
+  return { id, width, height, minWidth, minHeight, tags }
 }
 
 export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
@@ -21,11 +22,11 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 160,
     minHeight: 100,
     variants: [
-      variant('classic', 240, 140, 160, 100),
-      variant('minimal', 300, 120, 200, 90),
-      variant('neon', 300, 160, 200, 120),
-      variant('analog', 240, 240, 180, 180),
-      variant('terminal', 300, 160, 220, 120)
+      variant('classic', 240, 140, 160, 100, ['digital', 'clean']),
+      variant('minimal', 300, 120, 200, 90, ['digital', 'minimal']),
+      variant('neon', 300, 160, 200, 120, ['digital', 'neon', 'colorful']),
+      variant('analog', 240, 240, 180, 180, ['analog', 'classic']),
+      variant('terminal', 300, 160, 220, 120, ['digital', 'terminal', 'monospace'])
     ]
   },
   {
@@ -38,9 +39,9 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 160,
     minHeight: 100,
     variants: [
-      variant('classic', 240, 140, 160, 100),
-      variant('editorial', 320, 200, 240, 150),
-      variant('minimal', 240, 120, 180, 90)
+      variant('classic', 240, 140, 160, 100, ['digital', 'clean']),
+      variant('editorial', 320, 200, 240, 150, ['editorial', 'large']),
+      variant('minimal', 240, 120, 180, 90, ['minimal', 'clean'])
     ]
   },
   {
@@ -53,9 +54,9 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 240,
     minHeight: 250,
     variants: [
-      variant('grid', 280, 300, 240, 250),
-      variant('compact', 280, 210, 220, 180),
-      variant('paper', 300, 320, 240, 260)
+      variant('grid', 280, 300, 240, 250, ['calendar', 'dense']),
+      variant('compact', 280, 210, 220, 180, ['compact', 'dense']),
+      variant('paper', 300, 320, 240, 260, ['paper', 'warm'])
     ]
   },
   {
@@ -68,10 +69,10 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 180,
     minHeight: 120,
     variants: [
-      variant('dots', 240, 160, 180, 120),
-      variant('bars', 280, 180, 200, 140),
-      variant('rings', 260, 190, 200, 160),
-      variant('terminal', 300, 180, 220, 140)
+      variant('dots', 240, 160, 180, 120, ['dots', 'compact']),
+      variant('bars', 280, 180, 200, 140, ['bars', 'data']),
+      variant('rings', 260, 190, 200, 160, ['rings', 'data']),
+      variant('terminal', 300, 180, 220, 140, ['terminal', 'monospace'])
     ],
     permissions: ['system.stats']
   },
@@ -85,9 +86,9 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 180,
     minHeight: 120,
     variants: [
-      variant('ring', 240, 160, 180, 120),
-      variant('bar', 280, 120, 200, 100),
-      variant('minimal', 240, 100, 160, 80)
+      variant('ring', 240, 160, 180, 120, ['ring', 'battery']),
+      variant('bar', 280, 120, 200, 100, ['bar', 'battery']),
+      variant('minimal', 240, 100, 160, 80, ['minimal', 'battery'])
     ],
     permissions: ['system.battery']
   },
@@ -101,9 +102,9 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 200,
     minHeight: 160,
     variants: [
-      variant('warm', 280, 220, 200, 160),
-      variant('paper', 300, 240, 220, 180),
-      variant('slate', 280, 200, 200, 150)
+      variant('warm', 280, 220, 200, 160, ['warm', 'notes']),
+      variant('paper', 300, 240, 220, 180, ['paper', 'notes']),
+      variant('slate', 280, 200, 200, 150, ['slate', 'notes'])
     ],
     focusable: true,
     permissions: ['storage']
@@ -118,9 +119,9 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     minWidth: 220,
     minHeight: 180,
     variants: [
-      variant('classic', 300, 220, 240, 180),
-      variant('compact', 280, 140, 200, 120),
-      variant('station', 320, 240, 240, 200)
+      variant('classic', 300, 220, 240, 180, ['weather', 'classic']),
+      variant('compact', 280, 140, 200, 120, ['weather', 'compact']),
+      variant('station', 320, 240, 240, 200, ['weather', 'station'])
     ],
     focusable: true,
     permissions: ['network', 'storage'],
@@ -135,7 +136,14 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     height: 280,
     minWidth: 320,
     minHeight: 180,
-    variants: [variant('classic', 384, 280, 320, 180)],
+    variants: [
+      variant('classic', 384, 280, 320, 180, ['apps', 'launcher', 'classic']),
+      variant('monochrome', 384, 280, 320, 180, ['apps', 'monochrome', 'bw', 'minimal']),
+      variant('glass', 384, 280, 320, 180, ['apps', 'glass', 'frosted', 'modern']),
+      variant('cyberpunk', 396, 288, 320, 180, ['apps', 'neon', 'cyberpunk', 'glow']),
+      variant('minimal', 360, 240, 280, 160, ['apps', 'minimal', 'compact', 'clean']),
+      variant('retro', 384, 280, 320, 180, ['apps', 'retro', 'paper', 'warm'])
+    ],
     focusable: true,
     editPassthrough: true,
     permissions: ['launch']

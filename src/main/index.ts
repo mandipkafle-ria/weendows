@@ -1,6 +1,7 @@
 import { app, nativeImage, nativeTheme, shell } from 'electron'
 import { basename, join } from 'node:path'
 import { BUILTIN_WIDGETS } from '../shared/builtins'
+import { resolveTheme, resolveWidgetAppearance, resolveWidgetTheme } from '../shared/appearance'
 import { APP_ID, LAYOUT_WRITE_DEBOUNCE_MS } from '../shared/constants'
 import { IPC } from '../shared/ipc'
 import {
@@ -36,7 +37,7 @@ import { AiService } from './services/ai-service'
 import { AppGridService } from './services/app-grid-service'
 import { AppLauncher, launchScannedApp } from './services/app-launcher'
 import { AppScanner } from './services/app-scanner'
-import { AppSettingsService } from './services/app-settings'
+import { AppSettingsService, cursorConfigFromSettings } from './services/app-settings'
 import { getEditMode, onEditModeChanged, setEditMode, toggleEditMode } from './services/edit-mode'
 import { SecretsService } from './services/secrets'
 import { discoverSteamRoots } from './services/steam-scanner'
@@ -52,6 +53,7 @@ import { WallpaperLiveService } from './services/wallpaper-live'
 import { WallpaperThumbnails } from './services/wallpaper-thumbnails'
 import { WidgetApiService } from './services/widget-api'
 import { WidgetLogService } from './services/widget-logs'
+import { WidgetPreviewAppearanceService } from './services/widget-preview-appearance'
 import { WidgetService } from './services/widget-service'
 import { configureWidgetSession } from './services/widget-session'
 import { WidgetStorageService } from './services/widget-storage'
@@ -179,7 +181,6 @@ if (!hasLock) {
       const settingsService = new AppSettingsService(join(userDataDir, 'settings.json'))
       appSettings = settingsService
       await settingsService.load()
-      nativeTheme.themeSource = settingsService.get().theme
       configureSettingsWindowSize(
         () => settingsService.get().window,
         (width, height) => settingsService.setWindowSize(width, height)
@@ -247,7 +248,9 @@ if (!hasLock) {
         widgetService: service,
         notices,
         safe: effectiveSafe,
-        cursorStyle: () => settingsService.get().cursorStyle
+        cursor: () => cursorConfigFromSettings(settingsService.get()),
+        widgetDefaultTheme: () => settingsService.get().widgetDefaultTheme,
+        systemDark: () => nativeTheme.shouldUseDarkColors
       })
       layout = layoutService
 
@@ -377,7 +380,9 @@ if (!hasLock) {
         appScanner: scanner,
         appGrid: grid,
         popover: bundlePopover,
-        logs: new WidgetLogService()
+        logs: new WidgetLogService(),
+        darkFor: (widgetId) =>
+          layoutService.widgetIsDark(widgetId) ?? nativeTheme.shouldUseDarkColors
       })
       const ai = new AiService({
         config: aiConfig,
@@ -393,6 +398,7 @@ if (!hasLock) {
       })
       hotkeys = hotkeyService
 
+      const previewAppearances = new WidgetPreviewAppearanceService()
       registerIpcHandlers({
         widgetService: service,
         widgetApi,
@@ -403,6 +409,7 @@ if (!hasLock) {
         wallpaper: wallpaperService,
         appSettings: settingsService,
         systemCursor: cursorService,
+        previewAppearances,
         startup: startupService,
         hotkeys: hotkeyService,
         scanner,
@@ -414,13 +421,58 @@ if (!hasLock) {
       onSettingsWindowClosed(() => {
         void ai.cancel()
       })
-      registerWidgetProtocol({
-        widgetsDir,
-        builtinsDir,
-        sdkDir: join(app.getAppPath(), 'src', 'widget-sdk'),
-        fontsDir: join(app.getAppPath(), 'resources', 'fonts'),
-        wallpapersDir
-      })
+      registerWidgetProtocol(
+        {
+          widgetsDir,
+          builtinsDir,
+          sdkDir: join(app.getAppPath(), 'src', 'widget-sdk'),
+          fontsDir: join(app.getAppPath(), 'resources', 'fonts'),
+          wallpapersDir
+        },
+        {
+          resolveAppearance: (host, requestUrl) => {
+            const url = new URL(requestUrl)
+            const token = url.searchParams.get('appearance')
+            if (token) {
+              const preview = previewAppearances.get(token)
+              if (preview) {
+                const background = preview.appearance.bgImage
+                if (preview.assetWidgetId && background && !background.startsWith('data:')) {
+                  return {
+                    appearance: {
+                      ...preview.appearance,
+                      bgImage: `widget://${preview.assetWidgetId}/${background}`
+                    },
+                    theme: preview.theme
+                  }
+                }
+                return preview
+              }
+            }
+            const queryTheme = url.searchParams.get('theme')
+            const fallbackTheme: 'dark' | 'light' =
+              queryTheme === 'light' || queryTheme === 'dark'
+                ? queryTheme
+                : resolveTheme(
+                    settingsService.get().widgetDefaultTheme,
+                    nativeTheme.shouldUseDarkColors
+                  )
+            const placement = service.getPlacement(host)
+            if (!placement) {
+              return { appearance: resolveWidgetAppearance(null), theme: fallbackTheme }
+            }
+            const appearance = resolveWidgetAppearance(placement)
+            return {
+              appearance,
+              theme: resolveWidgetTheme(
+                appearance.themeOverride,
+                settingsService.get().widgetDefaultTheme,
+                nativeTheme.shouldUseDarkColors
+              )
+            }
+          }
+        }
+      )
       registerIconProtocol({ iconsDir: join(userDataDir, 'cache', 'icons') })
       registerWallpaperProtocol({ wallpapersDir })
 
@@ -443,9 +495,10 @@ if (!hasLock) {
       const broadcastTheme = (): void => {
         const themeEvent = {
           theme: settingsService.get().theme,
-          dark: nativeTheme.shouldUseDarkColors
+          dark:
+            resolveTheme(settingsService.get().theme, nativeTheme.shouldUseDarkColors) === 'dark'
         }
-        layoutService.broadcastWidgetEvent('theme', themeEvent)
+        layoutService.broadcastState()
         const settings = getSettingsWindow()
         if (settings && !settings.isDestroyed()) {
           settings.webContents.send(IPC.settingsThemeChanged, themeEvent)

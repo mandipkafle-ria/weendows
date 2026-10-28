@@ -444,6 +444,60 @@ export class WidgetService {
     return next
   }
 
+  async saveBackgroundImage(widgetId: string, dataUrl: string): Promise<string> {
+    const match = /^data:image\/(png|jpe?g|webp|gif);base64,([a-z0-9+/=\s]+)$/i.exec(dataUrl)
+    if (!match) {
+      throw new Error('Background must be a PNG, JPEG, WebP or GIF image.')
+    }
+    const buffer = Buffer.from(match[2] ?? '', 'base64')
+    if (buffer.byteLength === 0) {
+      throw new Error('Background image is empty.')
+    }
+    if (buffer.byteLength > 20 * 1024 * 1024) {
+      throw new Error('Background image is larger than 20 MB.')
+    }
+
+    const extension = match[1]?.toLowerCase() === 'jpeg' ? 'jpg' : (match[1] ?? 'png').toLowerCase()
+    const directory = join(this.widgetsDir, widgetId)
+    if (!(await pathExists(join(directory, 'index.html')))) {
+      throw new Error('Widget not found.')
+    }
+    await mkdir(directory, { recursive: true })
+    const existing = (await readdir(directory)).filter((name) =>
+      /^background\.(png|jpg|jpeg|webp|gif)$/i.test(name)
+    )
+    await Promise.all(existing.map((name) => rm(join(directory, name), { force: true })))
+    const filename = `background.${extension}`
+    await writeFile(join(directory, filename), buffer)
+    return filename
+  }
+
+  async readBackgroundDataUrl(widgetId: string, file: string): Promise<string | null> {
+    const match = /^background\.(png|jpe?g|webp|gif)$/i.exec(file)
+    if (!match) {
+      return null
+    }
+    try {
+      const buffer = await readFile(join(this.widgetsDir, widgetId, file))
+      const extension = (match[1] ?? 'png').toLowerCase()
+      const mime =
+        extension === 'jpg' || extension === 'jpeg'
+          ? 'image/jpeg'
+          : extension === 'webp'
+            ? 'image/webp'
+            : extension === 'gif'
+              ? 'image/gif'
+              : 'image/png'
+      return `data:${mime};base64,${buffer.toString('base64')}`
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code !== 'ENOENT') {
+        throw error
+      }
+      return null
+    }
+  }
+
   addPlacement(placement: WidgetPlacement): WidgetPlacement {
     const parsed = widgetPlacementSchema.parse(placement)
     this.layout.update((data) => {

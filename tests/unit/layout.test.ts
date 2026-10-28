@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_WIDGET_APPEARANCE } from '../../src/shared/appearance'
 import type { WidgetPlacement } from '../../src/shared/types'
 import {
   boundsForPlacement,
@@ -32,6 +33,7 @@ function placement(overrides: Partial<WidgetPlacement> = {}): WidgetPlacement {
     locked: false,
     enabled: true,
     opacity: 1,
+    ...DEFAULT_WIDGET_APPEARANCE,
     ...overrides
   }
 }

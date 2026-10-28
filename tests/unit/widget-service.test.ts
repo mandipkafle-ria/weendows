@@ -6,6 +6,7 @@ import { JsonStore } from '../../src/main/services/store'
 import { WidgetService } from '../../src/main/services/widget-service'
 import { findBuiltin } from '../../src/shared/builtins'
 import { layoutFileSchema } from '../../src/shared/schemas'
+import { DEFAULT_WIDGET_APPEARANCE } from '../../src/shared/appearance'
 import type { AiManifest, LayoutFile, WidgetPlacement } from '../../src/shared/types'
 
 const roots: string[] = []
@@ -23,6 +24,7 @@ function placement(overrides: Partial<WidgetPlacement> = {}): Omit<WidgetPlaceme
     locked: false,
     enabled: true,
     opacity: 1,
+    ...DEFAULT_WIDGET_APPEARANCE,
     ...overrides
   }
 }

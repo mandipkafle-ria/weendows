@@ -2,9 +2,12 @@ import { z } from 'zod'
 import { GRID_TITLE_MAX, WALLPAPER_ID_RE, WIDGET_ID_RE } from './constants'
 import {
   ACCENT_COLORS,
+  CURSOR_CLICK_ANIMATIONS,
   CURSOR_STYLES,
   WALLPAPER_FITS,
   WALLPAPER_INTERVAL_MINUTES,
+  WIDGET_BG_IMAGE_FITS,
+  WIDGET_BG_STYLES,
   WIDGET_PERMISSIONS
 } from './types'
 
@@ -13,6 +16,25 @@ export const noArgsSchema = z.undefined()
 export const themeSourceSchema = z.enum(['dark', 'light', 'system'])
 export const accentColorSchema = z.enum(ACCENT_COLORS)
 export const cursorStyleSchema = z.enum(CURSOR_STYLES)
+export const cursorClickAnimationSchema = z.enum(CURSOR_CLICK_ANIMATIONS)
+export const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color')
+export const widgetBgStyleSchema = z.enum(WIDGET_BG_STYLES)
+export const widgetBgImageFitSchema = z.enum(WIDGET_BG_IMAGE_FITS)
+export const widgetThemeOverrideSchema = z.enum(['dark', 'light']).nullable()
+export const cursorConfigPatchSchema = z
+  .object({
+    style: cursorStyleSchema.optional(),
+    color: hexColorSchema.optional(),
+    size: z.number().min(8).max(24).optional(),
+    opacity: z.number().min(0.1).max(1).optional(),
+    glowIntensity: z.number().min(0).max(1).optional(),
+    clickAnimation: cursorClickAnimationSchema.optional(),
+    systemWide: z.boolean().optional()
+  })
+  .strict()
 export const acceleratorSchema = z
   .string()
   .trim()
@@ -27,9 +49,15 @@ export const appSettingsSchema = z
   .object({
     schema: z.literal(1),
     theme: themeSourceSchema,
+    widgetDefaultTheme: themeSourceSchema.default('system'),
     accent: accentColorSchema.default('ember'),
     cursorStyle: cursorStyleSchema.default('system'),
     cursorSystemWide: z.boolean().default(false),
+    cursorColor: hexColorSchema.default('#ffffff'),
+    cursorSize: z.number().min(8).max(24).default(12),
+    cursorOpacity: z.number().min(0.1).max(1).default(1),
+    cursorGlow: z.number().min(0).max(1).default(0.5),
+    cursorClickAnimation: cursorClickAnimationSchema.default('ripple'),
     hotkey: acceleratorSchema,
     window: windowSizeSchema,
     onboardingCompleted: z.boolean()
@@ -98,10 +126,16 @@ export const gridOpenBundleSchema = z.object({
     x: z.number().finite(),
     y: z.number().finite(),
     width: z.number().positive().max(10000),
-    height: z.number().positive().max(10000)
+    height: z.number().positive().max(10000),
+    variant: z.string().optional()
   })
 })
 export const bundleReorderSchema = z.object({ from: gridIndexSchema, to: gridIndexSchema })
+export const gridCreateBundleSchema = z.object({
+  name: z.string().trim().min(1).max(24),
+  appIds: appIdsSchema
+})
+export const gridRemoveBundleSchema = z.object({ bundleId: bundleIdSchema })
 
 const hostnameSchema = z
   .string()
@@ -180,9 +214,46 @@ export const widgetPlacementSchema = z
     zOrder: z.number().int(),
     locked: z.boolean(),
     enabled: z.boolean(),
-    opacity: opacitySchema
+    opacity: opacitySchema,
+    themeOverride: widgetThemeOverrideSchema.default(null),
+    bgColor: hexColorSchema.nullable().default(null),
+    bgOpacity: z.number().min(0).max(1).default(1),
+    bgBlur: z.number().min(0).max(20).default(0),
+    bgStyle: widgetBgStyleSchema.default('solid'),
+    bgImage: z.string().max(4096).nullable().default(null),
+    bgImageFit: widgetBgImageFitSchema.default('cover'),
+    cornerRadius: z.number().min(0).max(64).default(18),
+    borderOpacity: z.number().min(0).max(1).default(0.09),
+    borderColor: hexColorSchema.nullable().default(null),
+    contentOpacity: z.number().min(0).max(1).default(1)
   })
   .passthrough()
+
+const widgetBgImageRefSchema = z
+  .string()
+  .max(20_000_000)
+  .refine(
+    (value) =>
+      /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value) ||
+      /^background\.(png|jpe?g|webp|gif)$/i.test(value),
+    { message: 'Invalid background image reference' }
+  )
+
+export const widgetAppearancePatchSchema = z
+  .object({
+    themeOverride: widgetThemeOverrideSchema.optional(),
+    bgColor: hexColorSchema.nullable().optional(),
+    bgOpacity: z.number().min(0).max(1).optional(),
+    bgBlur: z.number().min(0).max(20).optional(),
+    bgStyle: widgetBgStyleSchema.optional(),
+    bgImage: widgetBgImageRefSchema.nullable().optional(),
+    bgImageFit: widgetBgImageFitSchema.optional(),
+    cornerRadius: z.number().min(0).max(64).optional(),
+    borderOpacity: z.number().min(0).max(1).optional(),
+    borderColor: hexColorSchema.nullable().optional(),
+    contentOpacity: z.number().min(0).max(1).optional()
+  })
+  .strict()
 
 export const layoutFileSchema = z
   .object({

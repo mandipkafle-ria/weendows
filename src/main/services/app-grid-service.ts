@@ -56,6 +56,11 @@ export class AppGridService {
     await Promise.all([this.grids.load(), this.groups.load()])
   }
 
+  gridTitle(widgetId: string): string {
+    const title = this.grids.get().grids[widgetId]?.title
+    return typeof title === 'string' && title.trim() ? title.trim() : 'Apps'
+  }
+
   state(widgetId: string): AppGridState {
     const title = this.grids.get().grids[widgetId]?.title
     return resolveGridState(
@@ -189,6 +194,76 @@ export class AppGridService {
     }
     this.setBundles(reorderBundleApps(this.bundles(), bundleId, from, to))
     return { state: this.bundleState(widgetId, bundleId), dissolved: false }
+  }
+
+  createBundle(
+    widgetId: string,
+    name: string,
+    appIds: readonly string[]
+  ): { bundleId: string; state: AppGridState } {
+    const known = new Set(this.scanner.list().map((app) => app.id))
+    const validAppIds = appIds.filter((id) => known.has(id))
+    const bundleName = name.trim().slice(0, BUNDLE_NAME_MAX) || 'Bundle'
+    const bundleId = this.createId()
+    const bundle: AppBundleRecord = {
+      id: bundleId,
+      gridId: widgetId,
+      name: bundleName,
+      appIds: validAppIds
+    }
+    const currentItems = this.items(widgetId)
+    const nextItems: AppGridItemRef[] = currentItems.filter(
+      (item) => !(item.type === 'app' && validAppIds.includes(item.appId))
+    )
+    nextItems.push({ type: 'bundle', bundleId })
+    this.setItems(widgetId, nextItems)
+    this.setBundles([...this.bundles(), bundle])
+    return { bundleId, state: this.state(widgetId) }
+  }
+
+  deleteBundle(bundleId: string): void {
+    const currentBundles = this.bundles()
+    const bundle = currentBundles.find((candidate) => candidate.id === bundleId)
+    if (!bundle) {
+      return
+    }
+    this.setBundles(currentBundles.filter((candidate) => candidate.id !== bundleId))
+    const gridsData = this.grids.get().grids
+    for (const gridId of Object.keys(gridsData)) {
+      const items = this.items(gridId)
+      if (items.some((item) => item.type === 'bundle' && item.bundleId === bundleId)) {
+        this.setItems(
+          gridId,
+          items.filter((item) => !(item.type === 'bundle' && item.bundleId === bundleId))
+        )
+      }
+    }
+  }
+
+  addBundleToGrid(widgetId: string, bundleId: string): AppGridState {
+    const bundle = this.bundles().find((candidate) => candidate.id === bundleId)
+    if (!bundle) {
+      return this.state(widgetId)
+    }
+    if (bundle.gridId !== widgetId) {
+      this.setBundles(
+        this.bundles().map((b) => (b.id === bundleId ? { ...b, gridId: widgetId } : b))
+      )
+    }
+    const currentItems = this.items(widgetId)
+    if (!currentItems.some((item) => item.type === 'bundle' && item.bundleId === bundleId)) {
+      this.setItems(widgetId, [...currentItems, { type: 'bundle', bundleId }])
+    }
+    return this.state(widgetId)
+  }
+
+  removeBundle(widgetId: string, bundleId: string): AppGridState {
+    const currentItems = this.items(widgetId)
+    this.setItems(
+      widgetId,
+      currentItems.filter((item) => !(item.type === 'bundle' && item.bundleId === bundleId))
+    )
+    return this.state(widgetId)
   }
 
   appIdsInBundle(widgetId: string, bundleId: string): string[] {

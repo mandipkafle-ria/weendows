@@ -225,7 +225,12 @@
         --accent-ink: #fff9ee;
         padding: 18px 16px 13px;
         background:
-          linear-gradient(90deg, transparent 0 7px, rgba(163, 63, 26, 0.16) 7px 8px, transparent 8px),
+          linear-gradient(
+            90deg,
+            transparent 0 7px,
+            rgba(163, 63, 26, 0.16) 7px 8px,
+            transparent 8px
+          ),
           repeating-linear-gradient(0deg, transparent 0 23px, rgba(59, 48, 30, 0.055) 23px 24px),
           #f3ecdd;
         box-shadow:
@@ -380,7 +385,8 @@
         }
 
         if (window.hl) {
-          window.hl.ready()
+          window.hl
+            .ready()
             .then(function () {
               return window.hl.getContext()
             })

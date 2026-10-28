@@ -4,6 +4,7 @@ import type {
   AppGridState,
   CursorStyle,
   WidgetApiErrorCode,
+  WidgetAppearance,
   WidgetContext,
   WidgetSystemStats
 } from '../../shared/types'
@@ -18,6 +19,8 @@ interface WidgetPreviewProps {
   height: number
   dark: boolean
   cursorStyle: CursorStyle
+  appearance?: WidgetAppearance
+  assetWidgetId?: string
   title: string
   interactive?: boolean
   className?: string
@@ -93,11 +96,20 @@ function demoGridState(): AppGridState {
     widgetId: 'preview',
     title: 'Quick launch',
     apps: DEMO_APPS,
-    items: DEMO_APPS.map((app) => ({
-      key: `app:${app.id}`,
-      type: 'app',
-      app
-    }))
+    items: [
+      { key: `app:${DEMO_APPS[0]!.id}`, type: 'app', app: DEMO_APPS[0]! },
+      { key: `app:${DEMO_APPS[1]!.id}`, type: 'app', app: DEMO_APPS[1]! },
+      {
+        key: 'bundle:preview-bundle',
+        type: 'bundle',
+        bundle: {
+          id: 'preview-bundle',
+          name: 'Utilities',
+          apps: [DEMO_APPS[2]!, DEMO_APPS[3]!, DEMO_APPS[4]!]
+        }
+      },
+      { key: `app:${DEMO_APPS[5]!.id}`, type: 'app', app: DEMO_APPS[5]! }
+    ]
   }
 }
 
@@ -105,18 +117,19 @@ function failure(code: WidgetApiErrorCode, message: string): object {
   return { ok: false, error: { code, message } }
 }
 
-function previewUrl(source: PreviewSource): string {
-  if (source.kind === 'builtin') {
-    const url = new URL(`widget://_builtins/${source.type}/index.html`)
-    url.searchParams.set('variant', source.variant)
-    url.searchParams.set('preview', '1')
-    return url.toString()
-  }
-  const url = new URL(`widget://${source.id}/index.html`)
+function previewUrl(source: PreviewSource, dark: boolean, appearanceToken: string | null): string {
+  const url =
+    source.kind === 'builtin'
+      ? new URL(`widget://_builtins/${source.type}/index.html`)
+      : new URL(`widget://${source.id}/index.html`)
   if (source.variant) {
     url.searchParams.set('variant', source.variant)
   }
   url.searchParams.set('preview', '1')
+  if (appearanceToken) {
+    url.searchParams.set('appearance', appearanceToken)
+    url.searchParams.set('theme', dark ? 'dark' : 'light')
+  }
   return url.toString()
 }
 
@@ -143,6 +156,8 @@ export default function WidgetPreview({
   height,
   dark,
   cursorStyle,
+  appearance,
+  assetWidgetId,
   title,
   interactive = false,
   className
@@ -150,8 +165,37 @@ export default function WidgetPreview({
   const frameRef = useRef<HTMLIFrameElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
-  const src = useMemo(() => previewUrl(source), [source])
+  const [appearanceToken, setAppearanceToken] = useState<string | null>(null)
   const key = previewKey(source)
+  const appearanceKey = useMemo(() => (appearance ? JSON.stringify(appearance) : ''), [appearance])
+  const activeAppearanceToken = appearance ? appearanceToken : null
+  const src = useMemo(
+    () => previewUrl(source, dark, activeAppearanceToken),
+    [activeAppearanceToken, dark, source]
+  )
+
+  useEffect(() => {
+    if (!appearance) {
+      return
+    }
+    let cancelled = false
+    let token: string | null = null
+    void window.api
+      .createWidgetPreview(appearance, dark ? 'dark' : 'light', assetWidgetId)
+      .then((created) => {
+        token = created
+        if (!cancelled) {
+          setAppearanceToken(created)
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+      if (token) {
+        void window.api.releaseWidgetPreview(token)
+      }
+    }
+  }, [appearance, appearanceKey, assetWidgetId, dark])
 
   useEffect(() => {
     const node = wrapRef.current
@@ -288,7 +332,7 @@ export default function WidgetPreview({
       >
         <iframe
           ref={frameRef}
-          src={src}
+          src={appearance && !appearanceToken ? 'about:blank' : src}
           title={title}
           sandbox="allow-scripts"
           loading="lazy"

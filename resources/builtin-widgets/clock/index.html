@@ -319,8 +319,7 @@
         padding: 10px 12px 9px;
         border-radius: 12px;
         background:
-          radial-gradient(12rem 8rem at 94% 0%, rgba(100, 255, 158, 0.08), transparent 60%),
-          #07100a;
+          radial-gradient(12rem 8rem at 94% 0%, rgba(100, 255, 158, 0.08), transparent 60%), #07100a;
         box-shadow: inset 0 0 0 1px rgba(100, 255, 158, 0.18);
         font-family: 'DotGothic16', monospace;
       }
@@ -377,9 +376,33 @@
           <circle class="dial-ring" cx="50" cy="50" r="47.5"></circle>
           <circle class="dial-face" cx="50" cy="50" r="40"></circle>
           <g id="ticks"></g>
-          <line class="hand" id="hour-hand" x1="50" y1="50" x2="50" y2="30" stroke-width="2.6"></line>
-          <line class="hand" id="minute-hand" x1="50" y1="50" x2="50" y2="19" stroke-width="1.6"></line>
-          <line class="hand hand-second" id="second-hand" x1="50" y1="55" x2="50" y2="16" stroke-width="0.9"></line>
+          <line
+            class="hand"
+            id="hour-hand"
+            x1="50"
+            y1="50"
+            x2="50"
+            y2="30"
+            stroke-width="2.6"
+          ></line>
+          <line
+            class="hand"
+            id="minute-hand"
+            x1="50"
+            y1="50"
+            x2="50"
+            y2="19"
+            stroke-width="1.6"
+          ></line>
+          <line
+            class="hand hand-second"
+            id="second-hand"
+            x1="50"
+            y1="55"
+            x2="50"
+            y2="16"
+            stroke-width="0.9"
+          ></line>
           <circle class="dial-center" cx="50" cy="50" r="2.2"></circle>
         </svg>
       </div>
@@ -472,7 +495,8 @@
         }
 
         if (window.hl) {
-          window.hl.ready()
+          window.hl
+            .ready()
             .then(function () {
               return window.hl.getContext()
             })

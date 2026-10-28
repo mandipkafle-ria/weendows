@@ -161,7 +161,11 @@
         width: 0;
         height: 100%;
         border-radius: 4px;
-        background: linear-gradient(90deg, var(--charge), color-mix(in srgb, var(--charge) 55%, white));
+        background: linear-gradient(
+          90deg,
+          var(--charge),
+          color-mix(in srgb, var(--charge) 55%, white)
+        );
         box-shadow: 0 0 10px var(--charge-soft);
         transition: width 500ms ease;
       }
@@ -373,17 +377,21 @@
           if (!window.hl || !window.hl.system) {
             return
           }
-          window.hl.system.getBattery().then(render).catch(function (error) {
-            if (stateNode) {
-              stateNode.textContent = error && error.code === 'permission_denied'
-                ? 'Permission is off'
-                : 'Battery unavailable'
-            }
-            if (detailNode) {
-              detailNode.textContent = 'Check the widget permission in Settings'
-              detailNode.classList.add('error')
-            }
-          })
+          window.hl.system
+            .getBattery()
+            .then(render)
+            .catch(function (error) {
+              if (stateNode) {
+                stateNode.textContent =
+                  error && error.code === 'permission_denied'
+                    ? 'Permission is off'
+                    : 'Battery unavailable'
+              }
+              if (detailNode) {
+                detailNode.textContent = 'Check the widget permission in Settings'
+                detailNode.classList.add('error')
+              }
+            })
         }
 
         tick()
@@ -394,7 +402,8 @@
         }
 
         if (window.hl) {
-          window.hl.ready()
+          window.hl
+            .ready()
             .then(function () {
               return window.hl.getContext()
             })

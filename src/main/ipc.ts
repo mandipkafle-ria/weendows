@@ -7,7 +7,10 @@ import {
   type IpcMainEvent,
   type IpcMainInvokeEvent
 } from 'electron'
+import { readFile } from 'node:fs/promises'
+import { extname } from 'node:path'
 import { z } from 'zod'
+import { resolveTheme, resolveWidgetAppearance } from '../shared/appearance'
 import { BUILTIN_WIDGETS } from '../shared/builtins'
 import { IPC, type AppInfo, type NativeCheckResult } from '../shared/ipc'
 import {
@@ -22,6 +25,7 @@ import {
   appIdSchema,
   builtinTypeSchema,
   bundleNameSchema,
+  cursorConfigPatchSchema,
   cursorStyleSchema,
   gridIndexSchema,
   noArgsSchema,
@@ -31,10 +35,17 @@ import {
   wallpaperIdSchema,
   wallpaperLiveOptionsSchema,
   wallpaperSlideshowSchema,
+  widgetAppearancePatchSchema,
   widgetIdSchema,
   widgetVariantSchema
 } from '../shared/schemas'
-import type { AppsAndBundlesState, GeneralState, SafeModeReason } from '../shared/types'
+import type {
+  AppsAndBundlesState,
+  GeneralState,
+  SafeModeReason,
+  WidgetAppearance
+} from '../shared/types'
+import { SYSTEM_CURSOR_STYLES } from '../shared/types'
 import { t } from './i18n'
 import { getEditMode, setEditMode } from './services/edit-mode'
 import { runNativeSmokeTest } from './native/win32'
@@ -43,7 +54,7 @@ import log from './services/logger'
 import type { AiService } from './services/ai-service'
 import type { AppGridService } from './services/app-grid-service'
 import type { AppScanner } from './services/app-scanner'
-import type { AppSettingsService } from './services/app-settings'
+import { cursorConfigFromSettings, type AppSettingsService } from './services/app-settings'
 import { exportDiagnostics } from './services/diagnostics'
 import type { HotkeyService } from './hotkeys'
 import { readLicenses } from './services/licenses'
@@ -52,6 +63,7 @@ import type { StartupService } from './services/startup'
 import type { WallpaperService } from './services/wallpaper-service'
 import type { WidgetApiService } from './services/widget-api'
 import type { WidgetService } from './services/widget-service'
+import type { WidgetPreviewAppearanceService } from './services/widget-preview-appearance'
 import type { LayoutService } from './windows/layout'
 import type { BundlePopoverService } from './windows/popover-window'
 import { getSettingsWindow, showSettingsWindow } from './windows/settings-window'
@@ -66,6 +78,7 @@ export interface IpcServices {
   wallpaper: WallpaperService
   appSettings: AppSettingsService
   systemCursor: SystemCursorService
+  previewAppearances: WidgetPreviewAppearanceService
   startup: StartupService
   hotkeys: HotkeyService
   scanner: AppScanner
@@ -81,10 +94,11 @@ function generalState(services: IpcServices): GeneralState {
     platform: process.platform,
     arch: process.arch,
     theme: settings.theme,
-    resolvedTheme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    resolvedTheme: resolveTheme(settings.theme, nativeTheme.shouldUseDarkColors),
+    widgetDefaultTheme: settings.widgetDefaultTheme,
+    resolvedWidgetTheme: resolveTheme(settings.widgetDefaultTheme, nativeTheme.shouldUseDarkColors),
     accent: settings.accent,
-    cursorStyle: settings.cursorStyle,
-    cursorSystemWide: settings.cursorSystemWide,
+    cursor: cursorConfigFromSettings(settings),
     hotkey: settings.hotkey,
     loginItemAvailable: app.isPackaged,
     loginItemEnabled: app.isPackaged ? app.getLoginItemSettings().openAtLogin : false,
@@ -98,12 +112,22 @@ function generalState(services: IpcServices): GeneralState {
 
 function appsAndBundlesState(services: IpcServices): AppsAndBundlesState {
   const apps = services.scanner.list()
+  const summaries = services.layout.getSummaries()
+  const gridWidgets = summaries
+    .filter((summary) => summary.manifest.builtinType === 'app-grid')
+    .map((summary) => ({
+      widgetId: summary.manifest.id,
+      title: services.appGrid.gridTitle(summary.manifest.id),
+      enabled: summary.placement.enabled
+    }))
+
   return {
     apps,
     hiddenCount: apps.filter((entry) => entry.hidden).length,
     bundles: services.appGrid.listBundles(),
     scanning: services.scanner.isScanning(),
-    lastScanAt: services.scanner.lastScanTime()
+    lastScanAt: services.scanner.lastScanTime(),
+    gridWidgets
   }
 }
 
@@ -172,7 +196,14 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertSettingsSender(event)
     const theme = themeSourceSchema.parse(args[0])
     await services.appSettings.setTheme(theme)
-    nativeTheme.themeSource = theme
+    return generalState(services)
+  })
+
+  ipcMain.handle(IPC.settingsSetWidgetDefaultTheme, async (event, ...args) => {
+    assertSettingsSender(event)
+    const theme = themeSourceSchema.parse(args[0])
+    await services.appSettings.setWidgetDefaultTheme(theme)
+    services.layout.broadcastState()
     return generalState(services)
   })
 
@@ -188,6 +219,9 @@ export function registerIpcHandlers(services: IpcServices): void {
     const cursorStyle = cursorStyleSchema.parse(args[0])
     const settings = services.appSettings.get()
     if (settings.cursorSystemWide) {
+      if (!(SYSTEM_CURSOR_STYLES as readonly string[]).includes(cursorStyle)) {
+        throw new Error('This cursor style is available inside HomeLayer only.')
+      }
       services.systemCursor.apply(cursorStyle)
       if (cursorStyle === 'system') {
         await services.appSettings.setCursorSystemWide(false)
@@ -198,20 +232,121 @@ export function registerIpcHandlers(services: IpcServices): void {
     return generalState(services)
   })
 
+  ipcMain.handle(IPC.settingsSetCursor, async (event, ...args) => {
+    assertSettingsSender(event)
+    const patch = cursorConfigPatchSchema.parse(args[0])
+    const settings = services.appSettings.get()
+    const nextStyle = patch.style ?? settings.cursorStyle
+    const nextSystemWide = patch.systemWide ?? settings.cursorSystemWide
+
+    if (nextSystemWide) {
+      if (
+        nextStyle === 'system' ||
+        !(SYSTEM_CURSOR_STYLES as readonly string[]).includes(nextStyle)
+      ) {
+        throw new Error('This cursor style is available inside HomeLayer only.')
+      }
+      services.systemCursor.apply(nextStyle)
+    } else if (settings.cursorSystemWide) {
+      services.systemCursor.restore()
+    }
+
+    const appearance = { ...patch }
+    delete appearance.systemWide
+    if (Object.keys(appearance).length > 0) {
+      await services.appSettings.setCursorAppearance(appearance)
+    }
+    if (patch.systemWide !== undefined) {
+      await services.appSettings.setCursorSystemWide(patch.systemWide)
+    }
+    services.layout.broadcastState()
+    return generalState(services)
+  })
+
   ipcMain.handle(IPC.settingsSetCursorSystemWide, async (event, ...args) => {
     assertSettingsSender(event)
     const enabled = z.boolean().parse(args[0])
     const settings = services.appSettings.get()
     if (enabled) {
-      if (settings.cursorStyle === 'system') {
-        throw new Error('Choose a custom cursor pack first.')
+      if (
+        settings.cursorStyle === 'system' ||
+        !(SYSTEM_CURSOR_STYLES as readonly string[]).includes(settings.cursorStyle)
+      ) {
+        throw new Error('Choose a system-wide cursor pack first.')
       }
       services.systemCursor.apply(settings.cursorStyle)
     } else {
       services.systemCursor.restore()
     }
     await services.appSettings.setCursorSystemWide(enabled)
+    services.layout.broadcastState()
     return generalState(services)
+  })
+
+  ipcMain.handle(IPC.settingsCreateWidgetPreview, (event, ...args) => {
+    assertSettingsSender(event)
+    const parsed = widgetAppearancePatchSchema.parse(args[0])
+    const theme = z.enum(['dark', 'light']).parse(args[1])
+    const assetWidgetId = widgetIdSchema.optional().parse(args[2])
+    return services.previewAppearances.create(resolveWidgetAppearance(parsed), theme, assetWidgetId)
+  })
+
+  ipcMain.handle(IPC.settingsReleaseWidgetPreview, (event, ...args) => {
+    assertSettingsSender(event)
+    const token = z.string().min(1).max(64).parse(args[0])
+    services.previewAppearances.release(token)
+  })
+
+  ipcMain.handle(IPC.settingsPickWidgetBackground, async (event, ...args) => {
+    assertSettingsSender(event)
+    assertNoArgs(args)
+    const window = getSettingsWindow()
+    if (!window) {
+      throw new Error('Settings window is not available')
+    }
+    const result = await dialog.showOpenDialog(window, {
+      title: t('dialog.chooseWidgetBackground'),
+      properties: ['openFile'],
+      filters: [{ name: t('dialog.images'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }]
+    })
+    const file = result.filePaths[0]
+    if (result.canceled || !file) {
+      return null
+    }
+    const buffer = await readFile(file)
+    if (buffer.byteLength > 20 * 1024 * 1024) {
+      throw new Error('Background image is larger than 20 MB.')
+    }
+    const extension = extname(file).toLowerCase()
+    const mime =
+      extension === '.jpg' || extension === '.jpeg'
+        ? 'image/jpeg'
+        : extension === '.webp'
+          ? 'image/webp'
+          : extension === '.gif'
+            ? 'image/gif'
+            : 'image/png'
+    return {
+      dataUrl: `data:${mime};base64,${buffer.toString('base64')}`,
+      name: file.split(/[\\/]/).pop() ?? file
+    }
+  })
+
+  ipcMain.handle(IPC.settingsGetWidgetBackground, async (event, ...args) => {
+    assertSettingsSender(event)
+    const widgetId = widgetIdSchema.parse(args[0])
+    const placement = services.widgetService.getPlacement(widgetId)
+    if (!placement?.bgImage) {
+      return null
+    }
+    return services.widgetService.readBackgroundDataUrl(widgetId, placement.bgImage)
+  })
+
+  ipcMain.handle(IPC.settingsSetWidgetAppearance, async (event, ...args) => {
+    assertSettingsSender(event)
+    const widgetId = widgetIdSchema.parse(args[0])
+    const appearance = widgetAppearancePatchSchema.parse(args[1]) as Partial<WidgetAppearance>
+    return services.layout.setWidgetAppearance(widgetId, appearance)
   })
 
   ipcMain.handle(IPC.settingsGetPreviewStats, (event, ...args) => {
@@ -416,7 +551,11 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertSettingsSender(event)
     const builtinType = builtinTypeSchema.parse(args[0])
     const variant = args[1] === undefined ? undefined : widgetVariantSchema.parse(args[1])
-    return services.layout.addWidget(builtinType, variant)
+    const appearance =
+      args[2] === undefined
+        ? undefined
+        : (widgetAppearancePatchSchema.parse(args[2]) as Partial<WidgetAppearance>)
+    return services.layout.addWidget(builtinType, variant, appearance)
   })
 
   ipcMain.handle(IPC.addAiWidgetCopy, async (event, ...args) => {
@@ -491,6 +630,112 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertSettingsSender(event)
     assertNoArgs(args)
     await services.scanner.refresh()
+    return appsAndBundlesState(services)
+  })
+
+  ipcMain.handle(IPC.appAddToHomescreen, async (event, ...args) => {
+    assertSettingsSender(event)
+    const appId = z.string().min(1).parse(args[0])
+    const chosenWidgetId = z.string().optional().parse(args[1])
+
+    let widgetId: string
+    if (chosenWidgetId === '__new__') {
+      const newWidget = await services.layout.addWidget('app-grid')
+      widgetId = newWidget.manifest.id
+    } else if (chosenWidgetId) {
+      widgetId = chosenWidgetId
+    } else {
+      const summaries = services.layout.getSummaries()
+      let appGridWidget = summaries.find(
+        (summary) => summary.manifest.builtinType === 'app-grid' && summary.placement.enabled
+      )
+      if (!appGridWidget) {
+        appGridWidget = await services.layout.addWidget('app-grid')
+      }
+      widgetId = appGridWidget.manifest.id
+    }
+
+    services.appGrid.addApps(widgetId, [appId])
+    services.layout.reloadWidget(widgetId)
+    return { success: true, widgetId }
+  })
+
+  ipcMain.handle(IPC.bundleCreate, async (event, ...args) => {
+    assertSettingsSender(event)
+    const name = z.string().trim().min(1).max(24).parse(args[0])
+    const appIds = z.array(z.string().min(1)).min(1).parse(args[1])
+    const targetParam = args[2]
+
+    let widgetId = 'default'
+    let addToGrid = true
+    if (typeof targetParam === 'boolean') {
+      addToGrid = targetParam
+    } else if (typeof targetParam === 'string') {
+      if (targetParam === 'none') {
+        addToGrid = false
+      } else if (targetParam === '__new__') {
+        const newWidget = await services.layout.addWidget('app-grid')
+        widgetId = newWidget.manifest.id
+      } else {
+        widgetId = targetParam
+      }
+    }
+
+    if (addToGrid && widgetId === 'default') {
+      const summaries = services.layout.getSummaries()
+      let appGridWidget = summaries.find(
+        (summary) => summary.manifest.builtinType === 'app-grid' && summary.placement.enabled
+      )
+      if (!appGridWidget) {
+        appGridWidget = await services.layout.addWidget('app-grid')
+      }
+      widgetId = appGridWidget.manifest.id
+    }
+
+    services.appGrid.createBundle(widgetId, name, appIds)
+    if (addToGrid && widgetId !== 'default') {
+      services.layout.reloadWidget(widgetId)
+    }
+    return appsAndBundlesState(services)
+  })
+
+  ipcMain.handle(IPC.bundleAddToHomescreen, async (event, ...args) => {
+    assertSettingsSender(event)
+    const bundleId = z.string().min(1).parse(args[0])
+    const chosenWidgetId = z.string().optional().parse(args[1])
+
+    let widgetId: string
+    if (chosenWidgetId === '__new__') {
+      const newWidget = await services.layout.addWidget('app-grid')
+      widgetId = newWidget.manifest.id
+    } else if (chosenWidgetId) {
+      widgetId = chosenWidgetId
+    } else {
+      const summaries = services.layout.getSummaries()
+      let appGridWidget = summaries.find(
+        (summary) => summary.manifest.builtinType === 'app-grid' && summary.placement.enabled
+      )
+      if (!appGridWidget) {
+        appGridWidget = await services.layout.addWidget('app-grid')
+      }
+      widgetId = appGridWidget.manifest.id
+    }
+
+    services.appGrid.addBundleToGrid(widgetId, bundleId)
+    services.layout.reloadWidget(widgetId)
+    return { success: true, widgetId }
+  })
+
+  ipcMain.handle(IPC.bundleDelete, async (event, ...args) => {
+    assertSettingsSender(event)
+    const bundleId = z.string().min(1).parse(args[0])
+    services.appGrid.deleteBundle(bundleId)
+    const summaries = services.layout.getSummaries()
+    for (const summary of summaries) {
+      if (summary.manifest.builtinType === 'app-grid') {
+        services.layout.reloadWidget(summary.manifest.id)
+      }
+    }
     return appsAndBundlesState(services)
   })
 

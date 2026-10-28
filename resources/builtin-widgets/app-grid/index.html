@@ -706,6 +706,465 @@
       html[data-theme='light'] .error {
         color: #b42318;
       }
+
+      /* ==========================================================================
+         Themes / Variants
+         ========================================================================== */
+
+      /* 1. Monochrome / Black & White Aesthetic */
+      html[data-variant='monochrome'] .card {
+        background:
+          radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.05), transparent 45%),
+          linear-gradient(150deg, #141416, #09090b);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow:
+          0 16px 44px rgba(0, 0, 0, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      html[data-variant='monochrome'] .plate,
+      html[data-variant='monochrome'] .bundle-plate {
+        background: #1c1c20;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.15),
+          0 4px 10px rgba(0, 0, 0, 0.4);
+      }
+      /* Black & White Logos & Miniatures */
+      html[data-variant='monochrome'] .plate img,
+      html[data-variant='monochrome'] .bundle-mini img,
+      html[data-variant='monochrome'] .bundle-stack-item img,
+      html[data-variant='monochrome'] .picker-icon img {
+        filter: grayscale(100%) contrast(1.2) brightness(0.95);
+      }
+      html[data-variant='monochrome'] .letter,
+      html[data-variant='monochrome'] .bundle-mini {
+        background: #242428 !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-shadow: none;
+      }
+      html[data-variant='monochrome'] .tile:hover {
+        border-color: rgba(255, 255, 255, 0.28);
+        background: rgba(255, 255, 255, 0.08);
+      }
+      html[data-variant='monochrome'] .tile.drop-target {
+        border-color: #ffffff;
+        background: rgba(255, 255, 255, 0.14);
+      }
+      html[data-variant='monochrome'] .add-button,
+      html[data-variant='monochrome'] .icon-button {
+        border-color: rgba(255, 255, 255, 0.22);
+        color: #f8fafc;
+      }
+      html[data-variant='monochrome'] .add-button:hover,
+      html[data-variant='monochrome'] .icon-button:hover {
+        border-color: #ffffff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* Monochrome Light Mode */
+      html[data-theme='light'][data-variant='monochrome'] .card {
+        background: linear-gradient(150deg, #ffffff, #f1f3f5);
+        border: 1px solid #18181b;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      }
+      html[data-theme='light'][data-variant='monochrome'] .plate,
+      html[data-theme='light'][data-variant='monochrome'] .bundle-plate {
+        background: #f4f4f5;
+        border: 1px solid #27272a;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      }
+      html[data-theme='light'][data-variant='monochrome'] .letter,
+      html[data-theme='light'][data-variant='monochrome'] .bundle-mini {
+        background: #e4e4e7 !important;
+        color: #09090b !important;
+        border: 1px solid #18181b;
+      }
+      html[data-theme='light'][data-variant='monochrome'] .plate img,
+      html[data-theme='light'][data-variant='monochrome'] .bundle-mini img {
+        filter: grayscale(100%) contrast(1.25);
+      }
+
+      /* 2. Frosted Glass Theme */
+      html[data-variant='glass'] .card {
+        background: rgba(255, 255, 255, 0.07);
+        backdrop-filter: blur(32px) saturate(180%);
+        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.35),
+          inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      }
+      html[data-variant='glass'] .plate,
+      html[data-variant='glass'] .bundle-plate {
+        background: rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        box-shadow:
+          inset 0 1px 1px rgba(255, 255, 255, 0.5),
+          0 8px 20px rgba(0, 0, 0, 0.22);
+      }
+      html[data-variant='glass'] .tile:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.32);
+        transform: translateY(-2px);
+      }
+
+      /* 3. Cyberpunk Neon Theme */
+      html[data-variant='cyberpunk'] .card {
+        background:
+          radial-gradient(circle at 85% 15%, rgba(0, 240, 255, 0.18), transparent 40%),
+          radial-gradient(circle at 15% 85%, rgba(255, 0, 128, 0.14), transparent 40%),
+          linear-gradient(145deg, #0b0d14, #05060a);
+        border: 1px solid #00f0ff;
+        box-shadow:
+          0 0 24px rgba(0, 240, 255, 0.28),
+          inset 0 0 16px rgba(0, 240, 255, 0.12);
+      }
+      html[data-variant='cyberpunk'] .title {
+        color: #00f0ff;
+        text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+      }
+      html[data-variant='cyberpunk'] .plate,
+      html[data-variant='cyberpunk'] .bundle-plate {
+        border: 1px solid rgba(0, 240, 255, 0.5);
+        box-shadow:
+          0 0 12px rgba(0, 240, 255, 0.25),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+      html[data-variant='cyberpunk'] .tile:hover {
+        border-color: #ff007f;
+        box-shadow: 0 0 16px rgba(255, 0, 127, 0.4);
+        transform: scale(1.05);
+      }
+      html[data-variant='cyberpunk'] .add-button,
+      html[data-variant='cyberpunk'] .icon-button {
+        border-color: #00f0ff;
+        color: #00f0ff;
+        box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+      }
+
+      /* 4. Minimalist Theme */
+      html[data-variant='minimal'] .card {
+        background: rgba(15, 20, 28, 0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        padding: 8px 10px;
+      }
+      html[data-variant='minimal'] .plate {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 5. Retro Paper Theme */
+      html[data-variant='retro'] .card {
+        background: linear-gradient(145deg, #25221e, #1a1815);
+        border: 1px solid #78644e;
+        box-shadow:
+          0 12px 30px rgba(0, 0, 0, 0.5),
+          inset 0 1px 0 rgba(220, 190, 150, 0.2);
+      }
+      html[data-variant='retro'] .title {
+        color: #e8d8be;
+        font-family: 'Segoe UI', serif;
+      }
+      html[data-variant='retro'] .plate,
+      html[data-variant='retro'] .bundle-plate {
+        border: 1px solid #8c765c;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      /* ==========================================================================
+         Folder Aesthetic Styles
+         ========================================================================== */
+
+      /* Stacked 3D Cards */
+      .bundle-plate.style-stack {
+        position: relative;
+        display: block;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .bundle-stack-item {
+        position: absolute;
+        display: grid;
+        width: 26px;
+        height: 26px;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 7px;
+        background: rgba(30, 38, 55, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        font-size: 10px;
+        font-weight: 700;
+        color: #ffffff;
+        transition: transform 140ms ease;
+      }
+
+      .bundle-stack-item img {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+      }
+
+      .bundle-stack-item.stack-0 {
+        left: 3px;
+        top: 6px;
+        transform: rotate(-10deg);
+        z-index: 1;
+      }
+
+      .bundle-stack-item.stack-1 {
+        left: 15px;
+        top: 4px;
+        transform: rotate(8deg);
+        z-index: 2;
+      }
+
+      .bundle-stack-item.stack-2 {
+        left: 9px;
+        top: 11px;
+        transform: rotate(-1deg);
+        z-index: 3;
+      }
+
+      .tile:hover .bundle-stack-item.stack-0 {
+        transform: translate(-3px, -2px) rotate(-14deg);
+      }
+
+      .tile:hover .bundle-stack-item.stack-1 {
+        transform: translate(3px, -2px) rotate(12deg);
+      }
+
+      .tile:hover .bundle-stack-item.stack-2 {
+        transform: translateY(1px) scale(1.04);
+      }
+
+      /* Sheet / Tabbed Folder */
+      .bundle-plate.style-sheet {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 4px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+      }
+
+      .bundle-sheet-tab {
+        position: absolute;
+        top: -6px;
+        right: 4px;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: #7da9ff;
+        color: #0b1120;
+        font-size: 8px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .bundle-sheet-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        width: 100%;
+      }
+
+      .bundle-sheet-row .bundle-mini {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+      }
+
+      .bundle-sheet-row .bundle-mini img {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* Hero Badge Folder */
+      .bundle-plate.style-badge {
+        position: relative;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        overflow: visible;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 12px;
+      }
+
+      .bundle-plate.style-badge img {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
+      }
+
+      .bundle-count-pill {
+        position: absolute;
+        bottom: -3px;
+        right: -3px;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #ffffff;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 8.5px;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+
+      /* ==========================================================================
+         Icon Shape & Label Customizations
+         ========================================================================== */
+
+      html[data-hide-labels='true'] .label {
+        display: none !important;
+      }
+
+      html[data-icon-shape='circle'] .plate,
+      html[data-icon-shape='circle'] .bundle-plate,
+      html[data-icon-shape='circle'] .letter {
+        border-radius: 50% !important;
+      }
+
+      html[data-icon-shape='square'] .plate,
+      html[data-icon-shape='square'] .bundle-plate,
+      html[data-icon-shape='square'] .letter {
+        border-radius: 7px !important;
+      }
+
+      /* ==========================================================================
+         In-Widget Style Drawer & Modals
+         ========================================================================== */
+
+      .style-drawer {
+        position: absolute;
+        z-index: 35;
+        inset: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        background: rgba(13, 18, 28, 0.98);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(14px);
+        overflow-y: auto;
+      }
+
+      .style-drawer[hidden] {
+        display: none;
+      }
+
+      .drawer-section {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .drawer-label {
+        color: rgba(205, 224, 255, 0.6);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .drawer-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .drawer-chip {
+        padding: 4px 9px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(233, 242, 255, 0.85);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+
+      .drawer-chip:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.25);
+      }
+
+      .drawer-chip.active {
+        background: #2563eb;
+        border-color: #60a5fa;
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+      }
+
+      .drawer-toggle-row {
+        padding-top: 4px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .context-menu {
+        position: fixed;
+        z-index: 50;
+        min-width: 140px;
+        padding: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 9px;
+        background: rgba(18, 23, 35, 0.98);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(12px);
+      }
+
+      .context-menu[hidden] {
+        display: none;
+      }
+
+      .context-menu button {
+        width: 100%;
+        padding: 6px 9px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: rgba(233, 242, 255, 0.9);
+        cursor: pointer;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 11px;
+        text-align: left;
+      }
+
+      .context-menu button:hover {
+        background: rgba(125, 175, 255, 0.18);
+        color: #ffffff;
+      }
+
+      .context-menu button.danger {
+        color: #ffd7cf;
+      }
+
+      .context-menu button.danger:hover {
+        background: rgba(255, 100, 100, 0.2);
+        color: #ff8b80;
+      }
     </style>
   </head>
   <body>
@@ -734,7 +1193,24 @@
           >
             ↻
           </button>
+          <button
+            class="add-button"
+            id="create-folder-btn"
+            type="button"
+            title="Create a new folder"
+          >
+            + Folder
+          </button>
           <button class="add-button" id="add" type="button">Add apps</button>
+          <button
+            class="icon-button"
+            id="style-btn"
+            type="button"
+            aria-label="Style & Theme"
+            title="Theme & Folder Style"
+          >
+            ⚙
+          </button>
         </div>
       </header>
       <div class="grid" id="grid" role="grid" aria-label="Installed apps"></div>
@@ -769,6 +1245,96 @@
           </div>
         </div>
       </div>
+
+      <!-- Create Folder Modal -->
+      <div class="picker folder-modal" id="folder-modal" hidden>
+        <div class="picker-head">
+          <h2 class="picker-title">Create Folder</h2>
+          <button class="picker-button" id="folder-close" type="button">Close</button>
+        </div>
+        <input
+          class="search"
+          id="folder-name-input"
+          type="text"
+          maxlength="24"
+          placeholder="Folder name (e.g. Games, Work)"
+          aria-label="Folder name"
+        />
+        <input
+          class="search"
+          id="folder-search"
+          type="search"
+          autocomplete="off"
+          placeholder="Search apps to include..."
+          aria-label="Search apps for folder"
+        />
+        <div class="picker-list" id="folder-picker-list"></div>
+        <div class="picker-foot">
+          <span class="status" id="folder-selected-count">0 selected</span>
+          <div class="picker-actions">
+            <button class="picker-button" id="folder-cancel" type="button">Cancel</button>
+            <button class="picker-button primary" id="folder-create" type="button" disabled>
+              Create Folder
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Style & Customization Drawer -->
+      <div class="style-drawer" id="style-drawer" hidden>
+        <div class="picker-head">
+          <h2 class="picker-title">Theme & Folder Style</h2>
+          <button class="picker-button" id="style-close" type="button">Close</button>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-label">Theme / Aesthetic</span>
+          <div class="drawer-chips" id="theme-chips">
+            <button class="drawer-chip" data-theme-val="classic" type="button">Classic</button>
+            <button class="drawer-chip" data-theme-val="monochrome" type="button">
+              B&amp;W Mono
+            </button>
+            <button class="drawer-chip" data-theme-val="glass" type="button">Frosted Glass</button>
+            <button class="drawer-chip" data-theme-val="cyberpunk" type="button">Cyberpunk</button>
+            <button class="drawer-chip" data-theme-val="minimal" type="button">Minimal</button>
+            <button class="drawer-chip" data-theme-val="retro" type="button">Retro</button>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-label">Folder Style</span>
+          <div class="drawer-chips" id="folder-chips">
+            <button class="drawer-chip" data-folder-val="grid" type="button">2×2 Grid</button>
+            <button class="drawer-chip" data-folder-val="stack" type="button">3D Stack</button>
+            <button class="drawer-chip" data-folder-val="sheet" type="button">Tabbed</button>
+            <button class="drawer-chip" data-folder-val="badge" type="button">Hero Badge</button>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <span class="drawer-label">Icon Shape</span>
+          <div class="drawer-chips" id="shape-chips">
+            <button class="drawer-chip" data-shape-val="squircle" type="button">Squircle</button>
+            <button class="drawer-chip" data-shape-val="circle" type="button">Circle</button>
+            <button class="drawer-chip" data-shape-val="square" type="button">Soft Square</button>
+          </div>
+        </div>
+
+        <div class="drawer-section drawer-toggle-row">
+          <label class="hidden-toggle">
+            <input type="checkbox" id="toggle-hide-labels" />
+            Hide app text labels (Clean icons only)
+          </label>
+        </div>
+      </div>
+
+      <!-- Tile Right-Click Context Menu -->
+      <div class="context-menu" id="tile-context-menu" hidden>
+        <button id="menu-launch-app" type="button">Launch App</button>
+        <button id="menu-create-folder" type="button">Create Folder with App</button>
+        <button class="danger" id="menu-remove-tile" type="button">Remove from Grid</button>
+      </div>
+
       <div class="toast" id="toast" role="status" hidden>
         <span class="toast-text" id="toast-text"></span>
         <button id="toast-action" type="button" hidden></button>
@@ -799,6 +1365,38 @@
         var toast = document.getElementById('toast')
         var toastText = document.getElementById('toast-text')
         var toastAction = document.getElementById('toast-action')
+
+        var createFolderBtn = document.getElementById('create-folder-btn')
+        var styleBtn = document.getElementById('style-btn')
+        var folderModal = document.getElementById('folder-modal')
+        var folderClose = document.getElementById('folder-close')
+        var folderCancel = document.getElementById('folder-cancel')
+        var folderCreate = document.getElementById('folder-create')
+        var folderNameInput = document.getElementById('folder-name-input')
+        var folderSearch = document.getElementById('folder-search')
+        var folderPickerList = document.getElementById('folder-picker-list')
+        var folderSelectedCount = document.getElementById('folder-selected-count')
+        var styleDrawer = document.getElementById('style-drawer')
+        var styleClose = document.getElementById('style-close')
+        var themeChips = document.getElementById('theme-chips')
+        var folderChips = document.getElementById('folder-chips')
+        var shapeChips = document.getElementById('shape-chips')
+        var toggleHideLabels = document.getElementById('toggle-hide-labels')
+        var tileContextMenu = document.getElementById('tile-context-menu')
+        var menuLaunchApp = document.getElementById('menu-launch-app')
+        var menuCreateFolder = document.getElementById('menu-create-folder')
+        var menuRemoveTile = document.getElementById('menu-remove-tile')
+
+        var folderSelected = new Set()
+        var folderModalOpen = false
+        var styleDrawerOpen = false
+        var contextTarget = null
+        var userPrefs = {
+          theme: document.documentElement.dataset.variant || 'classic',
+          folderStyle: 'grid',
+          iconShape: 'squircle',
+          hideLabels: false
+        }
 
         var state = { widgetId: '', title: 'Apps', apps: [], items: [] }
         var titleSaving = false
@@ -910,8 +1508,67 @@
         }
 
         function bundlePlate(bundle) {
+          var folderStyle = document.documentElement.dataset.folderStyle || 'grid'
           var plate = document.createElement('span')
-          plate.className = 'bundle-plate'
+          plate.className = 'bundle-plate style-' + folderStyle
+
+          if (folderStyle === 'stack') {
+            var count = Math.min(3, bundle.apps.length)
+            for (var sIdx = 0; sIdx < count; sIdx += 1) {
+              var sItem = document.createElement('span')
+              sItem.className = 'bundle-stack-item stack-' + sIdx
+              var sArt = appIcon(bundle.apps[sIdx], true)
+              if (sArt.classList.contains('bundle-mini')) {
+                sItem.textContent = sArt.textContent
+                sItem.setAttribute('style', sArt.getAttribute('style') || '')
+              } else {
+                sItem.appendChild(sArt)
+              }
+              plate.appendChild(sItem)
+            }
+            return plate
+          }
+
+          if (folderStyle === 'badge') {
+            if (bundle.apps[0]) {
+              var heroArt = appIcon(bundle.apps[0], false)
+              plate.appendChild(heroArt)
+            }
+            if (bundle.apps.length > 1) {
+              var pill = document.createElement('span')
+              pill.className = 'bundle-count-pill'
+              pill.textContent = '+' + (bundle.apps.length - 1)
+              plate.appendChild(pill)
+            }
+            return plate
+          }
+
+          if (folderStyle === 'sheet') {
+            var tab = document.createElement('span')
+            tab.className = 'bundle-sheet-tab'
+            tab.textContent = String(bundle.apps.length)
+            plate.appendChild(tab)
+
+            var sheetRow = document.createElement('span')
+            sheetRow.className = 'bundle-sheet-row'
+            var sheetCount = Math.min(3, bundle.apps.length)
+            for (var shIdx = 0; shIdx < sheetCount; shIdx += 1) {
+              var shMini = document.createElement('span')
+              shMini.className = 'bundle-mini'
+              var shArt = appIcon(bundle.apps[shIdx], true)
+              if (shArt.classList.contains('bundle-mini')) {
+                shMini.textContent = shArt.textContent
+                shMini.setAttribute('style', shArt.getAttribute('style') || '')
+              } else {
+                shMini.appendChild(shArt)
+              }
+              sheetRow.appendChild(shMini)
+            }
+            plate.appendChild(sheetRow)
+            return plate
+          }
+
+          // Default: 2x2 grid
           for (var index = 0; index < 4; index += 1) {
             var app = bundle.apps[index]
             if (app) {
@@ -1048,6 +1705,9 @@
           if (pickerOpen) {
             renderPicker()
           }
+          if (folderModalOpen) {
+            renderFolderPicker()
+          }
         }
 
         function refreshState() {
@@ -1119,7 +1779,8 @@
               x: rect.left,
               y: rect.top,
               width: rect.width,
-              height: rect.height
+              height: rect.height,
+              variant: document.documentElement.dataset.variant || 'classic'
             })
             .catch(function (error) {
               showToast((error && error.message) || 'Could not open the bundle.')
@@ -1231,6 +1892,9 @@
         }
 
         function openPicker() {
+          closeStyleDrawer()
+          closeFolderModal()
+          hideContextMenu()
           selected.clear()
           pickerOpen = true
           picker.hidden = false
@@ -1267,6 +1931,223 @@
               updatePickerAdd()
               showToast((error && error.message) || 'Could not add the apps.')
             })
+        }
+
+        function applyPrefs(prefs) {
+          if (!prefs) return
+          if (prefs.theme) {
+            userPrefs.theme = prefs.theme
+            document.documentElement.dataset.variant = prefs.theme
+          }
+          if (prefs.folderStyle) {
+            userPrefs.folderStyle = prefs.folderStyle
+            document.documentElement.dataset.folderStyle = prefs.folderStyle
+          }
+          if (prefs.iconShape) {
+            userPrefs.iconShape = prefs.iconShape
+            document.documentElement.dataset.iconShape = prefs.iconShape
+          }
+          if (typeof prefs.hideLabels === 'boolean') {
+            userPrefs.hideLabels = prefs.hideLabels
+            document.documentElement.dataset.hideLabels = prefs.hideLabels ? 'true' : 'false'
+          }
+          updateStyleChips()
+          renderGrid()
+        }
+
+        function savePrefs() {
+          if (window.hl && window.hl.storage) {
+            window.hl.storage.set('app_grid_prefs', userPrefs).catch(function () {})
+          }
+        }
+
+        function updateStyleChips() {
+          if (themeChips) {
+            var tBtns = themeChips.querySelectorAll('.drawer-chip')
+            Array.prototype.forEach.call(tBtns, function (btn) {
+              btn.classList.toggle('active', btn.dataset.themeVal === userPrefs.theme)
+            })
+          }
+          if (folderChips) {
+            var fBtns = folderChips.querySelectorAll('.drawer-chip')
+            Array.prototype.forEach.call(fBtns, function (btn) {
+              btn.classList.toggle('active', btn.dataset.folderVal === userPrefs.folderStyle)
+            })
+          }
+          if (shapeChips) {
+            var sBtns = shapeChips.querySelectorAll('.drawer-chip')
+            Array.prototype.forEach.call(sBtns, function (btn) {
+              btn.classList.toggle('active', btn.dataset.shapeVal === userPrefs.iconShape)
+            })
+          }
+          if (toggleHideLabels) {
+            toggleHideLabels.checked = Boolean(userPrefs.hideLabels)
+          }
+        }
+
+        function openStyleDrawer() {
+          closePicker()
+          closeFolderModal()
+          hideContextMenu()
+          styleDrawerOpen = true
+          if (styleDrawer) styleDrawer.hidden = false
+          updateStyleChips()
+        }
+
+        function closeStyleDrawer() {
+          styleDrawerOpen = false
+          if (styleDrawer) styleDrawer.hidden = true
+        }
+
+        function openFolderModal(preselectedAppId) {
+          closePicker()
+          closeStyleDrawer()
+          hideContextMenu()
+          folderSelected.clear()
+          if (preselectedAppId) {
+            folderSelected.add(preselectedAppId)
+          }
+          if (folderNameInput) folderNameInput.value = ''
+          if (folderSearch) folderSearch.value = ''
+          folderModalOpen = true
+          if (folderModal) folderModal.hidden = false
+          renderFolderPicker()
+          if (folderNameInput) folderNameInput.focus()
+        }
+
+        function closeFolderModal() {
+          folderModalOpen = false
+          if (folderModal) folderModal.hidden = true
+          folderSelected.clear()
+        }
+
+        function updateFolderCreateBtn() {
+          if (!folderCreate || !folderNameInput || !folderSelectedCount) return
+          var name = folderNameInput.value.trim()
+          var count = folderSelected.size
+          folderSelectedCount.textContent = count + ' selected'
+          folderCreate.disabled = !name || count === 0
+        }
+
+        function renderFolderPicker() {
+          if (!folderPickerList) return
+          var query = folderSearch ? folderSearch.value.trim().toLowerCase() : ''
+          var apps = state.apps
+            .filter(function (app) {
+              return !query || app.name.toLowerCase().indexOf(query) >= 0
+            })
+            .slice()
+            .sort(function (a, b) {
+              return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+            })
+
+          folderPickerList.replaceChildren()
+          if (apps.length === 0) {
+            var emptyNode = document.createElement('p')
+            emptyNode.className = 'empty'
+            emptyNode.textContent = query ? 'No apps match that search.' : 'No apps found.'
+            folderPickerList.appendChild(emptyNode)
+          }
+
+          for (var i = 0; i < apps.length; i += 1) {
+            var app = apps[i]
+            var row = document.createElement('label')
+            row.className = 'picker-row'
+
+            var checkbox = document.createElement('input')
+            checkbox.type = 'checkbox'
+            checkbox.checked = folderSelected.has(app.id)
+            checkbox.addEventListener(
+              'change',
+              (function (id, node) {
+                return function () {
+                  if (node.checked) {
+                    folderSelected.add(id)
+                  } else {
+                    folderSelected.delete(id)
+                  }
+                  updateFolderCreateBtn()
+                }
+              })(app.id, checkbox)
+            )
+
+            var icon = document.createElement('span')
+            icon.className = 'picker-icon'
+            var art = appIcon(app, true)
+            if (art.classList.contains('bundle-mini')) {
+              icon.textContent = art.textContent
+              icon.setAttribute('style', art.getAttribute('style') || '')
+            } else {
+              icon.appendChild(art)
+            }
+
+            var nameSpan = document.createElement('span')
+            nameSpan.className = 'picker-name'
+            nameSpan.textContent = app.name
+
+            row.appendChild(checkbox)
+            row.appendChild(icon)
+            row.appendChild(nameSpan)
+            folderPickerList.appendChild(row)
+          }
+
+          updateFolderCreateBtn()
+        }
+
+        function createFolderSubmit() {
+          if (!folderNameInput || !folderCreate) return
+          var name = folderNameInput.value.trim().slice(0, 24)
+          var appIds = Array.from(folderSelected)
+          if (!name || appIds.length === 0) return
+          folderCreate.disabled = true
+          window.hl.grid
+            .createBundle(name, appIds)
+            .then(function (next) {
+              applyState(next)
+              closeFolderModal()
+              showToast('Folder "' + name + '" created!')
+            })
+            .catch(function (error) {
+              folderCreate.disabled = false
+              showToast((error && error.message) || 'Could not create folder.')
+            })
+        }
+
+        function hideContextMenu() {
+          if (tileContextMenu) {
+            tileContextMenu.hidden = true
+          }
+          contextTarget = null
+        }
+
+        function showContextMenu(event, item, tile) {
+          event.preventDefault()
+          event.stopPropagation()
+          if (!tileContextMenu) return
+          contextTarget = { item: item, tile: tile }
+
+          if (item.type === 'app') {
+            if (menuLaunchApp) menuLaunchApp.textContent = 'Launch ' + item.app.name
+            if (menuCreateFolder) {
+              menuCreateFolder.hidden = false
+              menuCreateFolder.textContent = 'Create Folder with ' + item.app.name
+            }
+            if (menuRemoveTile) menuRemoveTile.textContent = 'Remove from Grid'
+          } else {
+            if (menuLaunchApp) menuLaunchApp.textContent = 'Open Folder: ' + item.bundle.name
+            if (menuCreateFolder) menuCreateFolder.hidden = true
+            if (menuRemoveTile) menuRemoveTile.textContent = 'Delete Folder'
+          }
+
+          tileContextMenu.style.left = '0px'
+          tileContextMenu.style.top = '0px'
+          tileContextMenu.hidden = false
+
+          var rect = tileContextMenu.getBoundingClientRect()
+          var x = Math.min(event.clientX, window.innerWidth - rect.width - 8)
+          var y = Math.min(event.clientY, window.innerHeight - rect.height - 8)
+          tileContextMenu.style.left = Math.max(8, x) + 'px'
+          tileContextMenu.style.top = Math.max(8, y) + 'px'
         }
 
         function clearHover() {
@@ -1431,15 +2312,34 @@
         })
 
         grid.addEventListener('click', function (event) {
+          hideContextMenu()
           if (suppressClick) {
             suppressClick = false
             return
           }
           var tile = event.target.closest('.tile')
-          if (!tile || pickerOpen) {
+          if (!tile || pickerOpen || folderModalOpen || styleDrawerOpen) {
             return
           }
           activateTile(Number(tile.dataset.index))
+        })
+
+        grid.addEventListener('contextmenu', function (event) {
+          var tile = event.target.closest('.tile')
+          if (!tile || pickerOpen || folderModalOpen || styleDrawerOpen) {
+            return
+          }
+          var index = Number(tile.dataset.index)
+          var item = state.items[index]
+          if (item) {
+            showContextMenu(event, item, tile)
+          }
+        })
+
+        document.addEventListener('click', function (event) {
+          if (tileContextMenu && !tileContextMenu.contains(event.target)) {
+            hideContextMenu()
+          }
         })
 
         grid.addEventListener('keydown', function (event) {
@@ -1505,6 +2405,117 @@
         searchInput.addEventListener('input', renderPicker)
         showHiddenInput.addEventListener('change', renderPicker)
 
+        if (createFolderBtn) {
+          createFolderBtn.addEventListener('click', function () {
+            openFolderModal()
+          })
+        }
+        if (folderClose) folderClose.addEventListener('click', closeFolderModal)
+        if (folderCancel) folderCancel.addEventListener('click', closeFolderModal)
+        if (folderCreate) folderCreate.addEventListener('click', createFolderSubmit)
+        if (folderNameInput) folderNameInput.addEventListener('input', updateFolderCreateBtn)
+        if (folderSearch) folderSearch.addEventListener('input', renderFolderPicker)
+
+        if (styleBtn) {
+          styleBtn.addEventListener('click', function () {
+            if (styleDrawerOpen) {
+              closeStyleDrawer()
+            } else {
+              openStyleDrawer()
+            }
+          })
+        }
+        if (styleClose) styleClose.addEventListener('click', closeStyleDrawer)
+
+        if (themeChips) {
+          themeChips.addEventListener('click', function (event) {
+            var chip = event.target.closest('.drawer-chip')
+            if (!chip || !chip.dataset.themeVal) return
+            userPrefs.theme = chip.dataset.themeVal
+            document.documentElement.dataset.variant = userPrefs.theme
+            updateStyleChips()
+            savePrefs()
+          })
+        }
+
+        if (folderChips) {
+          folderChips.addEventListener('click', function (event) {
+            var chip = event.target.closest('.drawer-chip')
+            if (!chip || !chip.dataset.folderVal) return
+            userPrefs.folderStyle = chip.dataset.folderVal
+            document.documentElement.dataset.folderStyle = userPrefs.folderStyle
+            updateStyleChips()
+            renderGrid()
+            savePrefs()
+          })
+        }
+
+        if (shapeChips) {
+          shapeChips.addEventListener('click', function (event) {
+            var chip = event.target.closest('.drawer-chip')
+            if (!chip || !chip.dataset.shapeVal) return
+            userPrefs.iconShape = chip.dataset.shapeVal
+            document.documentElement.dataset.iconShape = userPrefs.iconShape
+            updateStyleChips()
+            savePrefs()
+          })
+        }
+
+        if (toggleHideLabels) {
+          toggleHideLabels.addEventListener('change', function () {
+            userPrefs.hideLabels = toggleHideLabels.checked
+            document.documentElement.dataset.hideLabels = userPrefs.hideLabels ? 'true' : 'false'
+            savePrefs()
+          })
+        }
+
+        if (menuLaunchApp) {
+          menuLaunchApp.addEventListener('click', function () {
+            if (!contextTarget) return
+            var target = contextTarget
+            hideContextMenu()
+            if (target.item.type === 'app') {
+              launchApp(target.item.app.id)
+            } else {
+              openBundle(target.item.bundle.id, target.tile)
+            }
+          })
+        }
+
+        if (menuCreateFolder) {
+          menuCreateFolder.addEventListener('click', function () {
+            if (!contextTarget) return
+            var target = contextTarget
+            hideContextMenu()
+            if (target.item.type === 'app') {
+              openFolderModal(target.item.app.id)
+            }
+          })
+        }
+
+        if (menuRemoveTile) {
+          menuRemoveTile.addEventListener('click', function () {
+            if (!contextTarget) return
+            var target = contextTarget
+            hideContextMenu()
+            if (target.item.type === 'app') {
+              window.hl.grid
+                .removeApp(target.item.app.id)
+                .then(applyState)
+                .catch(function (err) {
+                  showToast((err && err.message) || 'Could not remove app.')
+                })
+            } else {
+              window.hl.grid
+                .removeBundle(target.item.bundle.id)
+                .then(applyState)
+                .catch(function (err) {
+                  showToast((err && err.message) || 'Could not remove folder.')
+                })
+            }
+          })
+        }
+
         titleInput.addEventListener('keydown', function (event) {
           if (event.key === 'Enter') {
             event.preventDefault()
@@ -1520,9 +2531,16 @@
         titleInput.addEventListener('blur', saveTitle)
 
         document.addEventListener('keydown', function (event) {
-          if (event.key === 'Escape' && pickerOpen) {
-            event.preventDefault()
-            closePicker()
+          if (event.key === 'Escape') {
+            if (contextTarget) {
+              hideContextMenu()
+            } else if (folderModalOpen) {
+              closeFolderModal()
+            } else if (styleDrawerOpen) {
+              closeStyleDrawer()
+            } else if (pickerOpen) {
+              closePicker()
+            }
           }
         })
 
@@ -1534,6 +2552,16 @@
         window.hl
           .ready()
           .then(function () {
+            if (window.hl.storage) {
+              window.hl.storage
+                .get('app_grid_prefs')
+                .then(function (stored) {
+                  if (stored && typeof stored === 'object') {
+                    applyPrefs(stored)
+                  }
+                })
+                .catch(function () {})
+            }
             return window.hl.grid.getState()
           })
           .then(function (next) {

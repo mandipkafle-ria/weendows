@@ -1,8 +1,9 @@
 import { useEffect, useState, type JSX } from 'react'
 import { acceleratorFromKeyEvent, acceleratorLabel } from '../../shared/hotkeys'
-import type { AccentColor, CursorStyle, GeneralState, ThemeSource } from '../../shared/types'
-import { ACCENT_COLORS, CURSOR_STYLES } from '../../shared/types'
+import type { AccentColor, GeneralState, ThemeSource } from '../../shared/types'
+import { ACCENT_COLORS } from '../../shared/types'
 import { t } from '../i18n'
+import CursorGallery from './CursorGallery'
 import type { ToastLevel } from './useToasts'
 
 const ACCENT_LABEL_KEYS: Record<AccentColor, string> = {
@@ -10,20 +11,6 @@ const ACCENT_LABEL_KEYS: Record<AccentColor, string> = {
   violet: 'general.accentViolet',
   teal: 'general.accentTeal',
   rose: 'general.accentRose'
-}
-
-const CURSOR_LABEL_KEYS: Record<CursorStyle, string> = {
-  system: 'general.cursorSystem',
-  dot: 'general.cursorDot',
-  neon: 'general.cursorNeon',
-  pixel: 'general.cursorPixel'
-}
-
-const CURSOR_HINT_KEYS: Record<CursorStyle, string> = {
-  system: 'general.cursorSystemHint',
-  dot: 'general.cursorDotHint',
-  neon: 'general.cursorNeonHint',
-  pixel: 'general.cursorPixelHint'
 }
 
 interface GeneralPanelProps {
@@ -104,22 +91,10 @@ export default function GeneralPanel({
     }
   }
 
-  const setCursorStyle = async (cursorStyle: CursorStyle): Promise<void> => {
-    setPending('cursor')
+  const setWidgetDefaultTheme = async (theme: ThemeSource): Promise<void> => {
+    setPending('widget-theme')
     try {
-      onGeneral(await window.api.setCursorStyle(cursorStyle))
-    } catch (error) {
-      toast(errorMessage(error), 'error')
-    } finally {
-      setPending(null)
-    }
-  }
-
-  const setCursorSystemWide = async (enabled: boolean): Promise<void> => {
-    setPending('cursor-scope')
-    try {
-      onGeneral(await window.api.setCursorSystemWide(enabled))
-      toast(t(enabled ? 'general.cursorSystemWideOn' : 'general.cursorSystemWideOff'), 'success')
+      onGeneral(await window.api.setWidgetDefaultTheme(theme))
     } catch (error) {
       toast(errorMessage(error), 'error')
     } finally {
@@ -233,10 +208,14 @@ export default function GeneralPanel({
 
         <div className="appearance-group">
           <div className="appearance-label">
-            <strong>{t('general.theme')}</strong>
-            <span>{t('general.themeHint')}</span>
+            <strong>{t('general.settingsTheme')}</strong>
+            <span>{t('general.settingsThemeHint')}</span>
           </div>
-          <div className="segmented-control" role="radiogroup" aria-label={t('general.theme')}>
+          <div
+            className="segmented-control"
+            role="radiogroup"
+            aria-label={t('general.settingsTheme')}
+          >
             {(
               [
                 ['dark', t('general.themeDark')],
@@ -252,6 +231,38 @@ export default function GeneralPanel({
                 key={value}
                 disabled={pending !== null}
                 onClick={() => void setTheme(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="appearance-group">
+          <div className="appearance-label">
+            <strong>{t('general.widgetDefaultTheme')}</strong>
+            <span>{t('general.widgetDefaultThemeHint')}</span>
+          </div>
+          <div
+            className="segmented-control"
+            role="radiogroup"
+            aria-label={t('general.widgetDefaultTheme')}
+          >
+            {(
+              [
+                ['dark', t('general.themeDark')],
+                ['light', t('general.themeLight')],
+                ['system', t('general.themeSystem')]
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={general.widgetDefaultTheme === value}
+                className={general.widgetDefaultTheme === value ? 'segment-active' : ''}
+                key={value}
+                disabled={pending !== null}
+                onClick={() => void setWidgetDefaultTheme(value)}
               >
                 {label}
               </button>
@@ -282,7 +293,16 @@ export default function GeneralPanel({
                 <span>{t(ACCENT_LABEL_KEYS[accent])}</span>
                 {general.accent === accent && (
                   <span className="choice-check" aria-hidden="true">
-                    ✓
+                    <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">
+                      <path
+                        d="M2.5 6.5 4.8 9 9.5 3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </span>
                 )}
               </button>
@@ -290,63 +310,12 @@ export default function GeneralPanel({
           </div>
         </div>
 
-        <div className="appearance-group">
-          <div className="appearance-label">
-            <strong>{t('general.cursorTitle')}</strong>
-            <span>{t('general.cursorBody')}</span>
-          </div>
-          <div className="cursor-grid" role="radiogroup" aria-label={t('general.cursorTitle')}>
-            {CURSOR_STYLES.map((style) => (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={general.cursorStyle === style}
-                className={
-                  general.cursorStyle === style ? 'cursor-choice cursor-active' : 'cursor-choice'
-                }
-                data-cursor={style}
-                key={style}
-                disabled={pending !== null}
-                onClick={() => void setCursorStyle(style)}
-              >
-                <span className="cursor-preview" data-cursor={style} aria-hidden="true">
-                  <span className="cursor-glyph" />
-                </span>
-                <span className="cursor-copy">
-                  <strong>{t(CURSOR_LABEL_KEYS[style])}</strong>
-                  <span>{t(CURSOR_HINT_KEYS[style])}</span>
-                </span>
-                {general.cursorStyle === style && (
-                  <span className="choice-check" aria-hidden="true">
-                    ✓
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          {general.platform === 'win32' && (
-            <div className="setting-row setting-row-compact cursor-scope-row">
-              <div>
-                <strong>{t('general.cursorSystemWide')}</strong>
-                <span>
-                  {general.cursorStyle === 'system'
-                    ? t('general.cursorSystemWideDisabled')
-                    : t('general.cursorSystemWideHint')}
-                </span>
-              </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  checked={general.cursorSystemWide}
-                  disabled={general.cursorStyle === 'system' || pending !== null}
-                  onChange={(event) => void setCursorSystemWide(event.target.checked)}
-                />
-                <span aria-hidden="true" />
-              </label>
-            </div>
-          )}
-        </div>
+        <CursorGallery
+          key={JSON.stringify(general.cursor)}
+          general={general}
+          onGeneral={onGeneral}
+          toast={toast}
+        />
       </section>
 
       <section className="panel panel-wide">

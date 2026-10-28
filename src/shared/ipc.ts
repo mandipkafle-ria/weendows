@@ -10,6 +10,7 @@ import type {
   AppsAndBundlesState,
   AppGridState,
   BuiltinWidget,
+  CursorConfig,
   CursorStyle,
   BundlePopoverResult,
   BundlePopoverState,
@@ -28,6 +29,7 @@ import type {
   WidgetLogEntry,
   WidgetManifest,
   WidgetPermission,
+  WidgetAppearance,
   WidgetRuntimeInfo,
   WidgetSummary,
   WidgetSystemStats
@@ -38,6 +40,13 @@ export const IPC = {
   nativeCheck: 'native:check',
   settingsGetGeneral: 'settings:get-general',
   settingsSetTheme: 'settings:set-theme',
+  settingsSetWidgetDefaultTheme: 'settings:set-widget-default-theme',
+  settingsSetCursor: 'settings:set-cursor',
+  settingsCreateWidgetPreview: 'settings:create-widget-preview',
+  settingsReleaseWidgetPreview: 'settings:release-widget-preview',
+  settingsPickWidgetBackground: 'settings:pick-widget-background',
+  settingsGetWidgetBackground: 'settings:get-widget-background',
+  settingsSetWidgetAppearance: 'settings:set-widget-appearance',
   settingsSetAccent: 'settings:set-accent',
   settingsSetCursorStyle: 'settings:set-cursor-style',
   settingsSetCursorSystemWide: 'settings:set-cursor-system-wide',
@@ -103,6 +112,10 @@ export const IPC = {
   aiUndoWidget: 'ai:undo-widget',
   appsRefresh: 'apps:refresh',
   appsGetState: 'apps:get-state',
+  appAddToHomescreen: 'apps:add-to-homescreen',
+  bundleCreate: 'bundle:create',
+  bundleAddToHomescreen: 'bundle:add-to-homescreen',
+  bundleDelete: 'bundle:delete',
   gridGetState: 'grid:get-state',
   gridAddApps: 'grid:add-apps',
   gridRemoveApp: 'grid:remove-app',
@@ -177,9 +190,23 @@ export interface SettingsApi {
   nativeCheck: () => Promise<NativeCheckResult>
   getGeneralState: () => Promise<GeneralState>
   setTheme: (theme: ThemeSource) => Promise<GeneralState>
+  setWidgetDefaultTheme: (theme: ThemeSource) => Promise<GeneralState>
   setAccent: (accent: AccentColor) => Promise<GeneralState>
   setCursorStyle: (cursorStyle: CursorStyle) => Promise<GeneralState>
   setCursorSystemWide: (enabled: boolean) => Promise<GeneralState>
+  setCursor: (config: Partial<CursorConfig>) => Promise<GeneralState>
+  createWidgetPreview: (
+    appearance: WidgetAppearance,
+    theme: 'dark' | 'light',
+    assetWidgetId?: string
+  ) => Promise<string>
+  releaseWidgetPreview: (token: string) => Promise<void>
+  pickWidgetBackground: () => Promise<{ dataUrl: string; name: string } | null>
+  getWidgetBackground: (widgetId: string) => Promise<string | null>
+  setWidgetAppearance: (
+    widgetId: string,
+    appearance: Partial<WidgetAppearance>
+  ) => Promise<WidgetSummary | null>
   getPreviewStats: () => Promise<WidgetSystemStats>
   setHotkey: (accelerator: string) => Promise<GeneralState>
   setStartWithWindows: (enabled: boolean) => Promise<GeneralState>
@@ -203,7 +230,11 @@ export interface SettingsApi {
   setWallpaperLiveOptions: (options: WallpaperLiveOptions) => Promise<WallpaperState>
   setWallpaperSlideshow: (settings: WallpaperSlideshowSettings) => Promise<WallpaperState>
   restoreOriginalWallpaper: () => Promise<WallpaperState>
-  addWidget: (builtinType: string, variant?: string) => Promise<WidgetSummary>
+  addWidget: (
+    builtinType: string,
+    variant?: string,
+    appearance?: Partial<WidgetAppearance>
+  ) => Promise<WidgetSummary>
   addAiWidgetCopy: (widgetId: string) => Promise<WidgetSummary>
   duplicateWidget: (widgetId: string) => Promise<WidgetSummary>
   removeWidget: (widgetId: string) => Promise<boolean>
@@ -215,6 +246,20 @@ export interface SettingsApi {
   reloadWidget: (widgetId: string) => Promise<void>
   getAppsAndBundles: () => Promise<AppsAndBundlesState>
   refreshApps: () => Promise<AppsAndBundlesState>
+  addAppToHomescreen: (
+    appId: string,
+    targetWidgetId?: string
+  ) => Promise<{ success: boolean; widgetId: string }>
+  createBundle: (
+    name: string,
+    appIds: string[],
+    targetWidgetId?: string | boolean
+  ) => Promise<AppsAndBundlesState>
+  addBundleToHomescreen: (
+    bundleId: string,
+    targetWidgetId?: string
+  ) => Promise<{ success: boolean; widgetId: string }>
+  deleteBundle: (bundleId: string) => Promise<AppsAndBundlesState>
   setWidgetPermission: (
     widgetId: string,
     permission: WidgetPermission,

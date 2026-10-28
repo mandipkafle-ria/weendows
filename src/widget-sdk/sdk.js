@@ -177,6 +177,12 @@
       },
       openBundle: function (bundleId, rect) {
         return call('grid.openBundle', { bundleId: bundleId, rect: rect })
+      },
+      createBundle: function (name, appIds) {
+        return call('grid.createBundle', { name: name, appIds: appIds })
+      },
+      removeBundle: function (bundleId) {
+        return call('grid.removeBundle', { bundleId: bundleId })
       }
     },
     openLink: function (url) {
