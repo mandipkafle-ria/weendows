@@ -1,602 +1,239 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>System</title>
-    <script>
-      document.documentElement.dataset.variant =
-        new URLSearchParams(location.search).get('variant') || 'dots'
-    </script>
-    <style>
-      @font-face {
-        font-family: 'DotGothic16';
-        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <style>
+    :root {
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --radius: 24px;
+      --radius-sm: 14px;
+      --pill: 999px;
+      --term: #4dff88;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    @property --vn { syntax: "<number>"; inherits: true; initial-value: 0; }
+    [data-meter] { transition: --vn .9s cubic-bezier(.2,.8,.2,1); }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 13px 18px;
+    }
+
+    /* Variant visibility */
+    html[data-variant='dots'] .sys--dots,
+    html:not([data-variant]) .sys--dots { display: grid; }
+    html[data-variant='bars'] .sys--bars { display: grid; }
+    html[data-variant='rings'] .sys--rings { display: grid; }
+    html[data-variant='terminal'] .sys--terminal { display: block; }
+
+    .sys { gap: 8px; align-content: space-between; }
+    .sys__row { display: grid; gap: 4px; }
+    .sys__top { display: flex; justify-content: space-between; align-items: baseline; }
+    .sys__top span { font: 600 10.5px/1 var(--font-mono); letter-spacing: .16em; color: var(--muted); }
+    .sys__top b { font: 700 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* Dots — VU-style LEDs */
+    .vu {
+      position: relative; height: 10px; background: var(--track);
+      -webkit-mask: radial-gradient(circle at 5px 5px, #000 3px, transparent 3.8px) 0 0 / 10px 10px repeat-x;
+              mask: radial-gradient(circle at 5px 5px, #000 3px, transparent 3.8px) 0 0 / 10px 10px repeat-x;
+    }
+    .vu i {
+      position: absolute; inset: 0 auto 0 0; width: calc(var(--vn) * 100%);
+      background: linear-gradient(90deg, var(--accent) 0 58%, var(--warn) 80%, var(--bad));
+      background-size: calc(100% / var(--vn)) 100%;
+    }
+
+    /* Bars — horizontal progress */
+    .bar { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; }
+    .bar i {
+      display: block; height: 100%; width: calc(var(--vn) * 100%); border-radius: inherit;
+      background: var(--grad); box-shadow: 0 0 14px -2px var(--glow);
+    }
+
+    /* Rings — circular gauges */
+    .ring {
+      --s: 68px; --t: 8px;
+      position: relative; width: var(--s); aspect-ratio: 1; display: grid; place-items: center;
+      font: 700 14px/1 var(--font-sans); font-variant-numeric: tabular-nums;
+    }
+    .ring::before {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(var(--accent) calc(var(--vn) * 360deg), var(--track) 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+              mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+      filter: drop-shadow(0 0 6px var(--glow));
+    }
+    .sys__rings-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: center; }
+    .sys__cell { display: grid; justify-items: center; gap: 8px; }
+    .sys__cell > span { font: 600 10px/1 var(--font-mono); letter-spacing: .18em; color: var(--muted); }
+
+    /* Terminal — CLI ASCII brackets */
+    .sys--terminal {
+      background: #040704; color: var(--term); padding: 16px;
+      border-color: color-mix(in srgb, var(--term) 28%, transparent);
+    }
+    .sys--terminal pre {
+      margin: 0; font: 500 12.5px/1.5 var(--font-mono); white-space: pre;
+      text-shadow: 0 0 6px color-mix(in srgb, var(--term) 55%, transparent);
+    }
+    .sys--terminal::after {
+      z-index: 1; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Variant: Dots -->
+  <main class="card w sys sys--dots" data-variant-view="dots">
+    <span class="w__label">System</span>
+    <div class="sys__row"><div class="sys__top"><span>CPU</span><b data-meter-text="cpu">42%</b></div><div class="vu" data-meter="cpu"><i></i></div></div>
+    <div class="sys__row"><div class="sys__top"><span>MEM</span><b data-meter-text="mem">68%</b></div><div class="vu" data-meter="mem"><i></i></div></div>
+    <div class="sys__row"><div class="sys__top"><span>UPTIME</span><b data-meter-text="uptime">3d 14h</b></div><div class="vu" data-meter="dsk"><i></i></div></div>
+  </main>
+
+  <!-- Variant: Bars -->
+  <main class="card w sys sys--bars" data-variant-view="bars">
+    <span class="w__label">System</span>
+    <div class="sys__row"><div class="sys__top"><span>CPU</span><b data-meter-text="cpu">42%</b></div><div class="bar" data-meter="cpu"><i></i></div></div>
+    <div class="sys__row"><div class="sys__top"><span>MEM</span><b data-meter-text="mem">68%</b></div><div class="bar" data-meter="mem"><i></i></div></div>
+    <div class="sys__row"><div class="sys__top"><span>UPTIME</span><b data-meter-text="uptime">3d 14h</b></div><div class="bar" data-meter="dsk"><i></i></div></div>
+  </main>
+
+  <!-- Variant: Rings -->
+  <main class="card w sys sys--rings" data-variant-view="rings">
+    <span class="w__label">System</span>
+    <div class="sys__rings-wrap">
+      <div class="sys__cell"><div class="ring" data-meter="cpu"><b data-meter-text="cpu">42%</b></div><span>CPU</span></div>
+      <div class="sys__cell"><div class="ring" data-meter="mem"><b data-meter-text="mem">68%</b></div><span>MEM</span></div>
+      <div class="sys__cell"><div class="ring" data-meter="dsk"><b data-meter-text="dsk">55%</b></div><span>LOAD</span></div>
+    </div>
+  </main>
+
+  <!-- Variant: Terminal -->
+  <main class="card w sys sys--terminal" data-variant-view="terminal">
+    <pre data-sys-terminal></pre>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const params = new URLSearchParams(location.search);
+      const variant = params.get('variant') || 'dots';
+      document.documentElement.dataset.variant = variant;
+      const env = params.get('env');
+      if (env) document.documentElement.dataset.env = env;
+      const theme = params.get('theme') || 'dark';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = theme;
+
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+      const meters = { cpu: 42, mem: 68, dsk: 55, uptime: '3d 14h' };
+      let uptimeSec = 300000;
+
+      const level = (k, v) => (v >= 90 ? 'bad' : v >= 75 ? 'warn' : 'ok');
+      const bar = (v, n = 14) => { const f = Math.round(v / 100 * n); return '#'.repeat(f) + '.'.repeat(n - f); };
+
+      function asciiBox(title, lines, inner = 28) {
+        const top = '╭─[ ' + title + ' ]' + '─'.repeat(Math.max(0, inner - title.length - 5)) + '╮';
+        const body = lines.map(l => '│ ' + String(l).padEnd(inner - 1).slice(0, inner - 1) + '│');
+        return [top, ...body, '╰' + '─'.repeat(inner) + '╯'].join('\n');
       }
 
-      :root {
-        --ink: #f2f5f8;
-        --muted: #949ba6;
-        --faint: #626974;
-        --surface: rgba(16, 19, 24, 0.95);
-        --surface-2: rgba(25, 29, 36, 0.96);
-        --line: rgba(255, 255, 255, 0.075);
-        --track: rgba(255, 255, 255, 0.08);
-        --radius: 18px;
-        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+      function formatUptime(seconds) {
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (days > 0) return `${days}d ${hours}h`;
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
       }
 
-      html[data-theme='light'] {
-        --ink: #1b1e23;
-        --muted: #60666f;
-        --faint: #94999f;
-        --surface: rgba(251, 251, 249, 0.97);
-        --surface-2: #ffffff;
-        --line: rgba(20, 24, 30, 0.09);
-        --track: rgba(20, 24, 30, 0.07);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: transparent;
-      }
-
-      body {
-        font-family: var(--font-ui);
-        -webkit-font-smoothing: antialiased;
-      }
-
-      .card {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        padding: 13px 15px 11px;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--radius);
-        background:
-          radial-gradient(14rem 9rem at 90% 0%, rgba(88, 200, 255, 0.1), transparent 62%),
-          linear-gradient(150deg, var(--surface-2), var(--surface));
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-        background-clip: padding-box;
-      }
-
-      .header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .kicker {
-        color: var(--faint);
-        font-size: 7.5px;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .title {
-        margin: 1px 0 0;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 14px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        line-height: 1.1;
-      }
-
-      .uptime {
-        padding-top: 2px;
-        color: var(--faint);
-        font-size: 8px;
-        font-weight: 650;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-
-      .metrics {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        justify-content: center;
-        gap: 9px;
-        min-height: 0;
-      }
-
-      .metric {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-        --metric: #58c8ff;
-      }
-
-      .metric.mem {
-        --metric: #a78bfa;
-      }
-
-      html[data-theme='light'] .metric {
-        --metric: #0369a1;
-      }
-
-      html[data-theme='light'] .metric.mem {
-        --metric: #6d28d9;
-      }
-
-      .metric-head {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .label {
-        color: var(--muted);
-        font-size: 8px;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      .value {
-        color: var(--ink);
-        font-size: 9.5px;
-        font-variant-numeric: tabular-nums;
-        font-weight: 600;
-      }
-
-      .dots {
-        display: grid;
-        grid-template-columns: repeat(24, minmax(0, 1fr));
-        gap: 2px;
-      }
-
-      .dot {
-        height: 6px;
-        border-radius: 99px;
-        background: var(--track);
-        transition:
-          background 180ms ease,
-          box-shadow 180ms ease;
-      }
-
-      .dot.on {
-        background: var(--metric);
-        box-shadow: 0 0 6px color-mix(in srgb, var(--metric) 45%, transparent);
-      }
-
-      .bar,
-      .ring-wrap,
-      .ascii {
-        display: none;
-      }
-
-      .bar {
-        height: 7px;
-        overflow: hidden;
-        border-radius: 99px;
-        background: var(--track);
-      }
-
-      .bar span {
-        display: block;
-        width: 0;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(
-          90deg,
-          var(--metric),
-          color-mix(in srgb, var(--metric) 55%, white)
-        );
-        transition: width 300ms ease;
-      }
-
-      .ring-wrap {
-        position: relative;
-        width: 66px;
-        height: 66px;
-        margin: 1px auto 0;
-        filter: drop-shadow(0 0 7px color-mix(in srgb, var(--metric) 25%, transparent));
-      }
-
-      .ring-wrap svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-        transform: rotate(-90deg);
-      }
-
-      .ring-track,
-      .ring-value {
-        fill: none;
-        stroke-width: 4;
-      }
-
-      .ring-track {
-        stroke: var(--track);
-      }
-
-      .ring-value {
-        stroke: var(--metric);
-        stroke-linecap: round;
-        stroke-dasharray: 163.36;
-        stroke-dashoffset: 163.36;
-        transition: stroke-dashoffset 400ms ease;
-      }
-
-      .ascii {
-        margin: 0;
-        color: var(--metric);
-        font-family: 'DotGothic16', monospace;
-        font-size: 9px;
-        letter-spacing: 0.03em;
-        white-space: nowrap;
-      }
-
-      .footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding-top: 6px;
-        border-top: 1px solid var(--line);
-        color: var(--faint);
-        font-size: 7.5px;
-        letter-spacing: 0.04em;
-      }
-
-      .status {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .status.error {
-        color: #ff8a80;
-      }
-
-      .signal {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        flex: none;
-        font-weight: 650;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .signal::before {
-        content: '';
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: #78d99a;
-      }
-
-      html[data-variant='bars'] .card {
-        gap: 8px;
-      }
-
-      html[data-variant='bars'] .dots {
-        display: none;
-      }
-
-      html[data-variant='bars'] .bar {
-        display: block;
-      }
-
-      html[data-variant='bars'] .metrics {
-        gap: 13px;
-      }
-
-      html[data-variant='bars'] .metric {
-        gap: 6px;
-      }
-
-      html[data-variant='bars'] .bar {
-        height: 9px;
-      }
-
-      html[data-variant='rings'] .card {
-        gap: 7px;
-      }
-
-      html[data-variant='rings'] .metrics {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: center;
-        gap: 6px;
-      }
-
-      html[data-variant='rings'] .metric {
-        align-items: center;
-        gap: 1px;
-      }
-
-      html[data-variant='rings'] .metric-head {
-        width: 100%;
-      }
-
-      html[data-variant='rings'] .label {
-        font-size: 7px;
-      }
-
-      html[data-variant='rings'] .value {
-        font-size: 8.5px;
-      }
-
-      html[data-variant='rings'] .dots {
-        display: none;
-      }
-
-      html[data-variant='rings'] .ring-wrap {
-        display: block;
-      }
-
-      html[data-variant='terminal'] .card {
-        gap: 8px;
-        border-radius: 11px;
-        background:
-          radial-gradient(13rem 8rem at 90% 0%, rgba(100, 255, 158, 0.07), transparent 60%), #07100a;
-        box-shadow: inset 0 0 0 1px rgba(100, 255, 158, 0.17);
-        font-family: 'DotGothic16', monospace;
-      }
-
-      html[data-variant='terminal'] .kicker,
-      html[data-variant='terminal'] .title,
-      html[data-variant='terminal'] .uptime,
-      html[data-variant='terminal'] .label,
-      html[data-variant='terminal'] .value,
-      html[data-variant='terminal'] .footer {
-        color: #9fffc0;
-        font-family: 'DotGothic16', monospace;
-      }
-
-      html[data-variant='terminal'] .kicker {
-        color: rgba(159, 255, 192, 0.52);
-      }
-
-      html[data-variant='terminal'] .title {
-        font-size: 13px;
-      }
-
-      html[data-variant='terminal'] .title::before {
-        content: '> ';
-        color: #64ff9e;
-      }
-
-      html[data-variant='terminal'] .metric {
-        --metric: #64ff9e;
-      }
-
-      html[data-variant='terminal'] .dots {
-        display: none;
-      }
-
-      html[data-variant='terminal'] .ascii {
-        display: block;
-      }
-
-      html[data-variant='terminal'] .footer {
-        border-top-style: dashed;
-        border-top-color: rgba(100, 255, 158, 0.16);
-      }
-
-      html[data-variant='terminal'] .signal::before {
-        border-radius: 0;
-        background: #64ff9e;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <div class="header">
-        <div>
-          <span class="kicker">System</span>
-          <p class="title">Performance</p>
-        </div>
-        <span class="uptime" id="uptime"></span>
-      </div>
-      <div class="metrics">
-        <section class="metric cpu">
-          <div class="metric-head">
-            <span class="label">CPU</span>
-            <span class="value" id="cpu-value">--%</span>
-          </div>
-          <div class="dots" id="cpu-dots" aria-hidden="true"></div>
-          <div class="bar" aria-hidden="true"><span id="cpu-bar"></span></div>
-          <div class="ring-wrap" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <circle class="ring-track" cx="32" cy="32" r="26"></circle>
-              <circle class="ring-value" id="cpu-ring" cx="32" cy="32" r="26"></circle>
-            </svg>
-          </div>
-          <p class="ascii" id="cpu-ascii"></p>
-        </section>
-        <section class="metric mem">
-          <div class="metric-head">
-            <span class="label">Memory</span>
-            <span class="value" id="mem-value">--%</span>
-          </div>
-          <div class="dots" id="mem-dots" aria-hidden="true"></div>
-          <div class="bar" aria-hidden="true"><span id="mem-bar"></span></div>
-          <div class="ring-wrap" aria-hidden="true">
-            <svg viewBox="0 0 64 64">
-              <circle class="ring-track" cx="32" cy="32" r="26"></circle>
-              <circle class="ring-value" id="mem-ring" cx="32" cy="32" r="26"></circle>
-            </svg>
-          </div>
-          <p class="ascii" id="mem-ascii"></p>
-        </section>
-      </div>
-      <div class="footer">
-        <span class="status" id="status">Sampling every 2 seconds</span>
-        <span class="signal" id="signal">Local</span>
-      </div>
-    </main>
-    <script>
-      ;(function () {
-        'use strict'
-
-        var DOT_COUNT = 24
-        var CIRCUMFERENCE = 163.36
-        var cpuDots = document.getElementById('cpu-dots')
-        var memDots = document.getElementById('mem-dots')
-        var cpuValue = document.getElementById('cpu-value')
-        var memValue = document.getElementById('mem-value')
-        var cpuBar = document.getElementById('cpu-bar')
-        var memBar = document.getElementById('mem-bar')
-        var cpuRing = document.getElementById('cpu-ring')
-        var memRing = document.getElementById('mem-ring')
-        var cpuAscii = document.getElementById('cpu-ascii')
-        var memAscii = document.getElementById('mem-ascii')
-        var uptime = document.getElementById('uptime')
-        var status = document.getElementById('status')
-
-        function buildDots(parent) {
-          if (!parent) {
-            return []
+      function paintMeters() {
+        $$('[data-meter]').forEach(el => {
+          const k = el.dataset.meter;
+          const v = meters[k];
+          if (v === undefined || typeof v !== 'number') return;
+          el.style.setProperty('--vn', (v / 100).toFixed(3));
+          el.dataset.level = level(k, v);
+        });
+        $$('[data-meter-text]').forEach(el => {
+          const k = el.dataset.meterText;
+          const v = meters[k];
+          if (v !== undefined) {
+            el.textContent = typeof v === 'number' ? Math.round(v) + '%' : v;
           }
-          var nodes = []
-          for (var index = 0; index < DOT_COUNT; index += 1) {
-            var dot = document.createElement('span')
-            dot.className = 'dot'
-            nodes.push(dot)
-            parent.appendChild(dot)
-          }
-          return nodes
+        });
+        $$('[data-sys-terminal]').forEach(pre => {
+          const row = (n, k) => `${n} [${bar(meters[k])}] ${String(Math.round(meters[k])).padStart(3)}%`;
+          pre.textContent = asciiBox('sys', [
+            row('CPU', 'cpu'),
+            row('MEM', 'mem'),
+            row('DSK', 'dsk'),
+            '',
+            `load ${(meters.cpu / 100).toFixed(2)}  up ${meters.uptime}`
+          ], 26);
+        });
+      }
+
+      function tick() {
+        if (!window.hl || !window.hl.system) {
+          paintMeters();
+          return;
         }
-
-        var cpuNodes = buildDots(cpuDots)
-        var memNodes = buildDots(memDots)
-
-        function clamp(value) {
-          return Math.max(0, Math.min(100, value))
-        }
-
-        function paint(nodes, percent) {
-          var count = Math.round((clamp(percent) / 100) * DOT_COUNT)
-          for (var index = 0; index < nodes.length; index += 1) {
-            nodes[index].classList.toggle('on', index < count)
-          }
-        }
-
-        function ascii(percent) {
-          var filled = Math.round((clamp(percent) / 100) * 10)
-          return '[' + '#'.repeat(filled) + '.'.repeat(10 - filled) + ']'
-        }
-
-        function formatUptime(seconds) {
-          var days = Math.floor(seconds / 86400)
-          var hours = Math.floor((seconds % 86400) / 3600)
-          var minutes = Math.floor((seconds % 3600) / 60)
-          if (days > 0) {
-            return days + 'd ' + hours + 'h'
-          }
-          if (hours > 0) {
-            return hours + 'h ' + minutes + 'm'
-          }
-          return minutes + 'm'
-        }
-
-        function render(stats) {
-          var cpu = clamp(stats.cpuPercent)
-          var memory = clamp(stats.memUsedPercent)
-          paint(cpuNodes, cpu)
-          paint(memNodes, memory)
-          if (cpuValue) {
-            cpuValue.textContent = Math.round(cpu) + '%'
-          }
-          if (memValue) {
-            memValue.textContent =
-              Math.round(memory) + '% of ' + stats.memTotalGB.toFixed(1) + ' GB'
-          }
-          if (cpuBar) {
-            cpuBar.style.width = cpu + '%'
-          }
-          if (memBar) {
-            memBar.style.width = memory + '%'
-          }
-          if (cpuRing) {
-            cpuRing.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - cpu / 100))
-          }
-          if (memRing) {
-            memRing.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - memory / 100))
-          }
-          if (cpuAscii) {
-            cpuAscii.textContent = 'CPU ' + ascii(cpu) + ' ' + Math.round(cpu) + '%'
-          }
-          if (memAscii) {
-            memAscii.textContent = 'MEM ' + ascii(memory) + ' ' + Math.round(memory) + '%'
-          }
-          if (uptime) {
-            uptime.textContent = 'up ' + formatUptime(stats.uptimeSec)
-          }
-          if (status) {
-            status.textContent = 'Sampling every 2 seconds'
-            status.classList.remove('error')
-          }
-        }
-
-        function tick() {
-          if (!window.hl || !window.hl.system) {
-            return
-          }
-          window.hl.system
-            .getStats()
-            .then(render)
-            .catch(function (error) {
-              if (status) {
-                status.textContent =
-                  error && error.code === 'permission_denied'
-                    ? 'System stats permission is off'
-                    : 'System stats unavailable'
-                status.classList.add('error')
-              }
-            })
-        }
-
-        tick()
-        setInterval(tick, 2000)
-
-        function applyTheme(dark) {
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-        }
-
-        if (window.hl) {
-          window.hl
-            .ready()
-            .then(function () {
-              return window.hl.getContext()
-            })
-            .then(function (context) {
-              applyTheme(context.dark)
-            })
-            .catch(function () {})
-          window.hl.onTheme(function (state) {
-            applyTheme(state.dark)
+        window.hl.system.getStats()
+          .then(stats => {
+            meters.cpu = clamp(stats.cpuPercent, 0, 100);
+            meters.mem = clamp(stats.memUsedPercent, 0, 100);
+            meters.dsk = clamp(stats.cpuPercent * 0.7 + stats.memUsedPercent * 0.3, 10, 95);
+            meters.uptime = formatUptime(stats.uptimeSec || uptimeSec);
+            paintMeters();
           })
-        }
-      })()
-    </script>
-  </body>
+          .catch(() => {
+            paintMeters();
+          });
+      }
+
+      tick();
+      setInterval(tick, 2000);
+
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+      }
+
+      if (window.hl) {
+        window.hl.ready()
+          .then(() => window.hl.getContext())
+          .then(ctx => { if (ctx && typeof ctx.dark === 'boolean') applyTheme(ctx.dark); })
+          .catch(() => {});
+        window.hl.onTheme(state => {
+          if (state && typeof state.dark === 'boolean') applyTheme(state.dark);
+        });
+      }
+    })();
+  </script>
+</body>
 </html>

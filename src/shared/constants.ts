@@ -86,9 +86,9 @@ export const WALLPAPER_VIDEO_WARN_FPS = 30
 export const WIDGET_CSP = [
   `default-src 'none'`,
   `script-src 'unsafe-inline' widget:`,
-  `style-src 'unsafe-inline' widget:`,
+  `style-src 'unsafe-inline' widget: https://fonts.googleapis.com`,
   `img-src data: blob: hl-icon: widget:`,
-  `font-src data: widget:`,
+  `font-src data: widget: https://fonts.gstatic.com`,
   `media-src data: blob: widget:`,
   `connect-src 'none'`,
   `frame-src 'none'`,

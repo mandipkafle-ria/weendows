@@ -80,7 +80,8 @@ export function registerWidgetProtocol(
     try {
       let body: Buffer | string = await readFile(file)
       if (file.toLowerCase().endsWith('index.html') && !isWallpaperHost(requestHost(request.url))) {
-        let html = injectSdk(body.toString('utf8'))
+        const host = requestHost(request.url)
+        let html = injectSdk(body.toString('utf8'), host === '_builtins')
         if (options.resolveAppearance) {
           try {
             const resolved = await options.resolveAppearance(requestHost(request.url), request.url)

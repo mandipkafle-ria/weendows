@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { resolveWidgetAppearance } from '../../shared/appearance'
 import { findBuiltin, findBuiltinVariant } from '../../shared/builtins'
+import { WIDGET_CATEGORIES } from '../../shared/types'
 import type {
   BuiltinWidget,
   GeneralState,
@@ -12,6 +13,8 @@ import type {
 } from '../../shared/types'
 import { t } from '../i18n'
 import type { ToastLevel } from './useToasts'
+import ThemeScene from './ThemeScene'
+import { THEME_OPTIONS, type ThemeEnvId } from './themeEnvironments'
 import WidgetCatalog from './WidgetCatalog'
 import WidgetCategoryPage from './WidgetCategoryPage'
 import WidgetCustomizeSheet from './WidgetCustomizeSheet'
@@ -111,8 +114,14 @@ export default function WidgetsPanel({
   const [editMode, setEditMode] = useState(false)
   const [sortByRam, setSortByRam] = useState(false)
   const [view, setView] = useState<StudioView>('browse')
+  const [browseSubView, setBrowseSubView] = useState<'scene' | 'catalog'>('scene')
+  const [themeEnv, setThemeEnv] = useState<ThemeEnvId>('sky')
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark')
+  const [categoryFilter, setCategoryFilter] = useState<WidgetCategory | 'all'>('all')
   const [query, setQuery] = useState('')
   const [categoryPage, setCategoryPage] = useState<WidgetCategory | null>(null)
+  const [savedQuery, setSavedQuery] = useState('')
+  const [savedSort, setSavedSort] = useState<'newest' | 'name'>('newest')
   const [customize, setCustomize] = useState<{
     builtin: BuiltinWidget
     variant: string
@@ -156,6 +165,35 @@ export default function WidgetsPanel({
     })
   }, [builtins, query])
 
+  const catalogBuiltins = useMemo(
+    () =>
+      categoryFilter === 'all'
+        ? filteredBuiltins
+        : filteredBuiltins.filter((builtin) => builtin.category === categoryFilter),
+    [categoryFilter, filteredBuiltins]
+  )
+
+  const visibleSaved = useMemo(() => {
+    const needle = savedQuery.trim().toLowerCase()
+    const matches = savedAiWidgets.filter((manifest) => {
+      if (!needle) {
+        return true
+      }
+      return (
+        manifest.name.toLowerCase().includes(needle) ||
+        (manifest.prompt ?? '').toLowerCase().includes(needle)
+      )
+    })
+    return [...matches].sort((left, right) => {
+      if (savedSort === 'name') {
+        return left.name.localeCompare(right.name)
+      }
+      return right.createdAt.localeCompare(left.createdAt)
+    })
+  }, [savedAiWidgets, savedQuery, savedSort])
+
+  const activeTheme = THEME_OPTIONS.find((option) => option.id === themeEnv) ?? THEME_OPTIONS[0]!
+
   const permissionText = (permission: WidgetPermission): string => t(`permissions.${permission}`)
 
   const variantFor = (builtin: BuiltinWidget): string => builtin.variants[0]?.id ?? 'classic'
@@ -193,6 +231,15 @@ export default function WidgetsPanel({
 
   const openCustomize = (builtin: BuiltinWidget, variant: string): void => {
     setCustomize({ builtin, variant })
+  }
+
+  const openSceneCustomize = (builtin: BuiltinWidget, variant: string): void => {
+    const existing = widgets.find(
+      (widget) =>
+        widget.manifest.builtinType === builtin.type &&
+        findBuiltinVariant(builtin, widget.manifest.variant).id === variant
+    )
+    setCustomize({ builtin, variant, existing })
   }
 
   const openCustomizeExisting = (widget: WidgetSummary): void => {
@@ -350,14 +397,18 @@ export default function WidgetsPanel({
 
   return (
     <div className="studio">
-      <div className="studio-switcher">
+      <div className="studio-topbar">
         <div className="view-tabs" role="tablist" aria-label={t('widgets.viewsLabel')}>
           <button
             type="button"
             role="tab"
             aria-selected={view === 'browse'}
             className={view === 'browse' ? 'view-tab view-tab-active' : 'view-tab'}
-            onClick={() => setView('browse')}
+            onClick={() => {
+              setView('browse')
+              setCategoryPage(null)
+              setBrowseSubView('scene')
+            }}
           >
             {t('widgets.viewBrowse')}
           </button>
@@ -382,77 +433,200 @@ export default function WidgetsPanel({
             <span className="tab-count">{savedAiWidgets.length}</span>
           </button>
         </div>
-        <div className="studio-actions">
-          <span className="shortcut-pill">
-            <kbd>{general.hotkey}</kbd>
-            {t('widgets.shortcutLabel')}
-          </span>
-          <button
-            type="button"
-            className={editMode ? 'button-secondary button-active' : 'button-secondary'}
-            onClick={() => void toggleEditMode()}
-            disabled={pending !== null}
+
+        <div className="studio-theme">
+          <span className="theme-quick-label">{activeTheme.label}</span>
+          <div
+            className="theme-quick-switch"
+            role="radiogroup"
+            aria-label={t('widgets.themeLabel')}
           >
-            {editMode ? t('widgets.finishEditing') : t('widgets.editLayout')}
-          </button>
+            {THEME_OPTIONS.map((theme) => {
+              const active = themeEnv === theme.id
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  aria-label={theme.label}
+                  title={theme.label}
+                  className={active ? 'theme-swatch theme-swatch-active' : 'theme-swatch'}
+                  style={{ backgroundColor: theme.color }}
+                  onClick={() => setThemeEnv(theme.id)}
+                />
+              )
+            })}
+          </div>
+
+          <div className="theme-mode-switch" role="radiogroup" aria-label="Theme mode">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={themeMode === 'light'}
+              title="Light mode"
+              aria-label="Light mode"
+              className={themeMode === 'light' ? 'mode-chip mode-chip-active' : 'mode-chip'}
+              onClick={() => setThemeMode('light')}
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
+              <span>Light</span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={themeMode === 'dark'}
+              title="Dark mode"
+              aria-label="Dark mode"
+              className={themeMode === 'dark' ? 'mode-chip mode-chip-active' : 'mode-chip'}
+              onClick={() => setThemeMode('dark')}
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <span>Dark</span>
+            </button>
+          </div>
         </div>
+
+        <button
+          type="button"
+          className={editMode ? 'button-secondary button-active' : 'button-secondary'}
+          onClick={() => void toggleEditMode()}
+          disabled={pending !== null}
+        >
+          {editMode ? t('widgets.finishEditing') : t('widgets.editLayout')}
+        </button>
       </div>
 
-      {view === 'browse' && (
-        <>
-          {categoryPage ? (
-            <WidgetCategoryPage
-              category={categoryPage}
-              builtins={builtins}
-              widgets={widgets}
-              general={general}
-              pending={pending}
-              onBack={() => setCategoryPage(null)}
-              onAdd={(builtin, variant) => void addWidget(builtin, variant)}
-              onCustomize={openCustomize}
-              onOpenAiStudio={onOpenAiStudio}
-            />
-          ) : (
-            <>
-              <div className="studio-toolbar">
-                <label className="search-field">
-                  <SearchIcon />
-                  <span className="sr-only">{t('widgets.searchLabel')}</span>
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t('widgets.searchPlaceholder')}
-                    spellCheck={false}
-                  />
-                  {query && (
-                    <button
-                      type="button"
-                      className="search-clear"
-                      onClick={() => setQuery('')}
-                      aria-label={t('widgets.clearSearch')}
-                    >
-                      &#10005;
-                    </button>
-                  )}
-                </label>
-                <button type="button" className="button-secondary" onClick={onOpenAiStudio}>
-                  {t('widgets.createWithAi')}
-                </button>
-              </div>
-
-              <WidgetCatalog
-                builtins={filteredBuiltins}
+      {view === 'browse' &&
+        (categoryPage ? (
+          <div className="catalog-page" data-theme-env={themeEnv}>
+            <div className="catalog-scroll" key={`page-${categoryPage}-${themeEnv}`}>
+              <WidgetCategoryPage
+                category={categoryPage}
+                builtins={builtins}
                 widgets={widgets}
                 general={general}
+                themeEnv={themeEnv}
+                themeMode={themeMode}
+                pending={pending}
+                onBack={() => setCategoryPage(null)}
+                onAdd={(builtin, variant) => void addWidget(builtin, variant)}
+                onCustomize={openCustomize}
+                onOpenAiStudio={onOpenAiStudio}
+              />
+            </div>
+          </div>
+        ) : browseSubView === 'scene' ? (
+          <ThemeScene
+            themeEnv={themeEnv}
+            themeMode={themeMode}
+            builtins={builtins}
+            general={general}
+            query={query}
+            categoryFilter={categoryFilter}
+            onQueryChange={setQuery}
+            onCategoryFilterChange={setCategoryFilter}
+            onCustomize={openSceneCustomize}
+            onSwitchToCatalog={() => setBrowseSubView('catalog')}
+          />
+        ) : (
+          <div className="catalog-page" data-theme-env={themeEnv}>
+            <header className="catalog-head">
+              <button
+                type="button"
+                className="catalog-back"
+                onClick={() => setBrowseSubView('scene')}
+              >
+                <span aria-hidden="true">&larr;</span>
+                {t('widgets.backToTheme')}
+              </button>
+
+              <div className="catalog-heading">
+                <span className="catalog-eyebrow">{t('widgets.themeLabel')}</span>
+                <h2>{activeTheme.label}</h2>
+                <span className="catalog-designs">
+                  {t('widgets.categoryCount', { count: catalogBuiltins.length })}
+                </span>
+              </div>
+
+              <label className="catalog-search">
+                <SearchIcon />
+                <span className="sr-only">{t('widgets.searchLabel')}</span>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('widgets.searchPlaceholder')}
+                  spellCheck={false}
+                />
+                {query && (
+                  <button
+                    type="button"
+                    className="search-clear"
+                    onClick={() => setQuery('')}
+                    aria-label={t('widgets.clearSearch')}
+                  >
+                    &#10005;
+                  </button>
+                )}
+              </label>
+
+              <button type="button" className="catalog-ai-button" onClick={onOpenAiStudio}>
+                {t('widgets.createWithAi')}
+              </button>
+            </header>
+
+            <div
+              className="catalog-filter-row"
+              role="group"
+              aria-label={t('widgets.categoriesLabel')}
+            >
+              <button
+                type="button"
+                className={
+                  categoryFilter === 'all'
+                    ? 'catalog-filter catalog-filter-active'
+                    : 'catalog-filter'
+                }
+                onClick={() => setCategoryFilter('all')}
+              >
+                {t('widgets.categoryAll')}
+              </button>
+              {WIDGET_CATEGORIES.map((category) => (
+                <button
+                  type="button"
+                  key={category}
+                  className={
+                    categoryFilter === category
+                      ? 'catalog-filter catalog-filter-active'
+                      : 'catalog-filter'
+                  }
+                  onClick={() => setCategoryFilter(category)}
+                >
+                  {t(`widgets.categories.${category}`)}
+                </button>
+              ))}
+            </div>
+
+            <div className="catalog-scroll" key={`catalog-${categoryFilter}-${themeEnv}`}>
+              <WidgetCatalog
+                builtins={catalogBuiltins}
+                widgets={widgets}
+                general={general}
+                themeEnv={themeEnv}
+                themeMode={themeMode}
                 pending={pending}
                 onAdd={(builtin, variant) => void addWidget(builtin, variant)}
                 onCustomize={openCustomize}
                 onSeeAll={setCategoryPage}
               />
-            </>
-          )}
-        </>
-      )}
+            </div>
+          </div>
+        ))}
 
       {view === 'desktop' && (
         <section className="desktop-panel">
@@ -464,22 +638,41 @@ export default function WidgetsPanel({
             <div className="toolbar-actions">
               <button
                 type="button"
-                className="button-secondary"
+                className="button-quiet"
                 onClick={() => setSortByRam((current) => !current)}
               >
                 {sortByRam ? t('widgets.sortDefault') : t('widgets.sortRam')}
               </button>
-              <button type="button" onClick={() => setView('browse')}>
+              <button
+                type="button"
+                className="button-primary"
+                onClick={() => {
+                  setView('browse')
+                  setBrowseSubView('scene')
+                }}
+              >
                 {t('widgets.addWidget')}
               </button>
             </div>
           </div>
 
           {orderedWidgets.length === 0 ? (
-            <div className="empty-state">
-              <strong>{t('widgets.noWidgets')}</strong>
-              <span>{t('widgets.noWidgetsBody')}</span>
-              <button type="button" onClick={() => setView('browse')}>
+            <div className="empty-state empty-desktop">
+              <span className="empty-icon" aria-hidden="true">
+                {Array.from({ length: 9 }, (_, index) => (
+                  <i key={index} />
+                ))}
+              </span>
+              <strong>{t('widgets.emptyDesktopTitle')}</strong>
+              <span>{t('widgets.emptyDesktopBody')}</span>
+              <button
+                type="button"
+                className="button-primary"
+                onClick={() => {
+                  setView('browse')
+                  setBrowseSubView('scene')
+                }}
+              >
                 {t('widgets.browseWidgets')}
               </button>
             </div>
@@ -493,6 +686,19 @@ export default function WidgetsPanel({
                   : [...OPACITY_VALUES, placement.opacity].sort((left, right) => right - left)
                 const builtin = manifest.builtinType ? findBuiltin(manifest.builtinType) : undefined
                 const dimensions = previewDimensions(manifest, builtins)
+                const status = stats?.disabledReason
+                  ? t('widgets.statusDisabled')
+                  : placement.enabled
+                    ? t('widgets.statusRunning')
+                    : t('widgets.hiddenStatus')
+                const variantLabel =
+                  builtin && manifest.variant ? variantName(manifest.variant) : null
+                const themeLabel =
+                  placement.themeOverride === 'dark'
+                    ? t('general.themeDark')
+                    : placement.themeOverride === 'light'
+                      ? t('general.themeLight')
+                      : t('widgets.customize.themeAuto')
                 return (
                   <article className="desktop-card" key={placement.widgetId}>
                     <div className="desktop-thumb">
@@ -506,42 +712,47 @@ export default function WidgetsPanel({
                         cursorStyle={general.cursor.style}
                         title={manifest.name}
                       />
-                      <span className={placement.enabled ? 'state-dot state-on' : 'state-dot'} />
                     </div>
 
                     <div className="desktop-card-main">
                       <div className="desktop-card-head">
-                        <div>
+                        <div className="desktop-name">
                           <h3>{manifest.name}</h3>
                           <span className="meta-line">
                             {manifest.kind === 'builtin'
                               ? t('widgets.kindBuiltin')
                               : t('widgets.kindAi')}{' '}
-                            ·{' '}
+                            &middot;{' '}
                             {t('widgets.dimensions', {
                               width: placement.width,
                               height: placement.height
                             })}
-                            {!placement.enabled && ` · ${t('widgets.hiddenStatus')}`}
+                            {variantLabel ? ` · ${variantLabel}` : ''} &middot; {themeLabel}
                           </span>
                         </div>
-                        {stats && (
+                        <div className="desktop-status">
                           <span
                             className={
-                              stats.disabledReason ? 'runtime-badge runtime-bad' : 'runtime-badge'
+                              stats?.disabledReason
+                                ? 'status-pill status-bad'
+                                : placement.enabled
+                                  ? 'status-pill status-on'
+                                  : 'status-pill status-off'
                             }
                           >
-                            {stats.running
-                              ? `${t('widgets.cpu', { value: stats.cpuPercent.toFixed(1) })} · ${t(
-                                  'widgets.ram',
-                                  { value: Math.round(stats.memoryMB) }
-                                )}`
-                              : t('widgets.stopped')}
-                            {stats.disabledReason
-                              ? ` · ${t('widgets.disabledBadge', { reason: stats.disabledReason })}`
-                              : ''}
+                            <span className="status-dot" aria-hidden="true" />
+                            {status}
                           </span>
-                        )}
+                          {stats && (
+                            <span className="runtime-text">
+                              {stats.running
+                                ? `${stats.cpuPercent.toFixed(1)}% · ${Math.round(
+                                    stats.memoryMB
+                                  )} MB`
+                                : t('widgets.stopped')}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="desktop-controls">
@@ -610,49 +821,11 @@ export default function WidgetsPanel({
                       </div>
 
                       <div className="desktop-footer">
-                        <details className="permission-details">
-                          <summary>
-                            {manifest.permissions.length === 0
-                              ? t('widgets.permissionsNone')
-                              : t('widgets.permissionsCount', {
-                                  count: manifest.permissions.length
-                                })}
-                          </summary>
-                          {manifest.permissions.length > 0 && (
-                            <div className="permission-list">
-                              {manifest.permissions.map((permission) => (
-                                <label className="permission-toggle" key={permission}>
-                                  <input
-                                    type="checkbox"
-                                    checked={manifest.grantedPermissions.includes(permission)}
-                                    disabled={pending !== null}
-                                    onChange={(event) =>
-                                      void togglePermission(
-                                        widget,
-                                        permission,
-                                        event.target.checked
-                                      )
-                                    }
-                                  />
-                                  <span>{permissionText(permission)}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                          {manifest.allowedHosts.length > 0 && (
-                            <span className="permission-hosts">
-                              {t('widgets.approvedHosts', {
-                                hosts: manifest.allowedHosts.join(', ')
-                              })}
-                            </span>
-                          )}
-                        </details>
-
                         <div className="desktop-row-actions">
                           {builtin && (
                             <button
                               type="button"
-                              className="button-secondary button-compact"
+                              className="button-quiet button-compact"
                               onClick={() => openCustomizeExisting(widget)}
                             >
                               {t('widgets.customize.action')}
@@ -660,7 +833,7 @@ export default function WidgetsPanel({
                           )}
                           <button
                             type="button"
-                            className="button-secondary button-compact"
+                            className="button-quiet button-compact"
                             onClick={() =>
                               void run(`duplicate:${placement.widgetId}`, () =>
                                 window.api.duplicateWidget(placement.widgetId)
@@ -670,37 +843,81 @@ export default function WidgetsPanel({
                           >
                             {t('widgets.duplicate')}
                           </button>
-                          <button
-                            type="button"
-                            className="button-secondary button-compact"
-                            onClick={() =>
-                              void run(`reload:${placement.widgetId}`, () =>
-                                window.api.reloadWidget(placement.widgetId)
-                              )
-                            }
-                            disabled={pending !== null}
-                          >
-                            {t('widgets.reload')}
-                          </button>
-                          {manifest.kind === 'ai' && (
-                            <button
-                              type="button"
-                              className="button-secondary button-compact"
-                              onClick={() => onEditWithAi(placement.widgetId)}
-                            >
-                              {t('widgets.editWithAi')}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="button-danger button-compact"
-                            onClick={() => void removeWidget(placement.widgetId)}
-                            disabled={pending !== null}
-                          >
-                            {pending === `remove:${placement.widgetId}`
-                              ? t('common.removing')
-                              : t('common.remove')}
-                          </button>
+                          <details className="more-menu">
+                            <summary aria-label={t('widgets.moreActions')}>
+                              <span aria-hidden="true">&#8943;</span>
+                            </summary>
+                            <div className="more-menu-panel">
+                              {manifest.permissions.length === 0 ? (
+                                <span className="menu-info">{t('widgets.permissionsNone')}</span>
+                              ) : (
+                                <details className="menu-permissions">
+                                  <summary className="menu-item">
+                                    {t('widgets.permissionsCount', {
+                                      count: manifest.permissions.length
+                                    })}
+                                  </summary>
+                                  <div className="menu-permission-list">
+                                    {manifest.permissions.map((permission) => (
+                                      <label className="permission-toggle" key={permission}>
+                                        <input
+                                          type="checkbox"
+                                          checked={manifest.grantedPermissions.includes(permission)}
+                                          disabled={pending !== null}
+                                          onChange={(event) =>
+                                            void togglePermission(
+                                              widget,
+                                              permission,
+                                              event.target.checked
+                                            )
+                                          }
+                                        />
+                                        <span>{permissionText(permission)}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  {manifest.allowedHosts.length > 0 && (
+                                    <span className="permission-hosts">
+                                      {t('widgets.approvedHosts', {
+                                        hosts: manifest.allowedHosts.join(', ')
+                                      })}
+                                    </span>
+                                  )}
+                                </details>
+                              )}
+                              <button
+                                type="button"
+                                className="menu-item"
+                                onClick={() =>
+                                  void run(`reload:${placement.widgetId}`, () =>
+                                    window.api.reloadWidget(placement.widgetId)
+                                  )
+                                }
+                                disabled={pending !== null}
+                              >
+                                {t('widgets.reload')}
+                              </button>
+                              {manifest.kind === 'ai' && (
+                                <button
+                                  type="button"
+                                  className="menu-item"
+                                  onClick={() => onEditWithAi(placement.widgetId)}
+                                >
+                                  {t('widgets.editWithAi')}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="menu-item menu-item-danger"
+                                onClick={() => void removeWidget(placement.widgetId)}
+                                disabled={pending !== null}
+                              >
+                                {pending === `remove:${placement.widgetId}`
+                                  ? t('common.removing')
+                                  : t('common.remove')}
+                              </button>
+                            </div>
+                          </details>
                         </div>
                       </div>
                     </div>
@@ -714,27 +931,70 @@ export default function WidgetsPanel({
 
       {view === 'saved' && (
         <section className="desktop-panel">
-          <div className="desktop-toolbar">
+          <div className="desktop-toolbar saved-toolbar">
             <div>
               <h2>{t('widgets.savedTitle')}</h2>
               <p>{t('widgets.savedBody')}</p>
             </div>
-            <span className="section-count">
-              {t('widgets.savedCount', { count: savedAiWidgets.length })}
-            </span>
+            {savedAiWidgets.length > 0 && (
+              <div className="saved-toolbar-tools">
+                <label className="search-field saved-search">
+                  <SearchIcon />
+                  <span className="sr-only">{t('widgets.searchSaved')}</span>
+                  <input
+                    value={savedQuery}
+                    onChange={(event) => setSavedQuery(event.target.value)}
+                    placeholder={t('widgets.searchPlaceholder')}
+                    spellCheck={false}
+                  />
+                  {savedQuery && (
+                    <button
+                      type="button"
+                      className="search-clear"
+                      onClick={() => setSavedQuery('')}
+                      aria-label={t('widgets.clearSearch')}
+                    >
+                      &#10005;
+                    </button>
+                  )}
+                </label>
+                <label className="inline-field saved-sort">
+                  <span className="sr-only">{t('widgets.sortLabel')}</span>
+                  <select
+                    value={savedSort}
+                    onChange={(event) =>
+                      setSavedSort(event.target.value === 'name' ? 'name' : 'newest')
+                    }
+                  >
+                    <option value="newest">{t('widgets.sortNewest')}</option>
+                    <option value="name">{t('widgets.sortName')}</option>
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
 
           {savedAiWidgets.length === 0 ? (
-            <div className="empty-state">
-              <strong>{t('widgets.noSaved')}</strong>
-              <span>{t('widgets.noSavedBody')}</span>
-              <button type="button" onClick={onOpenAiStudio}>
+            <div className="empty-state empty-saved">
+              <span className="empty-icon empty-icon-spark" aria-hidden="true">
+                {Array.from({ length: 5 }, (_, index) => (
+                  <i key={index} />
+                ))}
+              </span>
+              <strong>{t('widgets.emptySavedTitle')}</strong>
+              <span>{t('widgets.emptySavedBody')}</span>
+              <button type="button" className="button-primary" onClick={onOpenAiStudio}>
                 {t('widgets.openAiStudio')}
               </button>
             </div>
+          ) : visibleSaved.length === 0 ? (
+            <div className="empty-state">
+              <strong>{t('widgets.noMatchesTitle')}</strong>
+              <span>{t('widgets.noMatchesBody')}</span>
+            </div>
           ) : (
             <div className="saved-grid">
-              {savedAiWidgets.map((manifest) => (
+              {visibleSaved.map((manifest) => (
                 <article className="saved-card" key={manifest.id}>
                   <div className="saved-preview">
                     <WidgetPreview
@@ -747,13 +1007,32 @@ export default function WidgetsPanel({
                     />
                   </div>
                   <div className="saved-copy">
-                    <h3>{manifest.name}</h3>
+                    <div className="saved-title-row">
+                      <h3>{manifest.name}</h3>
+                      <details className="more-menu">
+                        <summary aria-label={t('widgets.moreActions')}>
+                          <span aria-hidden="true">&#8943;</span>
+                        </summary>
+                        <div className="more-menu-panel">
+                          <button
+                            type="button"
+                            className="menu-item menu-item-danger"
+                            onClick={() => void deleteAiWidget(manifest.id)}
+                            disabled={pending !== null}
+                          >
+                            {pending === `delete-ai:${manifest.id}`
+                              ? t('common.deleting')
+                              : t('common.delete')}
+                          </button>
+                        </div>
+                      </details>
+                    </div>
                     <span className="meta-line">
                       {t('widgets.dimensions', {
                         width: manifest.width,
                         height: manifest.height
                       })}{' '}
-                      · {t('widgets.generated', { date: formatDate(manifest.createdAt) })}
+                      &middot; {t('widgets.generated', { date: formatDate(manifest.createdAt) })}
                     </span>
                     {manifest.prompt && (
                       <p className="widget-prompt" title={manifest.prompt}>
@@ -764,22 +1043,13 @@ export default function WidgetsPanel({
                   <div className="saved-actions">
                     <button
                       type="button"
+                      className="button-quiet button-compact"
                       onClick={() => void addAiWidgetCopy(manifest.id)}
                       disabled={pending !== null || general.safeMode}
                     >
                       {pending === `add-ai:${manifest.id}`
                         ? t('common.adding')
                         : t('widgets.addCopy')}
-                    </button>
-                    <button
-                      type="button"
-                      className="button-danger button-compact"
-                      onClick={() => void deleteAiWidget(manifest.id)}
-                      disabled={pending !== null}
-                    >
-                      {pending === `delete-ai:${manifest.id}`
-                        ? t('common.deleting')
-                        : t('common.delete')}
                     </button>
                   </div>
                 </article>
@@ -794,6 +1064,9 @@ export default function WidgetsPanel({
           builtin={customize.builtin}
           defaultVariant={customize.variant}
           general={general}
+          themeEnv={themeEnv}
+          themeMode={themeMode}
+          themeLabel={activeTheme.label}
           existing={customize.existing}
           onClose={() => setCustomize(null)}
           onSaved={onRefresh}

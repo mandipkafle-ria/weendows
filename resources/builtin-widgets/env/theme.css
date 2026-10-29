@@ -1,0 +1,308 @@
+/* ==========================================================================
+   HomeLayer Design System — Design Tokens & Widget Kit
+   Themes: sky | forest | glass | midnight | sakura | mono | ember
+   Modes : dark | light
+   ========================================================================== */
+
+:root {
+  --font-sans:    "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-serif:   "Playfair Display", "Georgia", "Times New Roman", serif;
+  --font-hand:    "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --font-pixel:   "VT323", "DotGothic16", "Courier New", monospace;
+  --font-display: "Orbitron", "Segoe UI Variable Display", "Eurostile", "Segoe UI", sans-serif;
+
+  --radius: 24px;       /* card corner */
+  --radius-sm: 14px;
+  --pill: 999px;        /* pill corner (Monochrome squares it off) */
+
+  --ok: #5fd68a;  --warn: #ffc857;  --bad: #ff6b6b;
+  --term: #4dff88;      /* terminal phosphor */
+
+  /* Legacy HomeLayer aliases */
+  --font-ui: var(--font-sans);
+  --ink: var(--text);
+  --line: var(--border);
+  --line-strong: var(--border);
+  --accent-soft: var(--glow);
+  --faint: var(--muted);
+}
+
+/* ---- derived tokens (computed from each theme's own --accent) ---- */
+[data-theme], [data-env], :root {
+  color-scheme: dark;
+  --glow:    color-mix(in srgb, var(--accent) 38%, transparent);
+  --grad:    linear-gradient(135deg, var(--accent), var(--accent-2));
+  --on-grad: var(--accent-ink);
+}
+[data-theme][data-mode="light"],
+[data-theme][data-theme="light"],
+[data-env][data-theme="light"],
+[data-env][data-mode="light"] {
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   DARK THEMES
+   ========================================================================== */
+
+/* Sky Dark (Default) */
+:root,
+[data-theme="sky"][data-mode="dark"],
+[data-env="sky"][data-theme="dark"],
+[data-env="sky"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="sky"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#070d1c; --surface:#0f1a33; --surface-2:#16234a;
+  --text:#eaf1ff; --muted:#8d9fc6;
+  --accent:#7fb0ff; --accent-ink:#06142e; --accent-2:#b9d6ff;
+  --border:rgba(127,176,255,.16); --track:rgba(127,176,255,.14);
+  --shadow:0 22px 44px -22px rgba(0,10,50,.9);
+}
+
+/* Forest Dark */
+[data-theme="forest"][data-mode="dark"],
+[data-env="forest"][data-theme="dark"],
+[data-env="forest"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="forest"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#07100b; --surface:#0e1b13; --surface-2:#15291c;
+  --text:#e5f4e8; --muted:#86a58f;
+  --accent:#7fd490; --accent-ink:#07210f; --accent-2:#c3ee9c;
+  --border:rgba(127,212,144,.16); --track:rgba(127,212,144,.14);
+  --shadow:0 22px 44px -22px rgba(0,25,8,.9);
+}
+
+/* Glass Dark */
+[data-theme="glass"][data-mode="dark"],
+[data-env="glass"][data-theme="dark"],
+[data-env="glass"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="glass"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#0b0d12; --surface:rgba(44,50,64,.46); --surface-2:rgba(255,255,255,.07);
+  --text:#f0f5fc; --muted:#9eabc0;
+  --accent:#a8cdff; --accent-ink:#0b1b33; --accent-2:#d6e8ff;
+  --border:rgba(255,255,255,.15); --track:rgba(255,255,255,.12);
+  --shadow:0 24px 50px -24px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+/* Midnight Dark */
+[data-theme="midnight"][data-mode="dark"],
+[data-env="midnight"][data-theme="dark"],
+[data-env="midnight"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="midnight"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#05060f; --surface:#0e1230; --surface-2:#171c47;
+  --text:#eceeff; --muted:#939ac8;
+  --accent:#8fa4ff; --accent-ink:#0a1040; --accent-2:#c3a9ff;
+  --border:rgba(143,164,255,.17); --track:rgba(143,164,255,.14);
+  --shadow:0 22px 44px -22px rgba(0,0,40,.95);
+}
+
+/* Sakura Dark */
+[data-theme="sakura"][data-mode="dark"],
+[data-env="sakura"][data-theme="dark"],
+[data-env="sakura"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="sakura"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#0f0813; --surface:#1d1123; --surface-2:#2a1832;
+  --text:#ffeaf4; --muted:#b894a8;
+  --accent:#f497be; --accent-ink:#3a0f24; --accent-2:#ffc4de;
+  --border:rgba(244,151,190,.17); --track:rgba(244,151,190,.14);
+  --shadow:0 22px 44px -22px rgba(40,0,25,.9);
+}
+
+/* Monochrome Dark */
+[data-theme="mono"][data-mode="dark"],
+[data-env="mono"][data-theme="dark"],
+[data-env="mono"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="mono"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#000; --surface:#0c0c0c; --surface-2:#181818;
+  --text:#f0f0f0; --muted:#8a8a8a;
+  --accent:#f0f0f0; --accent-ink:#0a0a0a; --accent-2:#cc2222;
+  --border:rgba(255,255,255,.14); --track:rgba(255,255,255,.12);
+  --shadow:0 22px 44px -22px rgba(0,0,0,1);
+}
+
+/* Ember Dark */
+[data-theme="ember"][data-mode="dark"],
+[data-env="ember"][data-theme="dark"],
+[data-env="ember"]:not([data-theme="light"]):not([data-mode="light"]),
+[data-theme="ember"]:not([data-theme="light"]):not([data-mode="light"]) {
+  --page:#0b0807; --surface:#19130f; --surface-2:#261b15;
+  --text:#fdeee0; --muted:#b09885;
+  --accent:#ffaa5a; --accent-ink:#2c1400; --accent-2:#ff7a3d;
+  --border:rgba(255,170,90,.17); --track:rgba(255,170,90,.14);
+  --shadow:0 22px 44px -22px rgba(40,10,0,.9);
+}
+
+/* ==========================================================================
+   LIGHT THEMES
+   ========================================================================== */
+
+/* Sky Light */
+[data-theme="sky"][data-mode="light"],
+[data-theme="sky"][data-theme="light"],
+[data-env="sky"][data-theme="light"],
+[data-env="sky"][data-mode="light"] {
+  --page:#e8f0ff; --surface:#ffffff; --surface-2:#eef3ff;
+  --text:#0e1a38; --muted:#5d6f93;
+  --accent:#2f6fe0; --accent-ink:#ffffff; --accent-2:#5b8fe8;
+  --border:rgba(30,70,160,.14); --track:rgba(47,111,224,.12);
+  --shadow:0 22px 44px -26px rgba(30,60,140,.45);
+}
+
+/* Forest Light */
+[data-theme="forest"][data-mode="light"],
+[data-theme="forest"][data-theme="light"],
+[data-env="forest"][data-theme="light"],
+[data-env="forest"][data-mode="light"] {
+  --page:#e6f3e9; --surface:#ffffff; --surface-2:#eef8f0;
+  --text:#0f2217; --muted:#587562;
+  --accent:#2e9c4d; --accent-ink:#ffffff; --accent-2:#4aa865;
+  --border:rgba(20,100,50,.14); --track:rgba(46,156,77,.13);
+  --shadow:0 22px 44px -26px rgba(20,80,40,.4);
+}
+
+/* Glass Light */
+[data-theme="glass"][data-mode="light"],
+[data-theme="glass"][data-theme="light"],
+[data-env="glass"][data-theme="light"],
+[data-env="glass"][data-mode="light"] {
+  --page:#dde6f2; --surface:rgba(255,255,255,.55); --surface-2:rgba(255,255,255,.55);
+  --text:#101827; --muted:#55627a;
+  --accent:#3a7bd5; --accent-ink:#ffffff; --accent-2:#6aa3e8;
+  --border:rgba(255,255,255,.75); --track:rgba(16,24,39,.10);
+  --shadow:0 24px 50px -28px rgba(30,50,90,.45), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+/* Midnight Light */
+[data-theme="midnight"][data-mode="light"],
+[data-theme="midnight"][data-theme="light"],
+[data-env="midnight"][data-theme="light"],
+[data-env="midnight"][data-mode="light"] {
+  --page:#eaecff; --surface:#ffffff; --surface-2:#f0f1ff;
+  --text:#131637; --muted:#666c9c;
+  --accent:#5367e6; --accent-ink:#ffffff; --accent-2:#7d6be0;
+  --border:rgba(60,70,170,.14); --track:rgba(83,103,230,.12);
+  --shadow:0 22px 44px -26px rgba(40,50,150,.4);
+}
+
+/* Sakura Light */
+[data-theme="sakura"][data-mode="light"],
+[data-theme="sakura"][data-theme="light"],
+[data-env="sakura"][data-theme="light"],
+[data-env="sakura"][data-mode="light"] {
+  --page:#fdeaf3; --surface:#ffffff; --surface-2:#fff1f7;
+  --text:#3b1428; --muted:#9a6a82;
+  --accent:#d63f82; --accent-ink:#ffffff; --accent-2:#e8639b;
+  --border:rgba(200,60,120,.15); --track:rgba(214,63,130,.12);
+  --shadow:0 22px 44px -26px rgba(170,40,100,.4);
+}
+
+/* Monochrome Light */
+[data-theme="mono"][data-mode="light"],
+[data-theme="mono"][data-theme="light"],
+[data-env="mono"][data-theme="light"],
+[data-env="mono"][data-mode="light"] {
+  --page:#f2f2f2; --surface:#ffffff; --surface-2:#ececec;
+  --text:#0a0a0a; --muted:#6b6b6b;
+  --accent:#0a0a0a; --accent-ink:#ffffff; --accent-2:#cc2222;
+  --border:rgba(0,0,0,.14); --track:rgba(0,0,0,.10);
+  --shadow:0 22px 44px -28px rgba(0,0,0,.4);
+}
+
+/* Ember Light */
+[data-theme="ember"][data-mode="light"],
+[data-theme="ember"][data-theme="light"],
+[data-env="ember"][data-theme="light"],
+[data-env="ember"][data-mode="light"] {
+  --page:#fbefe2; --surface:#ffffff; --surface-2:#fff4e8;
+  --text:#2b190b; --muted:#8f6f55;
+  --accent:#d9700c; --accent-ink:#ffffff; --accent-2:#e8861f;
+  --border:rgba(190,100,20,.16); --track:rgba(217,112,12,.13);
+  --shadow:0 22px 44px -26px rgba(150,70,0,.4);
+}
+
+/* Generic light fallback */
+html[data-theme='light']:not([data-env]):not([data-theme='sky']):not([data-theme='forest']):not([data-theme='glass']):not([data-theme='midnight']):not([data-theme='sakura']):not([data-theme='mono']):not([data-theme='ember']) {
+  --page:#e8f0ff; --surface:#ffffff; --surface-2:#eef3ff;
+  --text:#0e1a38; --muted:#5d6f93;
+  --accent:#2f6fe0; --accent-ink:#ffffff; --accent-2:#5b8fe8;
+  --border:rgba(30,70,160,.14); --track:rgba(47,111,224,.12);
+  --shadow:0 22px 44px -26px rgba(30,60,140,.45);
+}
+
+/* ==========================================================================
+   Monochrome Bauhaus Personality
+   ========================================================================== */
+[data-theme="mono"], [data-env="mono"] {
+  --radius: 6px;
+  --radius-sm: 3px;
+  --pill: 6px;
+  --grad: var(--accent);
+  --on-grad: var(--accent-ink);
+  --term: #f0f0f0;
+}
+
+/* ==========================================================================
+   Base Widget Card Styles
+   ========================================================================== */
+@property --vn { syntax: "<number>"; inherits: true; initial-value: 0; }
+[data-meter] { transition: --vn .9s cubic-bezier(.2,.8,.2,1); }
+
+.w, .w *, .w *::before, .w *::after { box-sizing: border-box; }
+
+.w, .card {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  padding: 22px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+}
+
+.w :where(h1,h2,h3,h4,p,ul,ol,figure) { margin: 0; padding: 0; }
+.w :where(ul,ol) { list-style: none; }
+.w svg { display: block; }
+.w a { color: inherit; text-decoration: none; }
+
+/* soft top-light on every card */
+.w::after, .card::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255,255,255,.07), transparent 42%);
+}
+
+.w__label {
+  font: 600 11px/1 var(--font-sans);
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Glass theme: frosted blur */
+[data-theme="glass"] .w,
+[data-env="glass"] .w,
+[data-theme="glass"] .card,
+[data-env="glass"] .card {
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+}
+
+/* Monochrome theme: red rule line */
+[data-theme="mono"] .w:where(:not(.note--warm, .apps--retro)),
+[data-env="mono"] .w:where(:not(.note--warm, .apps--retro)),
+[data-theme="mono"] .card:where(:not(.note--warm, .apps--retro)),
+[data-env="mono"] .card:where(:not(.note--warm, .apps--retro)) {
+  border-top: 3px solid var(--accent-2);
+}
+
+/* meter colour states */
+[data-meter]:not(.vu)[data-level="warn"] { --accent: var(--warn); --accent-2: var(--warn); }
+[data-meter]:not(.vu)[data-level="bad"]  { --accent: var(--bad);  --accent-2: var(--bad); }
+
+@keyframes blink { 50% { opacity: .15; } }
+@keyframes pulse { 50% { transform: scale(.7); opacity: .55; } }
+@keyframes sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }

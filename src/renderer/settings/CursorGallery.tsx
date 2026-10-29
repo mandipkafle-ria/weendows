@@ -14,12 +14,8 @@ import type { ToastLevel } from './useToasts'
 
 const CURSOR_LABEL_KEYS: Record<CursorStyle, string> = {
   system: 'general.cursorSystem',
-  dot: 'general.cursorDot',
-  neon: 'general.cursorNeon',
   pixel: 'general.cursorPixel',
-  ring: 'general.cursorRing',
-  crosshair: 'general.cursorCrosshair',
-  arrow: 'general.cursorArrow'
+  crosshair: 'general.cursorCrosshair'
 }
 
 const ANIMATION_LABEL_KEYS: Record<CursorClickAnimation, string> = {
@@ -200,16 +196,6 @@ export default function CursorGallery({
           disabled={pending || activeStyle === 'system'}
           onChange={(opacity) => update({ opacity: opacity / 100 })}
         />
-        <SliderField
-          label={t('cursor.glow')}
-          value={Math.round(draft.glowIntensity * 100)}
-          min={0}
-          max={100}
-          suffix="%"
-          disabled={pending || (activeStyle !== 'neon' && activeStyle !== 'ring')}
-          onChange={(glowIntensity) => update({ glowIntensity: glowIntensity / 100 })}
-        />
-
         <div className="cursor-animation">
           <span className="cursor-animation-label">{t('cursor.clickAnimation')}</span>
           <div

@@ -10,11 +10,7 @@ const tempDirs: string[] = []
 async function makeCursorDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'homelayer-cursors-'))
   tempDirs.push(dir)
-  await Promise.all([
-    writeFile(join(dir, 'dot.cur'), 'dot'),
-    writeFile(join(dir, 'neon.cur'), 'neon'),
-    writeFile(join(dir, 'pixel.cur'), 'pixel')
-  ])
+  await writeFile(join(dir, 'pixel.cur'), 'pixel')
   return dir
 }
 
@@ -74,26 +70,21 @@ describe('buildCursorFile', () => {
 })
 
 describe('SystemCursorService', () => {
-  it('applies, switches, and restores cursor packs', async () => {
+  it('applies, deduplicates, and restores cursor packs', async () => {
     const cursorDir = await makeCursorDir()
     const replace = vi.fn()
     const restore = vi.fn()
     const backend: SystemCursorBackend = { replace, restore }
     const service = new SystemCursorService({ cursorDir, backend })
 
-    service.apply('dot')
-    service.apply('dot')
-    service.apply('neon')
+    service.apply('pixel')
+    service.apply('pixel')
     service.restore()
     service.restore()
     service.apply('pixel')
     service.apply('system')
 
-    expect(replace.mock.calls.map(([file]) => basename(file))).toEqual([
-      'dot.cur',
-      'neon.cur',
-      'pixel.cur'
-    ])
+    expect(replace.mock.calls.map(([file]) => basename(file))).toEqual(['pixel.cur', 'pixel.cur'])
     expect(restore).toHaveBeenCalledTimes(2)
   })
 
@@ -102,13 +93,13 @@ describe('SystemCursorService', () => {
     const backend: SystemCursorBackend = { replace: vi.fn(), restore: vi.fn() }
     const service = new SystemCursorService({ cursorDir, backend })
 
-    service.sync('dot', false)
+    service.sync('pixel', false)
     expect(backend.replace).not.toHaveBeenCalled()
 
-    service.sync('dot', true)
+    service.sync('pixel', true)
     expect(backend.replace).toHaveBeenCalledTimes(1)
 
-    service.sync('neon', false)
+    service.sync('pixel', false)
     expect(backend.restore).toHaveBeenCalledTimes(1)
   })
 
@@ -119,12 +110,11 @@ describe('SystemCursorService', () => {
       backend: { replace: vi.fn(), restore: vi.fn() }
     })
 
-    expect(() => service.apply('dot')).not.toThrow()
-    await rm(join(cursorDir, 'neon.cur'))
+    await rm(join(cursorDir, 'pixel.cur'))
 
-    expect(() => service.apply('neon')).toThrow('neon cursor file is missing')
+    expect(() => service.apply('pixel')).toThrow('pixel cursor file is missing')
 
     const unavailable = new SystemCursorService({ cursorDir, backend: null })
-    expect(() => unavailable.apply('dot')).toThrow('unavailable')
+    expect(() => unavailable.apply('pixel')).toThrow('unavailable')
   })
 })

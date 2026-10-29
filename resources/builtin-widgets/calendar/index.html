@@ -1,404 +1,232 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Calendar</title>
-    <script>
-      document.documentElement.dataset.variant =
-        new URLSearchParams(location.search).get('variant') || 'grid'
-    </script>
-    <style>
-      :root {
-        --ink: #f4f1ea;
-        --muted: #9399a4;
-        --faint: #616773;
-        --surface: rgba(17, 19, 24, 0.95);
-        --surface-2: rgba(25, 28, 35, 0.96);
-        --line: rgba(255, 255, 255, 0.075);
-        --accent: #ff7a45;
-        --accent-soft: rgba(255, 122, 69, 0.16);
-        --accent-ink: #1e0d06;
-        --radius: 18px;
-        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
-      }
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <style>
+    :root {
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --font-hand: "Caveat", "Segoe Print", cursive;
+      --radius: 24px;
+      --radius-sm: 14px;
+      --pill: 999px;
+    }
 
-      html[data-theme='light'] {
-        --ink: #1e1c18;
-        --muted: #66625a;
-        --faint: #948e84;
-        --surface: rgba(251, 250, 246, 0.97);
-        --surface-2: #ffffff;
-        --line: rgba(25, 22, 18, 0.09);
-        --accent: #c2410c;
-        --accent-soft: rgba(194, 65, 12, 0.1);
-        --accent-ink: #ffffff;
-      }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+    }
 
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: transparent;
-      }
+    /* Variant visibility */
+    html[data-variant='grid'] .cal--grid,
+    html:not([data-variant]) .cal--grid { display: flex; flex-direction: column; }
+    html[data-variant='compact'] .cal--compact { display: flex; flex-direction: column; }
+    html[data-variant='paper'] .cal--paper { display: flex; flex-direction: column; }
 
-      body {
-        font-family: var(--font-ui);
-        -webkit-font-smoothing: antialiased;
-      }
+    .cal__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .cal__title b { font: 700 22px/1 var(--font-sans); letter-spacing: -.02em; }
+    .cal__title span { margin-left: 7px; font: 500 14px/1 var(--font-sans); color: var(--muted); }
+    .cal__nav { display: flex; gap: 6px; }
+    .cal__nav button {
+      appearance: none; width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+      font: 600 15px/1 var(--font-sans); transition: background .2s, color .2s;
+    }
+    .cal__nav button:hover { background: var(--accent); color: var(--accent-ink); }
+    .cal__dow, .cal__days { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .cal__dow span {
+      padding: 4px 0 8px; text-align: center;
+      font: 600 10px/1 var(--font-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    }
+    .cal__days { flex: 1; align-content: start; }
+    .cal__d {
+      position: relative; display: grid; place-items: center; justify-self: center;
+      width: 32px; height: 32px; border-radius: 10px; font: 500 13px/1 var(--font-sans);
+      font-variant-numeric: tabular-nums;
+    }
+    .cal__d.is-out { color: var(--muted); opacity: .35; }
+    .cal__d.is-weekend { color: var(--accent-2); }
+    .cal__d.is-today { background: var(--grad); color: var(--on-grad); font-weight: 700; box-shadow: 0 6px 16px -4px var(--glow); }
+    .cal__d.has-event::after {
+      content: ""; position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+    }
+    .cal__d.is-today.has-event::after { background: var(--on-grad); }
 
-      .card {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        padding: 13px 13px 11px;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--radius);
-        background:
-          radial-gradient(15rem 10rem at 88% -8%, var(--accent-soft), transparent 62%),
-          linear-gradient(150deg, var(--surface-2), var(--surface));
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-        background-clip: padding-box;
-      }
+    /* Compact */
+    .cal--compact { padding: 14px 14px 12px; }
+    .cal--compact .cal__head { margin-bottom: 8px; }
+    .cal--compact .cal__title b { font-size: 15px; }
+    .cal--compact .cal__title span { font-size: 12px; }
+    .cal--compact .cal__nav button { width: 22px; height: 22px; font-size: 12px; border-radius: 7px; }
+    .cal--compact .cal__dow { display: none; }
+    .cal--compact .cal__d { width: 26px; height: 26px; font-size: 12px; border-radius: 8px; }
+    .cal--compact .cal__d.has-event::after { bottom: 3px; width: 3px; height: 3px; }
 
-      .header {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 8px;
-        padding-bottom: 1px;
-      }
+    /* Paper */
+    .cal--paper {
+      --sheet: #f9f4e4; --ink: #243a8c; --rule: rgba(70,110,190,.30);
+      background:
+        radial-gradient(circle at 17px 34px, var(--page) 6px, rgba(0,0,0,.2) 6.6px, transparent 8.5px) 0 0 / 100% 68px repeat-y,
+        var(--sheet);
+      border-color: rgba(0,0,0,.08); color: #2a2a35;
+      padding: 18px 18px 12px 50px; font-family: var(--font-hand);
+    }
+    .cal--paper::before {
+      content: ""; position: absolute; inset: 0 auto 0 38px; width: 2px; background: rgba(214,64,64,.5);
+    }
+    .cal--paper .cal__head { margin-bottom: 6px; }
+    .cal--paper .cal__title b { font: 700 32px/1 var(--font-hand); color: var(--ink); letter-spacing: 0; }
+    .cal--paper .cal__title span { font: 600 18px/1 var(--font-hand); color: rgba(36,58,140,.6); }
+    .cal--paper .cal__nav button { background: transparent; border-color: var(--rule); color: var(--ink); }
+    .cal--paper .cal__dow span { padding: 2px 0 4px; font: 700 15px/1 var(--font-hand); letter-spacing: .02em; text-transform: none; color: var(--ink); }
+    .cal--paper .cal__days {
+      grid-auto-rows: 25px;
+      background: repeating-linear-gradient(to bottom, transparent 0 24px, var(--rule) 24px 25px);
+    }
+    .cal--paper .cal__d {
+      width: auto; height: 25px; justify-self: stretch; border-radius: 0;
+      font: 600 18px/1 var(--font-hand); color: #2a2a35;
+    }
+    .cal--paper .cal__d.is-weekend { color: #a33; }
+    .cal--paper .cal__d.is-out { opacity: .28; }
+    .cal--paper .cal__d.is-today { background: none; box-shadow: none; color: #c22; }
+    .cal--paper .cal__d.is-today::before {
+      content: ""; position: absolute; inset: 0 6px; border: 2px solid #d33;
+      border-radius: 52% 46% 54% 48% / 56% 50% 50% 44%; transform: rotate(-5deg);
+    }
+    .cal--paper .cal__d.has-event::after { background: var(--ink); bottom: 2px; }
+    .cal__planner { margin-top: 6px; }
+    .cal__planner p {
+      height: 25px; line-height: 24px; border-bottom: 1px solid var(--rule); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; font: 500 18px/24px var(--font-hand); color: var(--ink);
+    }
+  </style>
+</head>
+<body>
 
-      .month {
-        margin: 0;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 16px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        line-height: 1;
-      }
+  <!-- Variant: Grid -->
+  <main class="card w cal cal--grid" data-variant-view="grid">
+    <div data-calendar="grid" data-events="3,9,14,22,29"></div>
+  </main>
 
-      .year {
-        display: block;
-        margin-top: 2px;
-        color: var(--faint);
-        font-size: 8px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-      }
+  <!-- Variant: Compact -->
+  <main class="card w cal cal--compact" data-variant-view="compact">
+    <div data-calendar="compact" data-events="3,9,14,22,29"></div>
+  </main>
 
-      .badge {
-        padding: 3px 6px;
-        border: 1px solid var(--line);
-        border-radius: 99px;
-        color: var(--faint);
-        font-size: 7.5px;
-        font-weight: 650;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
+  <!-- Variant: Paper -->
+  <main class="card w cal cal--paper" data-variant-view="paper">
+    <div data-calendar="paper" data-events="3,9,14,22,29"></div>
+    <div class="cal__planner"><p>Thu — ship the widget pack</p><p>Sat — long walk, no phone</p></div>
+  </main>
 
-      .weekdays,
-      .days {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 2px;
-      }
+  <script>
+    (() => {
+      'use strict';
 
-      .weekday {
-        color: var(--faint);
-        font-size: 7.5px;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-align: center;
-        text-transform: uppercase;
-      }
+      const params = new URLSearchParams(location.search);
+      const variant = params.get('variant') || 'grid';
+      document.documentElement.dataset.variant = variant;
+      const env = params.get('env');
+      if (env) document.documentElement.dataset.env = env;
+      const theme = params.get('theme') || 'dark';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = theme;
 
-      .days {
-        flex: 1;
-        align-content: start;
-      }
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-      .day {
-        display: grid;
-        height: 27px;
-        place-items: center;
-        border-radius: 7px;
-        color: var(--muted);
-        font-size: 10.5px;
-        font-variant-numeric: tabular-nums;
-        font-weight: 550;
-      }
+      const calState = new WeakMap();
 
-      .day.other {
-        color: var(--faint);
-        opacity: 0.38;
-      }
+      function renderCalendar(root) {
+        const variant = root.dataset.calendar || 'grid';
+        const weekStart = +(root.dataset.weekStart || 0);
+        const events = (root.dataset.events || '').split(',').map(Number).filter(Boolean);
+        const today = new Date();
+        const st = calState.get(root) || { y: today.getFullYear(), m: today.getMonth() };
+        calState.set(root, st);
 
-      .day.today {
-        background: var(--accent);
-        color: var(--accent-ink);
-        font-weight: 750;
-        box-shadow: 0 4px 14px var(--accent-soft);
-      }
+        const first = new Date(st.y, st.m, 1);
+        const lead = (first.getDay() - weekStart + 7) % 7;
+        const dim = new Date(st.y, st.m + 1, 0).getDate();
+        const prevDim = new Date(st.y, st.m, 0).getDate();
+        const total = variant === 'compact' ? Math.ceil((lead + dim) / 7) * 7 : 42;
+        const isThisMonth = st.y === today.getFullYear() && st.m === today.getMonth();
 
-      .footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding-top: 5px;
-        border-top: 1px solid var(--line);
-        color: var(--faint);
-        font-size: 7.5px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .footer-dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: var(--accent);
-      }
-
-      html[data-variant='compact'] .card {
-        gap: 4px;
-        padding: 9px 11px 8px;
-      }
-
-      html[data-variant='compact'] .header {
-        align-items: center;
-      }
-
-      html[data-variant='compact'] .month {
-        font-size: 13px;
-      }
-
-      html[data-variant='compact'] .year {
-        display: inline;
-        margin-left: 5px;
-      }
-
-      html[data-variant='compact'] .badge,
-      html[data-variant='compact'] .footer {
-        display: none;
-      }
-
-      html[data-variant='compact'] .weekdays {
-        display: none;
-      }
-
-      html[data-variant='compact'] .day {
-        height: 20px;
-        border-radius: 5px;
-        font-size: 9px;
-      }
-
-      html[data-variant='compact'] .day.today {
-        box-shadow: none;
-      }
-
-      html[data-variant='paper'] .card {
-        --ink: #2f281d;
-        --muted: #776d5a;
-        --faint: #a1957e;
-        --line: rgba(59, 48, 30, 0.14);
-        --accent: #a33f1a;
-        --accent-soft: rgba(163, 63, 26, 0.12);
-        --accent-ink: #fff9ee;
-        padding: 18px 16px 13px;
-        background:
-          linear-gradient(
-            90deg,
-            transparent 0 7px,
-            rgba(163, 63, 26, 0.16) 7px 8px,
-            transparent 8px
-          ),
-          repeating-linear-gradient(0deg, transparent 0 23px, rgba(59, 48, 30, 0.055) 23px 24px),
-          #f3ecdd;
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-      }
-
-      html[data-variant='paper'] .header {
-        padding-bottom: 7px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      html[data-variant='paper'] .month {
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 19px;
-        font-weight: 400;
-        font-style: italic;
-      }
-
-      html[data-variant='paper'] .year {
-        color: var(--faint);
-      }
-
-      html[data-variant='paper'] .badge {
-        color: var(--faint);
-      }
-
-      html[data-variant='paper'] .weekday {
-        color: #a1957e;
-      }
-
-      html[data-variant='paper'] .day {
-        height: 26px;
-        border-radius: 3px;
-        color: var(--muted);
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 11px;
-      }
-
-      html[data-variant='paper'] .day.today {
-        border: 1px solid rgba(163, 63, 26, 0.35);
-        background: transparent;
-        color: #a33f1a;
-        box-shadow: none;
-        font-weight: 700;
-      }
-
-      html[data-variant='paper'] .footer {
-        border-top-color: var(--line);
-      }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <div class="header">
-        <div>
-          <p class="month" id="month"></p>
-          <span class="year" id="year"></span>
-        </div>
-        <span class="badge" id="badge">This month</span>
-      </div>
-      <div class="weekdays" id="weekdays" aria-hidden="true"></div>
-      <div class="days" id="days" role="grid" aria-label="Month calendar"></div>
-      <div class="footer">
-        <span id="today"></span>
-        <span class="footer-dot"></span>
-      </div>
-    </main>
-    <script>
-      ;(function () {
-        'use strict'
-
-        var monthNode = document.getElementById('month')
-        var yearNode = document.getElementById('year')
-        var weekdayNode = document.getElementById('weekdays')
-        var daysNode = document.getElementById('days')
-        var todayNode = document.getElementById('today')
-
-        function buildWeekdays() {
-          if (!weekdayNode) {
-            return
-          }
-          var reference = new Date(2024, 0, 7)
-          var nodes = []
-          for (var index = 0; index < 7; index += 1) {
-            var node = document.createElement('span')
-            node.className = 'weekday'
-            node.textContent = new Date(
-              reference.getFullYear(),
-              reference.getMonth(),
-              reference.getDate() + index
-            ).toLocaleDateString([], { weekday: 'narrow' })
-            nodes.push(node)
-          }
-          weekdayNode.replaceChildren.apply(weekdayNode, nodes)
+        let cells = '';
+        for (let i = 0; i < total; i++) {
+          const n = i - lead + 1, inMonth = n >= 1 && n <= dim;
+          const label = n < 1 ? prevDim + n : n > dim ? n - dim : n;
+          const dow = (i + weekStart) % 7;
+          const cls = [
+            'cal__d',
+            !inMonth && 'is-out',
+            inMonth && (dow === 0 || dow === 6) && 'is-weekend',
+            inMonth && isThisMonth && n === today.getDate() && 'is-today',
+            inMonth && isThisMonth && events.includes(n) && 'has-event'
+          ].filter(Boolean).join(' ');
+          cells += `<span class="${cls}">${label}</span>`;
         }
+        const dowNames = Array.from({ length: 7 }, (_, i) => DAYS[(i + weekStart) % 7]);
+        const dow = dowNames.map(n => `<span>${variant === 'paper' ? n.slice(0, 3) : n[0]}</span>`).join('');
 
-        function render() {
-          var now = new Date()
-          var year = now.getFullYear()
-          var month = now.getMonth()
-          var first = new Date(year, month, 1)
-          var start = new Date(year, month, 1 - first.getDay())
+        root.innerHTML =
+          `<div class="cal__head"><div class="cal__title"><b>${MONTHS[st.m]}</b><span>${st.y}</span></div>` +
+          `<div class="cal__nav"><button type="button" data-nav="-1" aria-label="Previous month">‹</button>` +
+          `<button type="button" data-nav="1" aria-label="Next month">›</button></div></div>` +
+          `<div class="cal__dow">${dow}</div><div class="cal__days">${cells}</div>`;
+      }
 
-          if (monthNode) {
-            monthNode.textContent = first.toLocaleDateString([], { month: 'long' })
-          }
-          if (yearNode) {
-            yearNode.textContent = String(year)
-          }
-          if (todayNode) {
-            todayNode.textContent = now.toLocaleDateString([], {
-              weekday: 'long',
-              month: 'short',
-              day: 'numeric'
-            })
-          }
-          if (!daysNode) {
-            return
-          }
+      function renderCalendars() {
+        $$('[data-calendar]').forEach(renderCalendar);
+      }
 
-          var nodes = []
-          for (var index = 0; index < 42; index += 1) {
-            var date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index)
-            var node = document.createElement('div')
-            var sameMonth = date.getMonth() === month
-            var sameDay =
-              date.getFullYear() === now.getFullYear() &&
-              date.getMonth() === now.getMonth() &&
-              date.getDate() === now.getDate()
+      document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-calendar] [data-nav]');
+        if (!btn) return;
+        const root = btn.closest('[data-calendar]'), st = calState.get(root);
+        const d = new Date(st.y, st.m + (+btn.dataset.nav), 1);
+        st.y = d.getFullYear();
+        st.m = d.getMonth();
+        renderCalendar(root);
+      });
 
-            node.className = 'day' + (sameMonth ? '' : ' other') + (sameDay ? ' today' : '')
-            node.textContent = String(date.getDate())
-            node.title = date.toLocaleDateString([], {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric'
-            })
-            nodes.push(node)
-          }
+      renderCalendars();
 
-          daysNode.replaceChildren.apply(daysNode, nodes)
-        }
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+      }
 
-        buildWeekdays()
-        render()
-        setInterval(render, 60000)
-
-        function applyTheme(dark) {
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-        }
-
-        if (window.hl) {
-          window.hl
-            .ready()
-            .then(function () {
-              return window.hl.getContext()
-            })
-            .then(function (context) {
-              applyTheme(context.dark)
-            })
-            .catch(function () {})
-          window.hl.onTheme(function (state) {
-            applyTheme(state.dark)
-          })
-        }
-      })()
-    </script>
-  </body>
+      if (window.hl) {
+        window.hl.ready()
+          .then(() => window.hl.getContext())
+          .then(ctx => { if (ctx && typeof ctx.dark === 'boolean') applyTheme(ctx.dark); })
+          .catch(() => {});
+        window.hl.onTheme(state => {
+          if (state && typeof state.dark === 'boolean') applyTheme(state.dark);
+        });
+      }
+    })();
+  </script>
+</body>
 </html>

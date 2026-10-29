@@ -1,514 +1,319 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Clock</title>
-    <script>
-      document.documentElement.dataset.variant =
-        new URLSearchParams(location.search).get('variant') || 'classic'
-    </script>
-    <style>
-      @font-face {
-        font-family: 'DotGothic16';
-        src: url('widget://_fonts/DotGothic16-Regular.woff2') format('woff2');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <style>
+    /* In case theme.css is loaded locally or via widget protocol */
+    :root {
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --font-display: "Orbitron", "Segoe UI Variable Display", sans-serif;
+      --font-pixel: "VT323", monospace;
+      --radius: 24px;
+      --radius-sm: 14px;
+      --pill: 999px;
+      --term: #4dff88;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 22px;
+    }
+
+    /* Variant visibility */
+    html[data-variant='classic'] .clock--classic,
+    html:not([data-variant]) .clock--classic { display: grid; }
+    html[data-variant='minimal'] .clock--minimal { display: flex; }
+    html[data-variant='neon'] .clock--neon { display: grid; }
+    html[data-variant='analog'] .clock--analog { display: grid; }
+    html[data-variant='terminal'] .clock--terminal { display: block; }
+
+    .clock__time { font-variant-numeric: tabular-nums; }
+    .clock__colon { color: var(--accent); animation: blink 1s steps(1, end) infinite; }
+    .clock__ampm {
+      font: 700 11px/1 var(--font-sans); letter-spacing: .12em;
+      padding: 6px 10px; border-radius: var(--pill);
+      background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+    }
+
+    /* Classic — digital card */
+    .clock--classic { padding: 14px 18px; gap: 10px; align-content: space-between; }
+    .clock--classic .clock__head { display: flex; justify-content: space-between; align-items: center; }
+    .clock--classic .clock__time {
+      display: flex; align-items: baseline;
+      font: 700 56px/1 var(--font-sans); letter-spacing: -.05em;
+    }
+    .clock--classic .clock__sec {
+      margin-left: 12px; font: 600 22px/1 var(--font-mono); letter-spacing: 0; color: var(--muted);
+    }
+    .clock__bar { height: 4px; border-radius: 9px; background: var(--track); overflow: hidden; }
+    .clock__bar i {
+      display: block; height: 100%; transform-origin: left; background: var(--grad);
+      animation: sweep 60s linear infinite;
+    }
+
+    /* Minimal — single line */
+    .clock--minimal {
+      align-items: center; justify-content: center; gap: 12px;
+      padding: 13px 22px 13px 18px; border-radius: var(--pill);
+    }
+    .clock--minimal .clock__dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 12px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .clock--minimal .clock__time { font: 300 32px/1 var(--font-sans); letter-spacing: -.02em; }
+    .clock--minimal .clock__ampm { background: none; padding: 0; color: var(--muted); }
+
+    /* Neon — cyberpunk glow */
+    .clock--neon {
+      gap: 14px; text-align: center; justify-content: center; align-content: center; padding: 26px 22px 20px;
+      background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 65%, #000));
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent) inset,
+                  0 0 34px -6px var(--glow), var(--shadow);
+    }
+    .clock--neon::after {
+      z-index: 1; background: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+    }
+    .clock--neon .clock__time {
+      position: relative; font: 700 58px/1 var(--font-display); letter-spacing: .02em; color: var(--accent);
+      text-shadow: 0 0 5px var(--accent), 0 0 18px var(--accent), 0 0 44px var(--glow);
+    }
+    .clock--neon .clock__colon { color: inherit; }
+    .clock--neon .clock__ghost {
+      position: absolute; inset: 0; opacity: .07; text-shadow: none; pointer-events: none;
+    }
+    .clock--neon .clock__meta {
+      font: 500 11px/1 var(--font-mono); letter-spacing: .3em; text-transform: uppercase; color: var(--muted);
+    }
+
+    /* Analog — ticking SVG dial */
+    .clock--analog { padding: 16px; place-items: center; }
+    .dial { width: 100%; max-width: 200px; height: auto; aspect-ratio: 1; overflow: visible; }
+    .dial__face   { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+    .dial__ring   { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .5; }
+    .dial__ticks  { fill: none; stroke: var(--muted); stroke-width: 5; stroke-dasharray: 1.5 7.715;
+                    transform: rotate(-90deg); transform-origin: 100px 100px; opacity: .65; }
+    .dial__hours  { fill: none; stroke: var(--text); stroke-width: 10; stroke-dasharray: 3 43.077;
+                    transform: rotate(-90deg); transform-origin: 100px 100px; }
+    .dial__num    { fill: var(--text); font: 600 15px var(--font-sans); text-anchor: middle; dominant-baseline: central; }
+    .dial__brand  { fill: var(--muted); font: 600 7px var(--font-sans); letter-spacing: .3em; text-anchor: middle; }
+    .dial .hand   { transform-origin: 100px 100px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+    .dial .hand line { stroke-linecap: round; }
+    .dial .hand--h line { stroke: var(--text); stroke-width: 5; }
+    .dial .hand--m line { stroke: var(--text); stroke-width: 3.5; }
+    .dial .hand--s line { stroke: var(--accent); stroke-width: 1.6; }
+    .dial .pin    { fill: var(--accent); }
+    .dial .pin-in { fill: var(--surface-2); }
+    .dial.is-ready .hand--h, .dial.is-ready .hand--m { transition: transform 1s linear; }
+    .dial.is-ready .hand--s { transition: transform .35s cubic-bezier(.3,1.9,.5,1); }
+
+    /* Terminal — green phosphor */
+    .clock--terminal {
+      background: #040704; padding: 18px 16px; color: var(--term);
+      border-color: color-mix(in srgb, var(--term) 28%, transparent);
+      box-shadow: 0 0 0 1px #000 inset, 0 0 30px -10px color-mix(in srgb, var(--term) 60%, transparent), var(--shadow);
+    }
+    .clock--terminal pre {
+      margin: 0; font: 500 13px/1.45 var(--font-mono); white-space: pre;
+      text-shadow: 0 0 6px color-mix(in srgb, var(--term) 55%, transparent);
+    }
+    .clock--terminal pre::after { content: "█"; animation: blink 1s steps(1,end) infinite; }
+    .clock--terminal::after {
+      z-index: 1;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,.30) 0 1px, transparent 1px 3px),
+        radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.6));
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Variant: Classic -->
+  <main class="card w clock clock--classic" data-variant-view="classic">
+    <div class="clock__head">
+      <span class="w__label">Local time</span>
+      <span class="clock__ampm" data-bind="ampm">AM</span>
+    </div>
+    <div class="clock__time">
+      <span data-bind="hh">10</span><span class="clock__colon">:</span><span data-bind="mm">07</span>
+      <span class="clock__sec" data-bind="ss">00</span>
+    </div>
+    <div class="clock__bar"><i></i></div>
+  </main>
+
+  <!-- Variant: Minimal -->
+  <main class="card w clock clock--minimal" data-variant-view="minimal">
+    <span class="clock__dot"></span>
+    <span class="clock__time"><span data-bind="hh">10</span><span class="clock__colon">:</span><span data-bind="mm">07</span></span>
+    <span class="clock__ampm" data-bind="ampm">AM</span>
+  </main>
+
+  <!-- Variant: Neon -->
+  <main class="card w clock clock--neon" data-variant-view="neon">
+    <div class="clock__time">
+      <span class="clock__ghost" aria-hidden="true">88:88</span>
+      <span data-bind="hh24">10</span><span class="clock__colon">:</span><span data-bind="mm">07</span>
+    </div>
+    <div class="clock__meta"><span data-bind="ss">00</span> sec · <span data-bind="tz">LOCAL</span></div>
+  </main>
+
+  <!-- Variant: Analog -->
+  <main class="card w clock clock--analog" data-variant-view="analog">
+    <svg class="dial" data-analog viewBox="0 0 200 200" role="img" aria-label="Analog clock">
+      <circle class="dial__face" cx="100" cy="100" r="98"/>
+      <circle class="dial__ring" cx="100" cy="100" r="92"/>
+      <circle class="dial__ticks" cx="100" cy="100" r="88"/>
+      <circle class="dial__hours" cx="100" cy="100" r="88"/>
+      <text class="dial__num" x="100" y="40">12</text><text class="dial__num" x="160" y="100">3</text>
+      <text class="dial__num" x="100" y="160">6</text><text class="dial__num" x="40" y="100">9</text>
+      <text class="dial__brand" x="100" y="76">HOMELAYER</text>
+      <g class="hand hand--h"><line x1="100" y1="100" x2="100" y2="58"/></g>
+      <g class="hand hand--m"><line x1="100" y1="100" x2="100" y2="34"/></g>
+      <g class="hand hand--s"><line x1="100" y1="116" x2="100" y2="24"/></g>
+      <circle class="pin" cx="100" cy="100" r="5.5"/><circle class="pin-in" cx="100" cy="100" r="2"/>
+    </svg>
+  </main>
+
+  <!-- Variant: Terminal -->
+  <main class="card w clock clock--terminal" data-variant-view="terminal">
+    <pre data-term-clock></pre>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const params = new URLSearchParams(location.search);
+      const variant = params.get('variant') || 'classic';
+      document.documentElement.dataset.variant = variant;
+      const env = params.get('env');
+      if (env) document.documentElement.dataset.env = env;
+      const theme = params.get('theme') || 'dark';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = theme;
+
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const pad = n => String(n).padStart(2, '0');
+      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+      function asciiBox(title, lines, inner = 28) {
+        const top = '╭─[ ' + title + ' ]' + '─'.repeat(Math.max(0, inner - title.length - 5)) + '╮';
+        const body = lines.map(l => '│ ' + String(l).padEnd(inner - 1).slice(0, inner - 1) + '│');
+        return [top, ...body, '╰' + '─'.repeat(inner) + '╯'].join('\n');
       }
 
-      :root {
-        --ink: #f4f1ea;
-        --muted: #9aa0ab;
-        --faint: #646b77;
-        --surface: rgba(16, 18, 23, 0.94);
-        --surface-2: rgba(24, 27, 34, 0.96);
-        --line: rgba(255, 255, 255, 0.08);
-        --line-strong: rgba(255, 255, 255, 0.14);
-        --accent: #ff7a45;
-        --accent-2: #a78bfa;
-        --accent-soft: rgba(255, 122, 69, 0.15);
-        --glow: rgba(255, 122, 69, 0.24);
-        --radius: 18px;
-        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+      function dateInfo(d) {
+        const y = d.getFullYear(), h = d.getHours();
+        const doy = Math.round((Date.UTC(y, d.getMonth(), d.getDate()) - Date.UTC(y, 0, 0)) / 864e5);
+        let tz = '';
+        try {
+          const parts = new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(d);
+          const found = parts.find(p => p.type === 'timeZoneName');
+          if (found) tz = found.value;
+        } catch (_) {}
+        return {
+          hh: String(h % 12 || 12),
+          hh24: pad(h),
+          mm: pad(d.getMinutes()),
+          ss: pad(d.getSeconds()),
+          ampm: h < 12 ? 'AM' : 'PM',
+          time24: `${pad(h)}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
+          wd3: DAYS[d.getDay()].slice(0, 3),
+          day: String(d.getDate()),
+          mon3: MONTHS[d.getMonth()].slice(0, 3),
+          year: String(y),
+          tz: tz || 'LOCAL'
+        };
       }
 
-      html[data-theme='light'] {
-        --ink: #1e1c18;
-        --muted: #656159;
-        --faint: #918b81;
-        --surface: rgba(251, 250, 246, 0.96);
-        --surface-2: #ffffff;
-        --line: rgba(20, 18, 14, 0.09);
-        --line-strong: rgba(20, 18, 14, 0.16);
-        --accent: #c2410c;
-        --accent-2: #6d28d9;
-        --accent-soft: rgba(194, 65, 12, 0.09);
-        --glow: rgba(194, 65, 12, 0.18);
+      const dialState = new WeakMap();
+      function advance(state, key, raw) {
+        if (state[key] === undefined) return (state[key] = raw);
+        const delta = (((raw - state[key]) % 360) + 360) % 360;
+        return (state[key] += delta);
       }
 
-      html[data-variant='neon'] {
-        --accent: #5fffd0;
-        --accent-2: #a78bfa;
-        --accent-soft: rgba(95, 255, 208, 0.12);
-        --glow: rgba(95, 255, 208, 0.32);
-      }
-
-      html[data-variant='terminal'] {
-        --accent: #64ff9e;
-        --accent-soft: rgba(100, 255, 158, 0.1);
-        --glow: rgba(100, 255, 158, 0.2);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: transparent;
-      }
-
-      body {
-        font-family: var(--font-ui);
-        -webkit-font-smoothing: antialiased;
-      }
-
-      .card {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        padding: 15px 17px 13px;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--radius);
-        background:
-          radial-gradient(15rem 9rem at 86% 4%, var(--accent-soft), transparent 64%),
-          linear-gradient(150deg, var(--surface-2), var(--surface));
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          inset 0 1px 0 rgba(255, 255, 255, 0.04),
-          0 12px 34px rgba(0, 0, 0, 0.22);
-        background-clip: padding-box;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        color: var(--faint);
-        font-family: var(--font-ui);
-        font-size: 8px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .brand::before {
-        content: '';
-        width: 5px;
-        height: 5px;
-        margin-right: 1px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 8px var(--glow);
-      }
-
-      .brand span:first-child {
-        margin-right: auto;
-      }
-
-      .face {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-      }
-
-      .time {
-        margin: 0;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 48px;
-        font-weight: 300;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.035em;
-        line-height: 0.94;
-      }
-
-      .seconds {
-        margin-left: 3px;
-        color: var(--accent);
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0;
-      }
-
-      .date {
-        margin: 0;
-        color: var(--muted);
-        font-family: var(--font-ui);
-        font-size: 9.5px;
-        font-weight: 650;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .footer {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding-top: 7px;
-        border-top: 1px solid var(--line);
-        color: var(--faint);
-        font-size: 8.5px;
-        font-weight: 600;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-      }
-
-      .pulse {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 8px var(--glow);
-      }
-
-      .dial {
-        display: none;
-        flex: 1;
-        align-items: center;
-        justify-content: center;
-        min-height: 0;
-        padding: 4px 0;
-      }
-
-      .dial svg {
-        display: block;
-        width: min(100%, 190px);
-        height: min(100%, 190px);
-      }
-
-      .dial-ring {
-        fill: none;
-        stroke: var(--line-strong);
-        stroke-width: 0.8;
-      }
-
-      .dial-face {
-        fill: color-mix(in srgb, var(--surface-2) 55%, transparent);
-        stroke: var(--line);
-        stroke-width: 0.6;
-      }
-
-      .dial-tick {
-        stroke: var(--faint);
-        stroke-width: 1;
-        stroke-linecap: round;
-      }
-
-      .dial-tick.major {
-        stroke: var(--ink);
-        stroke-width: 1.6;
-      }
-
-      .hand {
-        stroke: var(--ink);
-        stroke-linecap: round;
-      }
-
-      .hand-second {
-        stroke: var(--accent);
-      }
-
-      .dial-center {
-        fill: var(--accent);
-      }
-
-      html[data-variant='minimal'] .card {
-        justify-content: center;
-        gap: 2px;
-        padding: 5px 10px;
-        border-radius: 0;
-        background: transparent;
-        box-shadow: none;
-      }
-
-      html[data-variant='minimal'] .brand,
-      html[data-variant='minimal'] .footer,
-      html[data-variant='minimal'] .seconds {
-        display: none;
-      }
-
-      html[data-variant='minimal'] .time {
-        font-size: 60px;
-        font-weight: 250;
-      }
-
-      html[data-variant='minimal'] .date {
-        color: var(--muted);
-        font-size: 10px;
-        letter-spacing: 0.14em;
-      }
-
-      html[data-variant='neon'] .card {
-        background:
-          radial-gradient(14rem 9rem at 90% 0%, var(--accent-soft), transparent 62%),
-          linear-gradient(150deg, #0c1218, #080b10);
-        box-shadow:
-          inset 0 0 0 1px rgba(95, 255, 208, 0.2),
-          0 0 24px rgba(95, 255, 208, 0.08);
-      }
-
-      html[data-variant='neon'] .time {
-        color: #eafff9;
-        text-shadow:
-          0 0 14px var(--glow),
-          0 0 40px var(--glow);
-      }
-
-      html[data-variant='neon'] .date {
-        color: rgba(223, 255, 247, 0.56);
-      }
-
-      html[data-variant='neon'] .footer {
-        border-top-color: rgba(95, 255, 208, 0.14);
-        color: rgba(223, 255, 247, 0.4);
-      }
-
-      html[data-variant='analog'] .card {
-        align-items: center;
-        gap: 3px;
-        padding: 9px 13px 11px;
-      }
-
-      html[data-variant='analog'] .brand,
-      html[data-variant='analog'] .footer {
-        display: none;
-      }
-
-      html[data-variant='analog'] .dial {
-        display: flex;
-        width: 100%;
-      }
-
-      html[data-variant='analog'] .face {
-        align-items: center;
-        gap: 0;
-      }
-
-      html[data-variant='analog'] .time {
-        display: none;
-      }
-
-      html[data-variant='analog'] .date {
-        font-size: 8.5px;
-      }
-
-      html[data-variant='terminal'] .card {
-        padding: 10px 12px 9px;
-        border-radius: 12px;
-        background:
-          radial-gradient(12rem 8rem at 94% 0%, rgba(100, 255, 158, 0.08), transparent 60%), #07100a;
-        box-shadow: inset 0 0 0 1px rgba(100, 255, 158, 0.18);
-        font-family: 'DotGothic16', monospace;
-      }
-
-      html[data-variant='terminal'] .brand {
-        color: rgba(191, 255, 211, 0.56);
-        font-family: 'DotGothic16', monospace;
-        font-size: 8px;
-        letter-spacing: 0.06em;
-      }
-
-      html[data-variant='terminal'] .time {
-        color: #c4ffd8;
-        font-family: 'DotGothic16', monospace;
-        font-size: 44px;
-        letter-spacing: 0;
-        text-shadow: 0 0 12px rgba(100, 255, 158, 0.24);
-      }
-
-      html[data-variant='terminal'] .time::before {
-        content: '> ';
-        color: var(--accent);
-      }
-
-      html[data-variant='terminal'] .date {
-        color: rgba(191, 255, 211, 0.48);
-        font-family: 'DotGothic16', monospace;
-        font-size: 9px;
-        letter-spacing: 0.02em;
-        text-transform: none;
-      }
-
-      html[data-variant='terminal'] .footer {
-        border-top-style: dashed;
-        border-top-color: rgba(100, 255, 158, 0.16);
-        color: rgba(191, 255, 211, 0.4);
-        font-family: 'DotGothic16', monospace;
-      }
-
-      html[data-variant='terminal'] .footer .pulse {
-        border-radius: 0;
-        box-shadow: none;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <div class="brand">
-        <span>Local</span>
-        <span id="zone"></span>
-      </div>
-      <div class="dial" aria-hidden="true">
-        <svg viewBox="0 0 100 100">
-          <circle class="dial-ring" cx="50" cy="50" r="47.5"></circle>
-          <circle class="dial-face" cx="50" cy="50" r="40"></circle>
-          <g id="ticks"></g>
-          <line
-            class="hand"
-            id="hour-hand"
-            x1="50"
-            y1="50"
-            x2="50"
-            y2="30"
-            stroke-width="2.6"
-          ></line>
-          <line
-            class="hand"
-            id="minute-hand"
-            x1="50"
-            y1="50"
-            x2="50"
-            y2="19"
-            stroke-width="1.6"
-          ></line>
-          <line
-            class="hand hand-second"
-            id="second-hand"
-            x1="50"
-            y1="55"
-            x2="50"
-            y2="16"
-            stroke-width="0.9"
-          ></line>
-          <circle class="dial-center" cx="50" cy="50" r="2.2"></circle>
-        </svg>
-      </div>
-      <div class="face">
-        <p class="time"><span id="time">--:--</span><span class="seconds" id="seconds"></span></p>
-        <p class="date" id="date"></p>
-      </div>
-      <div class="footer">
-        <span class="pulse"></span>
-        <span id="daypart">Today</span>
-      </div>
-    </main>
-    <script>
-      ;(function () {
-        'use strict'
-
-        var timeNode = document.getElementById('time')
-        var secondsNode = document.getElementById('seconds')
-        var dateNode = document.getElementById('date')
-        var zoneNode = document.getElementById('zone')
-        var daypartNode = document.getElementById('daypart')
-        var hourHand = document.getElementById('hour-hand')
-        var minuteHand = document.getElementById('minute-hand')
-        var secondHand = document.getElementById('second-hand')
-        var ticksNode = document.getElementById('ticks')
-
-        function buildTicks() {
-          if (!ticksNode) {
-            return
-          }
-          for (var index = 0; index < 12; index += 1) {
-            var angle = (index * 30 * Math.PI) / 180
-            var outer = 44
-            var inner = index % 3 === 0 ? 38.5 : 40.5
-            var tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-            tick.setAttribute('x1', String(50 + Math.sin(angle) * inner))
-            tick.setAttribute('y1', String(50 - Math.cos(angle) * inner))
-            tick.setAttribute('x2', String(50 + Math.sin(angle) * outer))
-            tick.setAttribute('y2', String(50 - Math.cos(angle) * outer))
-            tick.setAttribute('class', 'dial-tick' + (index % 3 === 0 ? ' major' : ''))
-            ticksNode.appendChild(tick)
-          }
+      function paintAnalog(svg, now) {
+        const st = dialState.get(svg) || {};
+        dialState.set(svg, st);
+        const t = Math.floor(now.getTime() / 1000) - now.getTimezoneOffset() * 60;
+        const a = {
+          s: advance(st, 's', (t % 60) * 6),
+          m: advance(st, 'm', ((t / 60) % 60) * 6),
+          h: advance(st, 'h', ((t / 3600) % 12) * 30)
+        };
+        for (const k of ['h', 'm', 's']) {
+          const hand = svg.querySelector('.hand--' + k);
+          if (hand) hand.style.transform = `rotate(${a[k]}deg)`;
         }
-
-        function rotate(node, degrees) {
-          if (node) {
-            node.setAttribute('transform', 'rotate(' + degrees + ' 50 50)')
-          }
+        if (!svg.classList.contains('is-ready')) {
+          requestAnimationFrame(() => svg.classList.add('is-ready'));
         }
+      }
 
-        function render() {
-          var now = new Date()
-          var hours = now.getHours()
-          var minutes = now.getMinutes()
-          var seconds = now.getSeconds()
+      function tick() {
+        const now = new Date();
+        const info = dateInfo(now);
 
-          if (timeNode) {
-            timeNode.textContent =
-              String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0')
+        $$('[data-bind]').forEach(el => {
+          const v = info[el.dataset.bind];
+          if (v !== undefined && el.textContent !== v) el.textContent = v;
+        });
+
+        $$('[data-analog]').forEach(svg => paintAnalog(svg, now));
+
+        $$('[data-term-clock]').forEach(pre => {
+          pre.textContent = asciiBox('clock', ['$ date +%T', info.time24, '', `${info.wd3} ${info.day} ${info.mon3} ${info.year}`], 26);
+        });
+
+        $$('.clock__bar i').forEach(i => {
+          if (!i.dataset.synced) {
+            i.style.animationDelay = -(now.getSeconds() + now.getMilliseconds() / 1000) + 's';
+            i.dataset.synced = '1';
           }
-          if (secondsNode) {
-            secondsNode.textContent = ':' + String(seconds).padStart(2, '0')
-          }
-          if (dateNode) {
-            dateNode.textContent = now.toLocaleDateString([], {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric'
-            })
-          }
-          if (zoneNode) {
-            zoneNode.textContent =
-              Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop() || 'local'
-          }
-          if (daypartNode) {
-            daypartNode.textContent = hours < 12 ? 'Morning' : hours < 18 ? 'Afternoon' : 'Evening'
-          }
+        });
 
-          rotate(hourHand, (hours % 12) * 30 + minutes * 0.5)
-          rotate(minuteHand, minutes * 6 + seconds * 0.1)
-          rotate(secondHand, seconds * 6)
-        }
+        setTimeout(tick, 1000 - now.getMilliseconds() + 5);
+      }
 
-        buildTicks()
-        render()
-        setInterval(render, 1000)
+      tick();
 
-        function applyTheme(dark) {
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-        }
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+      }
 
-        if (window.hl) {
-          window.hl
-            .ready()
-            .then(function () {
-              return window.hl.getContext()
-            })
-            .then(function (context) {
-              applyTheme(context.dark)
-            })
-            .catch(function () {})
-          window.hl.onTheme(function (state) {
-            applyTheme(state.dark)
-          })
-        }
-      })()
-    </script>
-  </body>
+      if (window.hl) {
+        window.hl.ready()
+          .then(() => window.hl.getContext())
+          .then(ctx => { if (ctx && typeof ctx.dark === 'boolean') applyTheme(ctx.dark); })
+          .catch(() => {});
+        window.hl.onTheme(state => {
+          if (state && typeof state.dark === 'boolean') applyTheme(state.dark);
+        });
+      }
+    })();
+  </script>
+</body>
 </html>

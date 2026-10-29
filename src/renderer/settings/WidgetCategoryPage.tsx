@@ -1,6 +1,7 @@
 import { useMemo, useState, type JSX } from 'react'
 import type { BuiltinWidget, GeneralState, WidgetCategory, WidgetSummary } from '../../shared/types'
 import { t } from '../i18n'
+import type { ThemeEnvId } from './themeEnvironments'
 import WidgetPreview from './WidgetPreview'
 
 function catalogName(type: string, fallback: string): string {
@@ -33,6 +34,8 @@ interface WidgetCategoryPageProps {
   builtins: BuiltinWidget[]
   widgets: WidgetSummary[]
   general: GeneralState
+  themeEnv: ThemeEnvId
+  themeMode?: 'dark' | 'light'
   pending: string | null
   onBack: () => void
   onAdd: (builtin: BuiltinWidget, variant: string) => void
@@ -45,6 +48,8 @@ export default function WidgetCategoryPage({
   builtins,
   widgets,
   general,
+  themeEnv,
+  themeMode,
   pending,
   onBack,
   onAdd,
@@ -171,7 +176,8 @@ export default function WidgetCategoryPage({
                   }}
                   width={entry.width}
                   height={entry.height}
-                  dark={general.resolvedWidgetTheme === 'dark'}
+                  dark={themeMode ? themeMode === 'dark' : themeEnv !== 'sky'}
+                  env={themeEnv}
                   cursorStyle={general.cursor.style}
                   title={`${variantName(entry.variantId)} ${catalogName(
                     entry.builtin.type,

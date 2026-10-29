@@ -1,421 +1,213 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Battery</title>
-    <script>
-      document.documentElement.dataset.variant =
-        new URLSearchParams(location.search).get('variant') || 'ring'
-    </script>
-    <style>
-      :root {
-        --ink: #f3f7f4;
-        --muted: #98a49c;
-        --faint: #667169;
-        --surface: rgba(16, 21, 18, 0.95);
-        --surface-2: rgba(24, 31, 27, 0.96);
-        --line: rgba(255, 255, 255, 0.075);
-        --track: rgba(255, 255, 255, 0.09);
-        --charge: #6ee7a8;
-        --charge-soft: rgba(110, 231, 168, 0.14);
-        --radius: 18px;
-        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
-      }
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Battery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <style>
+    :root {
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --radius: 24px;
+      --radius-sm: 14px;
+      --pill: 999px;
+    }
 
-      html[data-theme='light'] {
-        --ink: #1a211c;
-        --muted: #5e6a61;
-        --faint: #939d95;
-        --surface: rgba(251, 252, 250, 0.97);
-        --surface-2: #ffffff;
-        --line: rgba(20, 30, 22, 0.09);
-        --track: rgba(20, 30, 22, 0.08);
-        --charge: #157f4b;
-        --charge-soft: rgba(21, 127, 75, 0.1);
-      }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
 
-      html[data-level='mid'] {
-        --charge: #e3b341;
-        --charge-soft: rgba(227, 179, 65, 0.15);
-      }
+    @property --vn { syntax: "<number>"; inherits: true; initial-value: 0; }
+    [data-meter] { transition: --vn .9s cubic-bezier(.2,.8,.2,1); }
 
-      html[data-theme='light'][data-level='mid'] {
-        --charge: #926c00;
-        --charge-soft: rgba(146, 108, 0, 0.1);
-      }
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 20px;
+    }
 
-      html[data-level='low'] {
-        --charge: #ff8178;
-        --charge-soft: rgba(255, 129, 120, 0.15);
-      }
+    /* Variant visibility */
+    html[data-variant='ring'] .bat--ring,
+    html:not([data-variant]) .bat--ring { display: grid; }
+    html[data-variant='bar'] .bat--bar { display: grid; }
+    html[data-variant='minimal'] .bat--pill,
+    html[data-variant='pill'] .bat--pill { display: flex; }
 
-      html[data-theme='light'][data-level='low'] {
-        --charge: #b42318;
-        --charge-soft: rgba(180, 35, 24, 0.1);
-      }
+    .bolt { width: 1.1em; height: 1.1em; fill: currentColor; }
 
-      * {
-        box-sizing: border-box;
-      }
+    /* Ring — circular donut */
+    .bat--ring { justify-items: center; align-content: center; gap: 12px; }
+    .bat--ring .ring {
+      --s: 96px; --t: 10px;
+      position: relative; width: var(--s); aspect-ratio: 1; display: grid; place-items: center;
+      font: 700 14px/1 var(--font-sans); font-variant-numeric: tabular-nums;
+    }
+    .bat--ring .ring::before {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(var(--accent) calc(var(--vn) * 360deg), var(--track) 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+              mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+      filter: drop-shadow(0 0 6px var(--glow));
+    }
+    .bat--ring .ring__in { position: absolute; display: grid; justify-items: center; gap: 2px; }
+    .bat--ring .ring__in .bolt { font-size: 16px; color: var(--accent); filter: drop-shadow(0 0 8px var(--glow)); }
+    .bat--ring .ring__in b { font: 700 24px/1 var(--font-sans); letter-spacing: -.03em; }
+    .bat--ring .bat__meta { display: grid; gap: 3px; text-align: center; }
+    .bat--ring .bat__meta b { font: 600 13px/1 var(--font-sans); }
+    .bat--ring .bat__meta span { font: 500 11px/1 var(--font-mono); color: var(--muted); }
 
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: transparent;
-      }
+    /* Bar — battery cell */
+    .bat--bar { gap: 14px; align-content: center; }
+    .bat__head { display: flex; justify-content: space-between; align-items: baseline; }
+    .bat__head b { font: 700 32px/1 var(--font-sans); letter-spacing: -.04em; }
+    .bat__head span { display: inline-flex; gap: 6px; align-items: center; font: 600 12px/1 var(--font-mono); color: var(--accent); }
+    .batcell {
+      position: relative; display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
+      height: 52px; padding: 5px; border: 2px solid var(--muted); border-radius: 14px; margin-right: 9px;
+    }
+    .batcell::after {
+      content: ""; position: absolute; right: -9px; top: 50%; translate: 0 -50%;
+      width: 5px; height: 20px; border-radius: 0 5px 5px 0; background: var(--muted);
+    }
+    .batcell i {
+      border-radius: 6px; background: var(--accent);
+      opacity: calc(.1 + .9 * clamp(0, calc((var(--vn) * 10 - var(--i)) * 4), 1));
+      box-shadow: 0 0 12px -2px var(--glow);
+    }
 
-      body {
-        font-family: var(--font-ui);
-        -webkit-font-smoothing: antialiased;
-      }
+    /* Minimal — compact pill */
+    .bat--pill {
+      align-items: center; justify-content: center; gap: 10px;
+      padding: 10px 18px 10px 14px; border-radius: var(--pill);
+    }
+    .bat--pill .bolt { font-size: 14px; color: var(--accent); }
+    .pillbar { width: 64px; height: 8px; border-radius: 9px; background: var(--track); overflow: hidden; }
+    .pillbar i { display: block; height: 100%; width: calc(var(--vn) * 100%); border-radius: inherit; background: var(--accent); }
+    .bat--pill b { font: 700 14px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
 
-      .card {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        padding: 14px 17px;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--radius);
-        background:
-          radial-gradient(13rem 9rem at 86% 10%, var(--charge-soft), transparent 62%),
-          linear-gradient(150deg, var(--surface-2), var(--surface));
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-        background-clip: padding-box;
-      }
+  <!-- SVG Sprite -->
+  <svg width="0" height="0" style="position:absolute;display:none" aria-hidden="true">
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+  </svg>
 
-      .indicator {
-        display: flex;
-        flex: none;
-        align-items: center;
-        justify-content: center;
-      }
+  <!-- Variant: Ring -->
+  <main class="card w bat bat--ring" data-variant-view="ring">
+    <div class="ring" data-meter="bat">
+      <div class="ring__in"><svg class="bolt"><use href="#i-bolt"/></svg><b data-meter-text="bat">82%</b></div>
+    </div>
+    <div class="bat__meta"><b id="bat-state-ring">On battery</b><span id="bat-detail-ring">Updates regularly</span></div>
+  </main>
 
-      .ring {
-        display: grid;
-        width: 74px;
-        height: 74px;
-        place-items: center;
-        border-radius: 50%;
-        background: conic-gradient(var(--charge) 0%, var(--track) 0);
-      }
+  <!-- Variant: Bar -->
+  <main class="card w bat bat--bar" data-variant-view="bar">
+    <div class="bat__head">
+      <b data-meter-text="bat">82%</b>
+      <span><svg class="bolt" id="bat-bolt-bar"><use href="#i-bolt"/></svg><span id="bat-state-bar">On battery</span></span>
+    </div>
+    <div class="batcell" data-meter="bat">
+      <i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i>
+      <i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i>
+    </div>
+  </main>
 
-      .ring.charging {
-        box-shadow: 0 0 20px var(--charge-soft);
-      }
+  <!-- Variant: Minimal / Pill -->
+  <main class="card w bat bat--pill" data-variant-view="minimal">
+    <svg class="bolt"><use href="#i-bolt"/></svg>
+    <span class="pillbar" data-meter="bat"><i></i></span>
+    <b data-meter-text="bat">82%</b>
+  </main>
 
-      .ring-inner {
-        display: grid;
-        width: 58px;
-        height: 58px;
-        place-items: center;
-        border-radius: 50%;
-        background: var(--surface-2);
-        box-shadow: inset 0 0 0 1px var(--line);
-      }
+  <script>
+    (() => {
+      'use strict';
 
-      .percent {
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 18px;
-        font-variant-numeric: tabular-nums;
-        font-weight: 600;
-        letter-spacing: -0.03em;
-      }
+      const params = new URLSearchParams(location.search);
+      const rawVariant = params.get('variant') || 'ring';
+      const variant = rawVariant === 'pill' ? 'minimal' : rawVariant;
+      document.documentElement.dataset.variant = variant;
+      const env = params.get('env');
+      if (env) document.documentElement.dataset.env = env;
+      const theme = params.get('theme') || 'dark';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = theme;
 
-      .bar {
-        position: relative;
-        display: none;
-        width: 88px;
-        height: 38px;
-        padding: 3px;
-        border: 1px solid var(--line);
-        border-radius: 7px;
-        background: var(--track);
-      }
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      let batteryLevel = 82;
+      let isCharging = false;
 
-      .bar::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        right: -4px;
-        width: 3px;
-        height: 12px;
-        border-radius: 0 2px 2px 0;
-        background: var(--line);
-        transform: translateY(-50%);
-      }
+      const level = (k, v) => (v <= 20 ? 'bad' : v <= 40 ? 'warn' : 'ok');
 
-      .bar-fill {
-        display: block;
-        width: 0;
-        height: 100%;
-        border-radius: 4px;
-        background: linear-gradient(
-          90deg,
-          var(--charge),
-          color-mix(in srgb, var(--charge) 55%, white)
-        );
-        box-shadow: 0 0 10px var(--charge-soft);
-        transition: width 500ms ease;
-      }
+      function paintMeters() {
+        $$('[data-meter="bat"]').forEach(el => {
+          el.style.setProperty('--vn', (batteryLevel / 100).toFixed(3));
+          el.dataset.level = level('bat', batteryLevel);
+        });
+        $$('[data-meter-text="bat"]').forEach(el => {
+          el.textContent = Math.round(batteryLevel) + '%';
+        });
 
-      .copy {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-      }
+        const stateText = isCharging ? 'Charging' : 'On battery';
+        const ringState = document.getElementById('bat-state-ring');
+        if (ringState) ringState.textContent = stateText;
+        const barState = document.getElementById('bat-state-bar');
+        if (barState) barState.textContent = stateText;
 
-      .kicker {
-        color: var(--faint);
-        font-size: 7.5px;
-        font-weight: 700;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-      }
-
-      .state {
-        margin: 0;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 17px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        line-height: 1.15;
-      }
-
-      .detail {
-        margin: 0;
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 8.5px;
-        line-height: 1.4;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .detail.error {
-        color: #ff8178;
-      }
-
-      .bignum {
-        display: none;
-        flex: none;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 34px;
-        font-variant-numeric: tabular-nums;
-        font-weight: 300;
-        letter-spacing: -0.05em;
-      }
-
-      .bignum small {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0;
-      }
-
-      html[data-variant='bar'] .card {
-        gap: 12px;
-        padding: 11px 14px;
-      }
-
-      html[data-variant='bar'] .ring {
-        display: none;
-      }
-
-      html[data-variant='bar'] .bar {
-        display: block;
-      }
-
-      html[data-variant='bar'] .copy {
-        gap: 1px;
-      }
-
-      html[data-variant='bar'] .state {
-        font-size: 15px;
-      }
-
-      html[data-variant='bar'] .bignum {
-        display: block;
-        font-size: 27px;
-      }
-
-      html[data-variant='minimal'] .card {
-        gap: 12px;
-        justify-content: flex-start;
-        padding: 8px 12px;
-        border-radius: 0;
-        background: transparent;
-        box-shadow: none;
-      }
-
-      html[data-variant='minimal'] .indicator {
-        display: none;
-      }
-
-      html[data-variant='minimal'] .bignum {
-        display: block;
-        font-size: 48px;
-        line-height: 0.9;
-      }
-
-      html[data-variant='minimal'] .copy {
-        gap: 1px;
-        padding-left: 2px;
-      }
-
-      html[data-variant='minimal'] .kicker {
-        display: none;
-      }
-
-      html[data-variant='minimal'] .state {
-        font-size: 14px;
-      }
-
-      html[data-variant='minimal'] .detail {
-        font-size: 8.5px;
-        white-space: normal;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <div class="indicator">
-        <div class="ring" id="ring">
-          <div class="ring-inner">
-            <span class="percent" id="percent">--</span>
-          </div>
-        </div>
-        <div class="bar" aria-hidden="true">
-          <span class="bar-fill" id="bar-fill"></span>
-        </div>
-      </div>
-      <div class="copy">
-        <span class="kicker">Battery</span>
-        <p class="state" id="state">Reading…</p>
-        <p class="detail" id="detail">Updates every 30 seconds</p>
-      </div>
-      <span class="bignum" id="bignum">--<small>%</small></span>
-    </main>
-    <script>
-      ;(function () {
-        'use strict'
-
-        var ring = document.getElementById('ring')
-        var percentNode = document.getElementById('percent')
-        var bignumNode = document.getElementById('bignum')
-        var stateNode = document.getElementById('state')
-        var detailNode = document.getElementById('detail')
-        var barFill = document.getElementById('bar-fill')
-
-        function setBignum(percent) {
-          if (!bignumNode) {
-            return
-          }
-          if (percent === null) {
-            bignumNode.textContent = '--'
-            return
-          }
-          bignumNode.innerHTML = String(percent) + '<small>%</small>'
+        const ringDetail = document.getElementById('bat-detail-ring');
+        if (ringDetail) {
+          ringDetail.textContent = isCharging ? 'Connected to power' : 'Running on battery';
         }
+      }
 
-        function render(battery) {
-          var hasLevel = typeof battery.level === 'number'
-          var percent = hasLevel ? Math.round(battery.level * 100) : null
-
-          if (percentNode) {
-            percentNode.textContent = hasLevel ? percent + '%' : '--'
-          }
-          setBignum(hasLevel ? percent : null)
-          if (ring) {
-            var fill = hasLevel ? percent : 0
-            ring.style.background =
-              'conic-gradient(var(--charge) ' + fill + '%, var(--track) ' + fill + '%)'
-            ring.classList.toggle('charging', battery.charging === true)
-          }
-          if (barFill) {
-            barFill.style.width = (hasLevel ? Math.max(0, Math.min(100, percent)) : 0) + '%'
-          }
-          if (hasLevel) {
-            document.documentElement.dataset.level =
-              percent <= 15 ? 'low' : percent <= 35 ? 'mid' : 'ok'
-          } else {
-            delete document.documentElement.dataset.level
-          }
-          if (stateNode) {
-            stateNode.textContent = battery.charging ? 'Charging' : 'On battery'
-          }
-          if (detailNode) {
-            detailNode.classList.remove('error')
-            if (!hasLevel) {
-              detailNode.textContent = battery.charging
-                ? 'Level is not reported on this device'
-                : 'Updates every 30 seconds'
-            } else {
-              detailNode.textContent = battery.charging
-                ? 'Connected to power'
-                : 'Updates every 30 seconds'
+      function tick() {
+        if (!window.hl || !window.hl.system) {
+          paintMeters();
+          return;
+        }
+        window.hl.system.getBattery()
+          .then(battery => {
+            if (battery && typeof battery.level === 'number') {
+              batteryLevel = Math.max(0, Math.min(100, Math.round(battery.level * 100)));
+              isCharging = Boolean(battery.charging);
             }
-          }
-        }
-
-        function tick() {
-          if (!window.hl || !window.hl.system) {
-            return
-          }
-          window.hl.system
-            .getBattery()
-            .then(render)
-            .catch(function (error) {
-              if (stateNode) {
-                stateNode.textContent =
-                  error && error.code === 'permission_denied'
-                    ? 'Permission is off'
-                    : 'Battery unavailable'
-              }
-              if (detailNode) {
-                detailNode.textContent = 'Check the widget permission in Settings'
-                detailNode.classList.add('error')
-              }
-            })
-        }
-
-        tick()
-        setInterval(tick, 30000)
-
-        function applyTheme(dark) {
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-        }
-
-        if (window.hl) {
-          window.hl
-            .ready()
-            .then(function () {
-              return window.hl.getContext()
-            })
-            .then(function (context) {
-              applyTheme(context.dark)
-            })
-            .catch(function () {})
-          window.hl.onTheme(function (state) {
-            applyTheme(state.dark)
+            paintMeters();
           })
-        }
-      })()
-    </script>
-  </body>
+          .catch(() => {
+            paintMeters();
+          });
+      }
+
+      tick();
+      setInterval(tick, 10000);
+
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.dataset.mode = dark ? 'dark' : 'light';
+      }
+
+      if (window.hl) {
+        window.hl.ready()
+          .then(() => window.hl.getContext())
+          .then(ctx => { if (ctx && typeof ctx.dark === 'boolean') applyTheme(ctx.dark); })
+          .catch(() => {});
+        window.hl.onTheme(state => {
+          if (state && typeof state.dark === 'boolean') applyTheme(state.dark);
+        });
+      }
+    })();
+  </script>
+</body>
 </html>

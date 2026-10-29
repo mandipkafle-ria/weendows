@@ -17,17 +17,9 @@ export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number]
 export const ACCENT_COLORS = ['ember', 'violet', 'teal', 'rose'] as const
 export type AccentColor = (typeof ACCENT_COLORS)[number]
 
-export const CURSOR_STYLES = [
-  'system',
-  'dot',
-  'neon',
-  'pixel',
-  'ring',
-  'crosshair',
-  'arrow'
-] as const
+export const CURSOR_STYLES = ['system', 'pixel', 'crosshair'] as const
 export type CursorStyle = (typeof CURSOR_STYLES)[number]
-export const SYSTEM_CURSOR_STYLES = ['system', 'dot', 'neon', 'pixel'] as const
+export const SYSTEM_CURSOR_STYLES = ['system', 'pixel'] as const
 
 export const CURSOR_CLICK_ANIMATIONS = ['ripple', 'burst', 'none'] as const
 export type CursorClickAnimation = (typeof CURSOR_CLICK_ANIMATIONS)[number]

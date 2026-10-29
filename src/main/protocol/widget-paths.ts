@@ -28,6 +28,9 @@ export function wallpaperHostId(host: string): string | null {
 const SDK_TAG = '<script src="widget://_sdk/sdk.js"></script>'
 const BASE_STYLE =
   '<style>html, body, :root { background: transparent !important; color-scheme: normal !important; }</style>'
+const ENV_TAG =
+  '<script>(function(){try{var params=new URLSearchParams(location.search);var env=params.get("env");if(env){var root=document.documentElement;root.dataset.env=env;root.dataset.theme=params.get("theme")||(env==="sky"?"light":"dark")}}catch(error){}})()</script>' +
+  '<link rel="stylesheet" href="widget://_builtins/env/theme.css">'
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -50,16 +53,23 @@ export function mimeFor(file: string): string {
   return MIME_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream'
 }
 
-export function injectSdk(html: string): string {
-  const withoutColorScheme = html.replace(/<meta\s+name=["']color-scheme["'][^>]*>\s*/gi, '')
-  const withBaseStyle = /<\/head>/i.test(withoutColorScheme)
-    ? withoutColorScheme.replace(/<\/head>/i, (match) => BASE_STYLE + match)
-    : BASE_STYLE + withoutColorScheme
+export function injectSdk(html: string, withEnv = false): string {
+  let result = html.replace(/<meta\s+name=["']color-scheme["'][^>]*>\s*/gi, '')
 
-  if (/<head[^>]*>/i.test(withBaseStyle)) {
-    return withBaseStyle.replace(/<head[^>]*>/i, (match) => match + SDK_TAG)
+  if (withEnv) {
+    result = /<\/head>/i.test(result)
+      ? result.replace(/<\/head>/i, (match) => ENV_TAG + match)
+      : result + ENV_TAG
   }
-  return SDK_TAG + withBaseStyle
+
+  result = /<\/head>/i.test(result)
+    ? result.replace(/<\/head>/i, (match) => BASE_STYLE + match)
+    : BASE_STYLE + result
+
+  if (/<head[^>]*>/i.test(result)) {
+    return result.replace(/<head[^>]*>/i, (match) => match + SDK_TAG)
+  }
+  return SDK_TAG + result
 }
 
 export function resolveWidgetFile(paths: WidgetProtocolPaths, requestUrl: string): string | null {

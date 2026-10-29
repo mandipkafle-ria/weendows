@@ -1,342 +1,208 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Date</title>
-    <script>
-      document.documentElement.dataset.variant =
-        new URLSearchParams(location.search).get('variant') || 'classic'
-    </script>
-    <style>
-      :root {
-        --ink: #f5f1e9;
-        --muted: #9b978f;
-        --faint: #67645e;
-        --surface: rgba(19, 18, 16, 0.95);
-        --surface-2: rgba(29, 27, 23, 0.96);
-        --line: rgba(255, 255, 255, 0.08);
-        --accent: #ff8a5b;
-        --accent-soft: rgba(255, 138, 91, 0.14);
-        --radius: 18px;
-        --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Date</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <style>
+    :root {
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --font-serif: "Playfair Display", "Georgia", serif;
+      --radius: 24px;
+      --radius-sm: 14px;
+      --pill: 999px;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 22px;
+    }
+
+    /* Variant visibility */
+    html[data-variant='classic'] .date--classic,
+    html:not([data-variant]) .date--classic { display: grid; }
+    html[data-variant='editorial'] .date--editorial { display: grid; }
+    html[data-variant='minimal'] .date--minimal { display: flex; }
+
+    /* Classic — bold day + weekday banner */
+    .date--classic {
+      padding: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100%;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .date--classic .date__banner {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 16px; background: var(--grad); color: var(--on-grad);
+      font: 800 11px/1 var(--font-sans); letter-spacing: .22em; text-transform: uppercase;
+    }
+    .date--classic .date__body {
+      display: flex; align-items: center; gap: 12px;
+      padding: 6px 16px 2px;
+      min-height: 0;
+    }
+    .date--classic .date__day {
+      font: 800 58px/.88 var(--font-sans); letter-spacing: -.06em;
+      background: linear-gradient(180deg, var(--text) 30%, color-mix(in srgb, var(--text) 45%, transparent));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      line-height: 1;
+    }
+    .date--classic .date__ym {
+      display: grid; gap: 2px; padding-left: 10px; border-left: 2px solid var(--accent);
+      min-width: 0;
+    }
+    .date--classic .date__ym b { font: 700 16px/1.1 var(--font-sans); white-space: nowrap; }
+    .date--classic .date__ym span { font: 500 12px/1 var(--font-sans); color: var(--muted); }
+    .date--classic .date__foot {
+      display: flex; gap: 8px; padding: 4px 16px 8px;
+      font: 500 10px/1 var(--font-mono); letter-spacing: .06em; color: var(--muted); text-transform: uppercase;
+    }
+
+    /* Editorial — serif newspaper */
+    .date--editorial { padding: 20px 24px 18px; text-align: center; font-family: var(--font-serif); align-content: space-between; }
+    .date--editorial .date__mast {
+      display: flex; justify-content: space-between; padding-bottom: 9px;
+      font: italic 500 12px/1 var(--font-serif); letter-spacing: .03em; color: var(--muted);
+    }
+    .date--editorial .date__rule { height: 6px; border-top: 3px solid var(--text); border-bottom: 1px solid var(--text); }
+    .date--editorial .date__rule--thin { height: 0; border-top: 1px solid var(--border); border-bottom: 0; margin-top: 14px; }
+    .date--editorial .date__weekday { margin: 16px 0 8px; font: 900 50px/1 var(--font-serif); letter-spacing: -.02em; }
+    .date--editorial .date__line { font: italic 500 19px/1.2 var(--font-serif); color: var(--accent); }
+    .date--editorial .date__tag {
+      margin-top: 12px; font: 600 10px/1.4 var(--font-sans); letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+    }
+
+    /* Minimal — compact badge */
+    .date--minimal {
+      align-items: center; justify-content: center; gap: 12px;
+      padding: 8px 20px 8px 8px; border-radius: calc(var(--radius) - 6px);
+    }
+    .date--minimal .date__chip {
+      display: grid; place-items: center; width: 48px; height: 48px; border-radius: var(--radius-sm);
+      background: var(--grad); color: var(--on-grad); font: 800 21px/1 var(--font-sans);
+    }
+    .date--minimal .date__txt { display: grid; gap: 3px; }
+    .date--minimal .date__txt b { font: 700 14px/1 var(--font-sans); }
+    .date--minimal .date__txt span { font: 500 12px/1 var(--font-sans); color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- Variant: Classic -->
+  <main class="card w date date--classic" data-variant-view="classic">
+    <div class="date__banner"><span data-bind="weekday">Thursday</span><span>W<span data-bind="week">44</span></span></div>
+    <div class="date__body">
+      <div class="date__day" data-bind="day">29</div>
+      <div class="date__ym"><b data-bind="monthLong">October</b><span data-bind="year">2026</span></div>
+    </div>
+    <div class="date__foot"><span>Day <span data-bind="doy">302</span></span><span>·</span><span><span data-bind="daysLeft">63</span> left</span></div>
+  </main>
+
+  <!-- Variant: Editorial -->
+  <main class="card w date date--editorial" data-variant-view="editorial">
+    <div class="date__mast"><span>The Daily Almanac</span><span>№ <span data-bind="doy">302</span></span></div>
+    <div class="date__rule"></div>
+    <h3 class="date__weekday" data-bind="weekday">Thursday</h3>
+    <div class="date__line"><span data-bind="monthLong">October</span> <span data-bind="dayOrd">29th</span>, <span data-bind="year">2026</span></div>
+    <div class="date__rule date__rule--thin"></div>
+    <p class="date__tag">Week <span data-bind="week">44</span> · <span data-bind="daysLeft">63</span> days remain</p>
+  </main>
+
+  <!-- Variant: Minimal -->
+  <main class="card w date date--minimal" data-variant-view="minimal">
+    <div class="date__chip" data-bind="day">29</div>
+    <div class="date__txt"><b data-bind="weekday">Thursday</b><span><span data-bind="monthLong">October</span> <span data-bind="year">2026</span></span></div>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const params = new URLSearchParams(location.search);
+      const variant = params.get('variant') || 'classic';
+      document.documentElement.dataset.variant = variant;
+      const env = params.get('env');
+      if (env) document.documentElement.dataset.env = env;
+      const theme = params.get('theme') || 'dark';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = theme;
+
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const ordinal = n => { const s = ['th','st','nd','rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+
+      function isoWeek(d) {
+        const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+        const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+        return Math.ceil(((t - y0) / 864e5 + 1) / 7);
       }
 
-      html[data-theme='light'] {
-        --ink: #211e19;
-        --muted: #6d6860;
-        --faint: #948e84;
-        --surface: rgba(251, 249, 244, 0.97);
-        --surface-2: #ffffff;
-        --line: rgba(30, 25, 18, 0.09);
-        --accent: #c2410c;
-        --accent-soft: rgba(194, 65, 12, 0.08);
+      function dateInfo(d) {
+        const y = d.getFullYear();
+        const doy = Math.round((Date.UTC(y, d.getMonth(), d.getDate()) - Date.UTC(y, 0, 0)) / 864e5);
+        const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+        return {
+          weekday: DAYS[d.getDay()],
+          day: String(d.getDate()),
+          dayOrd: ordinal(d.getDate()),
+          monthLong: MONTHS[d.getMonth()],
+          year: String(y),
+          doy: String(doy),
+          week: String(isoWeek(d)),
+          daysLeft: String((leap ? 366 : 365) - doy)
+        };
       }
 
-      * {
-        box-sizing: border-box;
+      function tick() {
+        const now = new Date();
+        const info = dateInfo(now);
+
+        $$('[data-bind]').forEach(el => {
+          const v = info[el.dataset.bind];
+          if (v !== undefined && el.textContent !== v) el.textContent = v;
+        });
+
+        setTimeout(tick, 60000);
       }
 
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        background: transparent;
+      tick();
+
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.dataset.mode = dark ? 'dark' : 'light';
       }
 
-      body {
-        font-family: var(--font-ui);
-        -webkit-font-smoothing: antialiased;
+      if (window.hl) {
+        window.hl.ready()
+          .then(() => window.hl.getContext())
+          .then(ctx => { if (ctx && typeof ctx.dark === 'boolean') applyTheme(ctx.dark); })
+          .catch(() => {});
+        window.hl.onTheme(state => {
+          if (state && typeof state.dark === 'boolean') applyTheme(state.dark);
+        });
       }
-
-      .card {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        padding: 14px 17px 12px;
-        overflow: hidden;
-        border: 0;
-        border-radius: var(--radius);
-        background:
-          radial-gradient(13rem 9rem at 8% 92%, var(--accent-soft), transparent 62%),
-          linear-gradient(150deg, var(--surface-2), var(--surface));
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-        background-clip: padding-box;
-      }
-
-      .top {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .label {
-        color: var(--faint);
-        font-size: 8px;
-        font-weight: 700;
-        letter-spacing: 0.17em;
-        text-transform: uppercase;
-      }
-
-      .weekday {
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 9.5px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .body {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .day {
-        margin: 0;
-        color: var(--ink);
-        font-family: var(--font-display);
-        font-size: 58px;
-        font-weight: 300;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.06em;
-        line-height: 0.82;
-      }
-
-      .meta {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 1px;
-        padding-bottom: 2px;
-        text-align: right;
-      }
-
-      .month {
-        margin: 0;
-        color: var(--accent);
-        font-family: var(--font-display);
-        font-size: 15px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-      }
-
-      .year {
-        margin: 0;
-        color: var(--faint);
-        font-family: var(--font-ui);
-        font-size: 9px;
-        font-weight: 650;
-        letter-spacing: 0.12em;
-      }
-
-      .footer {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--faint);
-        font-size: 8px;
-        font-weight: 600;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .rule {
-        flex: 1;
-        height: 1px;
-        background: linear-gradient(90deg, var(--accent-soft), transparent);
-      }
-
-      html[data-variant='editorial'] .card {
-        --ink: #2b2519;
-        --muted: #736a58;
-        --faint: #998e79;
-        --accent: #a33f1a;
-        --line: rgba(54, 44, 26, 0.14);
-        padding: 16px 18px 14px;
-        background: linear-gradient(155deg, rgba(255, 255, 255, 0.42), transparent 52%), #f2ecdf;
-        box-shadow:
-          inset 0 0 0 1px var(--line),
-          0 12px 34px rgba(0, 0, 0, 0.2);
-      }
-
-      html[data-variant='editorial'] .top {
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      html[data-variant='editorial'] .label,
-      html[data-variant='editorial'] .weekday {
-        color: #736a58;
-      }
-
-      html[data-variant='editorial'] .day {
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 76px;
-        font-weight: 400;
-        letter-spacing: -0.08em;
-      }
-
-      html[data-variant='editorial'] .meta {
-        padding-bottom: 7px;
-      }
-
-      html[data-variant='editorial'] .month {
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 19px;
-        font-weight: 400;
-        font-style: italic;
-      }
-
-      html[data-variant='editorial'] .year {
-        color: #998e79;
-      }
-
-      html[data-variant='editorial'] .footer {
-        padding-top: 7px;
-        border-top: 1px solid var(--line);
-        color: #998e79;
-      }
-
-      html[data-variant='editorial'] .rule {
-        background: linear-gradient(90deg, rgba(163, 63, 26, 0.32), transparent);
-      }
-
-      html[data-variant='minimal'] .card {
-        justify-content: center;
-        gap: 5px;
-        padding: 6px 10px;
-        border-radius: 0;
-        background: transparent;
-        box-shadow: none;
-      }
-
-      html[data-variant='minimal'] .top,
-      html[data-variant='minimal'] .footer {
-        display: none;
-      }
-
-      html[data-variant='minimal'] .body {
-        align-items: baseline;
-        justify-content: flex-start;
-        gap: 9px;
-      }
-
-      html[data-variant='minimal'] .day {
-        font-size: 44px;
-        font-weight: 300;
-      }
-
-      html[data-variant='minimal'] .meta {
-        align-items: flex-start;
-        padding: 0;
-        text-align: left;
-      }
-
-      html[data-variant='minimal'] .month {
-        font-size: 14px;
-        font-weight: 500;
-      }
-
-      html[data-variant='minimal'] .year {
-        font-size: 8.5px;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="card">
-      <div class="top">
-        <span class="label">Today</span>
-        <span class="weekday" id="weekday"></span>
-      </div>
-      <div class="body">
-        <p class="day" id="day">--</p>
-        <div class="meta">
-          <p class="month" id="month"></p>
-          <p class="year" id="year"></p>
-        </div>
-      </div>
-      <div class="footer">
-        <span id="ordinal"></span>
-        <span class="rule"></span>
-        <span id="daypart"></span>
-      </div>
-    </main>
-    <script>
-      ;(function () {
-        'use strict'
-
-        var weekdayNode = document.getElementById('weekday')
-        var dayNode = document.getElementById('day')
-        var monthNode = document.getElementById('month')
-        var yearNode = document.getElementById('year')
-        var ordinalNode = document.getElementById('ordinal')
-        var daypartNode = document.getElementById('daypart')
-
-        function ordinal(day) {
-          if (day >= 11 && day <= 13) {
-            return 'th'
-          }
-          return ['th', 'st', 'nd', 'rd'][day % 10] || 'th'
-        }
-
-        function render() {
-          var now = new Date()
-          if (weekdayNode) {
-            weekdayNode.textContent = now.toLocaleDateString([], { weekday: 'long' })
-          }
-          if (dayNode) {
-            dayNode.textContent = String(now.getDate()).padStart(2, '0')
-          }
-          if (monthNode) {
-            monthNode.textContent = now.toLocaleDateString([], { month: 'long' })
-          }
-          if (yearNode) {
-            yearNode.textContent = now.toLocaleDateString([], { year: 'numeric' })
-          }
-          if (ordinalNode) {
-            ordinalNode.textContent = now.getDate() + ordinal(now.getDate())
-          }
-          if (daypartNode) {
-            daypartNode.textContent =
-              'Day ' + Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000)
-          }
-        }
-
-        render()
-        setInterval(render, 60000)
-
-        function applyTheme(dark) {
-          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-        }
-
-        if (window.hl) {
-          window.hl
-            .ready()
-            .then(function () {
-              return window.hl.getContext()
-            })
-            .then(function (context) {
-              applyTheme(context.dark)
-            })
-            .catch(function () {})
-          window.hl.onTheme(function (state) {
-            applyTheme(state.dark)
-          })
-        }
-      })()
-    </script>
-  </body>
+    })();
+  </script>
+</body>
 </html>

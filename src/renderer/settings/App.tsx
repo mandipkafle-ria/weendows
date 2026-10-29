@@ -89,7 +89,7 @@ function App(): JSX.Element {
   const [editWidgetId, setEditWidgetId] = useState<string | null>(initialEditWidgetId)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
-  const [tab, setTab] = useState<TabId>(() => (initialEditWidgetId() ? 'ai' : 'general'))
+  const [tab, setTab] = useState<TabId>(() => (initialEditWidgetId() ? 'ai' : 'widgets'))
   const workspaceRef = useRef<HTMLDivElement>(null)
   const { toasts, pushToast, dismissToast } = useToasts()
 
@@ -257,11 +257,13 @@ function App(): JSX.Element {
             <span />
             <span />
             <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
           </span>
-          <div>
-            <strong>{t('app.name')}</strong>
-            <span>{t('app.subtitle')}</span>
-          </div>
+          <strong>{t('app.name')}</strong>
         </div>
 
         <nav className="sidebar-nav" role="tablist" aria-label={t('app.sectionsLabel')}>
@@ -290,32 +292,32 @@ function App(): JSX.Element {
         </nav>
 
         <div className="sidebar-footer">
-          <span>
-            {t('app.versionLabel')} {general.version}
-          </span>
-          <span>
-            {general.platform} / {general.arch}
+          <span className="sidebar-version">v{general.version}</span>
+          <span className={general.safeMode ? 'status-pill status-warn' : 'status-pill'}>
+            <span className="status-dot" aria-hidden="true" />
+            {general.safeMode ? t('app.safeModeShort') : t('app.runningShort')}
           </span>
         </div>
       </aside>
 
       <section className="workspace">
-        <header className="workspace-header">
-          <div className="workspace-heading">
-            <span className="eyebrow">{activeGroup ? t(activeGroup.label) : t('app.name')}</span>
-            <h1>{t(activeTab.label)}</h1>
-            <p>{t(activeTab.subtitle)}</p>
-          </div>
-          <div className="header-status">
-            <span className={general.safeMode ? 'status-pill status-warn' : 'status-pill'}>
-              <span className="status-dot" aria-hidden="true" />
-              {general.safeMode ? t('app.safeModeShort') : t('app.runningShort')}
-            </span>
-            <span className="build-value">v{general.version}</span>
-          </div>
-        </header>
+        {tab !== 'widgets' && (
+          <header className="workspace-header">
+            <div className="workspace-heading">
+              <span className="eyebrow">{activeGroup ? t(activeGroup.label) : t('app.name')}</span>
+              <h1>{t(activeTab.label)}</h1>
+              <p>{t(activeTab.subtitle)}</p>
+            </div>
+          </header>
+        )}
 
-        <div className="workspace-body" id="settings-panel" role="tabpanel" ref={workspaceRef}>
+        <div
+          className="workspace-body"
+          id="settings-panel"
+          role="tabpanel"
+          data-tab={tab}
+          ref={workspaceRef}
+        >
           {general.safeMode && (
             <section className="safe-banner" role="alert">
               <div>

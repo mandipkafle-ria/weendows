@@ -12,6 +12,7 @@ import type {
 import { t } from '../i18n'
 import ColorPicker from './ColorPicker'
 import SliderField from './SliderField'
+import type { ThemeEnvId } from './themeEnvironments'
 import type { ToastLevel } from './useToasts'
 import WidgetPreview from './WidgetPreview'
 
@@ -19,6 +20,9 @@ interface WidgetCustomizeSheetProps {
   builtin: BuiltinWidget
   defaultVariant: string
   general: GeneralState
+  themeEnv: ThemeEnvId
+  themeMode?: 'dark' | 'light'
+  themeLabel: string
   existing?: WidgetSummary | null
   onClose: () => void
   onSaved: () => Promise<void>
@@ -45,15 +49,21 @@ export default function WidgetCustomizeSheet({
   builtin,
   defaultVariant,
   general,
+  themeEnv,
+  themeMode,
+  themeLabel,
   existing,
   onClose,
   onSaved,
   toast
 }: WidgetCustomizeSheetProps): JSX.Element {
-  const savedAppearance = useMemo(
-    () => resolveWidgetAppearance(existing?.placement ?? null),
-    [existing]
-  )
+  const savedAppearance = useMemo(() => {
+    const base = resolveWidgetAppearance(existing?.placement ?? null)
+    if (!existing && themeMode) {
+      return { ...base, themeOverride: themeMode }
+    }
+    return base
+  }, [existing, themeMode])
   const [variant, setVariant] = useState(existing?.manifest.variant ?? defaultVariant)
   const [appearance, setAppearance] = useState<WidgetAppearance>(savedAppearance)
   const [widgetOpacity, setWidgetOpacity] = useState(existing?.placement.opacity ?? 1)
@@ -94,7 +104,7 @@ export default function WidgetCustomizeSheet({
   }, [onClose])
 
   const selectedVariant = findBuiltinVariant(builtin, variant)
-  const effectiveTheme = appearance.themeOverride ?? general.resolvedWidgetTheme
+  const effectiveTheme = appearance.themeOverride ?? themeMode ?? general.resolvedWidgetTheme
   const update = (patch: Partial<WidgetAppearance>): void => {
     setAppearance((current) => ({ ...current, ...patch }))
   }
@@ -153,6 +163,7 @@ export default function WidgetCustomizeSheet({
     <div className="sheet-backdrop" role="presentation" onClick={onClose}>
       <aside
         className="customize-sheet"
+        data-theme-env={themeEnv}
         role="dialog"
         aria-modal="true"
         aria-label={t('widgets.customize.title')}
@@ -162,6 +173,10 @@ export default function WidgetCustomizeSheet({
           <div>
             <span className="customize-eyebrow">
               {existing ? t('widgets.customize.edit') : t('widgets.customize.add')}
+              <span className="customize-eyebrow-sep" aria-hidden="true">
+                /
+              </span>
+              {themeLabel}
             </span>
             <h2>{title}</h2>
           </div>
@@ -193,6 +208,7 @@ export default function WidgetCustomizeSheet({
                 width={selectedVariant.width}
                 height={selectedVariant.height}
                 dark={effectiveTheme === 'dark'}
+                env={themeEnv}
                 appearance={appearance}
                 assetWidgetId={existing?.placement.widgetId}
                 cursorStyle={general.cursor.style}

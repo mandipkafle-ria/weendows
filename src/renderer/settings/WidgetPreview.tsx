@@ -19,6 +19,7 @@ interface WidgetPreviewProps {
   height: number
   dark: boolean
   cursorStyle: CursorStyle
+  env?: string
   appearance?: WidgetAppearance
   assetWidgetId?: string
   title: string
@@ -117,7 +118,12 @@ function failure(code: WidgetApiErrorCode, message: string): object {
   return { ok: false, error: { code, message } }
 }
 
-function previewUrl(source: PreviewSource, dark: boolean, appearanceToken: string | null): string {
+function previewUrl(
+  source: PreviewSource,
+  dark: boolean,
+  appearanceToken: string | null,
+  env?: string
+): string {
   const url =
     source.kind === 'builtin'
       ? new URL(`widget://_builtins/${source.type}/index.html`)
@@ -125,10 +131,13 @@ function previewUrl(source: PreviewSource, dark: boolean, appearanceToken: strin
   if (source.variant) {
     url.searchParams.set('variant', source.variant)
   }
+  if (source.kind === 'builtin' && env) {
+    url.searchParams.set('env', env)
+  }
   url.searchParams.set('preview', '1')
+  url.searchParams.set('theme', dark ? 'dark' : 'light')
   if (appearanceToken) {
     url.searchParams.set('appearance', appearanceToken)
-    url.searchParams.set('theme', dark ? 'dark' : 'light')
   }
   return url.toString()
 }
@@ -156,6 +165,7 @@ export default function WidgetPreview({
   height,
   dark,
   cursorStyle,
+  env,
   appearance,
   assetWidgetId,
   title,
@@ -170,8 +180,8 @@ export default function WidgetPreview({
   const appearanceKey = useMemo(() => (appearance ? JSON.stringify(appearance) : ''), [appearance])
   const activeAppearanceToken = appearance ? appearanceToken : null
   const src = useMemo(
-    () => previewUrl(source, dark, activeAppearanceToken),
-    [activeAppearanceToken, dark, source]
+    () => previewUrl(source, dark, activeAppearanceToken, env),
+    [activeAppearanceToken, dark, env, source]
   )
 
   useEffect(() => {
@@ -317,6 +327,7 @@ export default function WidgetPreview({
   return (
     <div
       className={`widget-preview${className ? ` ${className}` : ''}`}
+      data-preview-theme={dark ? 'dark' : 'light'}
       data-cursor={cursorStyle}
       style={{ aspectRatio: `${width} / ${height}` }}
       ref={wrapRef}

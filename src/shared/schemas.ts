@@ -15,7 +15,11 @@ export const noArgsSchema = z.undefined()
 
 export const themeSourceSchema = z.enum(['dark', 'light', 'system'])
 export const accentColorSchema = z.enum(ACCENT_COLORS)
-export const cursorStyleSchema = z.enum(CURSOR_STYLES)
+const LEGACY_CURSOR_STYLES = new Set(['dot', 'neon', 'ring', 'arrow'])
+export const cursorStyleSchema = z.preprocess(
+  (value) => (typeof value === 'string' && LEGACY_CURSOR_STYLES.has(value) ? 'system' : value),
+  z.enum(CURSOR_STYLES)
+)
 export const cursorClickAnimationSchema = z.enum(CURSOR_CLICK_ANIMATIONS)
 export const hexColorSchema = z
   .string()
