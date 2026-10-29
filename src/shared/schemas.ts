@@ -227,6 +227,7 @@ export const widgetPlacementSchema = z
     bgImage: z.string().max(4096).nullable().default(null),
     bgImageFit: widgetBgImageFitSchema.default('cover'),
     cornerRadius: z.number().min(0).max(64).default(18),
+    borderWidth: z.number().min(0).max(8).default(1),
     borderOpacity: z.number().min(0).max(1).default(0.09),
     borderColor: hexColorSchema.nullable().default(null),
     contentOpacity: z.number().min(0).max(1).default(1)
@@ -253,9 +254,21 @@ export const widgetAppearancePatchSchema = z
     bgImage: widgetBgImageRefSchema.nullable().optional(),
     bgImageFit: widgetBgImageFitSchema.optional(),
     cornerRadius: z.number().min(0).max(64).optional(),
+    borderWidth: z.number().min(0).max(8).optional(),
     borderOpacity: z.number().min(0).max(1).optional(),
     borderColor: hexColorSchema.nullable().optional(),
     contentOpacity: z.number().min(0).max(1).optional()
+  })
+  .strict()
+
+/** Rectangle a widget should occupy, relative to one display's top-left. */
+export const widgetBoundsPatchSchema = z
+  .object({
+    displayId: z.string().min(1).max(64),
+    x: z.number().finite().min(-100_000).max(100_000),
+    y: z.number().finite().min(-100_000).max(100_000),
+    width: z.number().finite().min(1).max(20_000),
+    height: z.number().finite().min(1).max(20_000)
   })
   .strict()
 

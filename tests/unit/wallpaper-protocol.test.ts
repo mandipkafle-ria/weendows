@@ -20,6 +20,17 @@ describe('wallpaper media URLs', () => {
     })
   })
 
+  it('serves wallpaper images for the desktop map', () => {
+    expect(resolveWallpaperMedia(wallpapersDir, 'hl-wallpaper://media/aurora/photo.jpg')).toEqual({
+      file: join(wallpapersDir, 'aurora', 'photo.jpg'),
+      mime: 'image/jpeg'
+    })
+    expect(resolveWallpaperMedia(wallpapersDir, 'hl-wallpaper://media/aurora/photo.webp')).toEqual({
+      file: join(wallpapersDir, 'aurora', 'photo.webp'),
+      mime: 'image/webp'
+    })
+  })
+
   it('rejects traversal, nested paths, unknown types, and non-media hosts', () => {
     expect(
       resolveWallpaperMedia(wallpapersDir, 'hl-wallpaper://media/aurora/..%2Fsecret.mp4')

@@ -28,5 +28,13 @@ export default defineConfig(
       ...eslintPluginReactRefresh.configs.vite.rules
     }
   },
+  {
+    // Widget runtime assets are plain browser JavaScript served as-is, not part
+    // of the TypeScript project, so they do not need annotation return types.
+    files: ['resources/**/*.js'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off'
+    }
+  },
   eslintConfigPrettier
 )

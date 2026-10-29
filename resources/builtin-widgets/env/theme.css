@@ -306,3 +306,15 @@ html[data-theme='light']:not([data-env]):not([data-theme='sky']):not([data-theme
 @keyframes blink { 50% { opacity: .15; } }
 @keyframes pulse { 50% { transform: scale(.7); opacity: .55; } }
 @keyframes sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ==========================================================================
+   Widget edge
+   A widget fills a transparent, square window, so an outer drop shadow can
+   never fall on the desktop. It only gets clipped into a faint square fringe
+   around the rounded corners, which shows clearly on light preview stages.
+   Keep every card's depth inside its own rounded silhouette instead.
+   ========================================================================== */
+.w,
+.card {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}

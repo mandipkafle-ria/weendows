@@ -15,9 +15,16 @@ export interface ByteRange {
   end: number
 }
 
-const VIDEO_MIME_TYPES: Record<string, string> = {
+const MEDIA_MIME_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4',
-  '.webm': 'video/webm'
+  '.webm': 'video/webm',
+  // Wallpaper images share this host so the settings desktop map can show the
+  // real wallpaper instead of the 320 px thumbnail.
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif'
 }
 
 export function resolveWallpaperThumbnail(
@@ -69,7 +76,7 @@ export function resolveWallpaperMedia(
   if (!id || !filename || !WALLPAPER_ID_RE.test(id) || basename(filename) !== filename) {
     return null
   }
-  const mime = VIDEO_MIME_TYPES[extname(filename).toLowerCase()]
+  const mime = MEDIA_MIME_TYPES[extname(filename).toLowerCase()]
   if (!mime) {
     return null
   }

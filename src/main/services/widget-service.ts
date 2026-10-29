@@ -26,6 +26,7 @@ export interface WidgetServiceOptions {
   notices?: NoticeService
   now?: () => string
   createId?: () => string
+  onBuiltinRefresh?: (info: { widgetId: string; type: string; files: number }) => void
 }
 
 function asError(error: unknown): Error {
@@ -61,6 +62,42 @@ async function writeFileAtomic(path: string, data: string): Promise<void> {
   await rename(temporary, path)
 }
 
+// Files inside an installed widget folder that hold user state. A builtin
+// refresh never touches them, so titles, grid contents and notes survive.
+const BUILTIN_STATE_FILES = new Set(['manifest.json', 'storage.json'])
+
+/**
+ * Copy changed files from the shipped builtin folder into an installed copy.
+ * Returns the number of files that were refreshed.
+ */
+async function syncBuiltinDirectory(source: string, target: string): Promise<number> {
+  const entries = await readdir(source, { withFileTypes: true }).catch(() => [])
+  let changed = 0
+
+  for (const entry of entries) {
+    if (!entry.isFile() || BUILTIN_STATE_FILES.has(entry.name)) {
+      continue
+    }
+    const from = join(source, entry.name)
+    const to = join(target, entry.name)
+    const shipped = await readFile(from).catch(() => null)
+    if (!shipped) {
+      continue
+    }
+    const installed = await readFile(to).catch(() => null)
+    if (installed?.equals(shipped)) {
+      continue
+    }
+    await mkdir(target, { recursive: true })
+    const temporary = `${to}.tmp-${process.pid}-${Date.now()}`
+    await writeFile(temporary, shipped)
+    await rename(temporary, to)
+    changed += 1
+  }
+
+  return changed
+}
+
 function approvedPermissions(manifest: AiManifest, approval: AiApproval): WidgetPermission[] {
   return approval.permissions.filter((permission) => manifest.permissions.includes(permission))
 }
@@ -87,6 +124,7 @@ export class WidgetService {
   private readonly notices: NoticeService | null
   private readonly now: () => string
   private readonly createId: () => string
+  private readonly onBuiltinRefresh: WidgetServiceOptions['onBuiltinRefresh']
   private readonly manifests = new Map<string, WidgetManifest>()
 
   constructor(options: WidgetServiceOptions) {
@@ -96,12 +134,47 @@ export class WidgetService {
     this.notices = options.notices ?? null
     this.now = options.now ?? (() => new Date().toISOString())
     this.createId = options.createId ?? (() => randomUUID())
+    this.onBuiltinRefresh = options.onBuiltinRefresh
   }
 
   async load(): Promise<void> {
     await this.layout.load()
     await this.cleanupPreviews()
     await this.syncManifests()
+    await this.syncBuiltinFiles()
+  }
+
+  /**
+   * Builtin widgets are copied into userData when they are added, so a shipped
+   * fix would never reach a desktop that already has the widget. Refresh the
+   * shipped files at every start; per-widget state is left alone.
+   */
+  async syncBuiltinFiles(): Promise<number> {
+    let refreshed = 0
+
+    for (const manifest of this.manifests.values()) {
+      if (manifest.kind !== 'builtin') {
+        continue
+      }
+      const builtin = findBuiltin(manifest.builtinType ?? '')
+      if (!builtin) {
+        continue
+      }
+      const changed = await syncBuiltinDirectory(
+        join(this.builtinsDir, builtin.type),
+        join(this.widgetsDir, manifest.id)
+      )
+      if (changed > 0) {
+        refreshed += 1
+        this.onBuiltinRefresh?.({
+          widgetId: manifest.id,
+          type: builtin.type,
+          files: changed
+        })
+      }
+    }
+
+    return refreshed
   }
 
   get layoutWasMissing(): boolean {

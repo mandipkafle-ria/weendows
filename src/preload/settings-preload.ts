@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IPC, type SettingsApi } from '../shared/ipc'
-import type { Notice, ThemeChangedEvent, WallpaperState } from '../shared/types'
+import type {
+  Notice,
+  ThemeChangedEvent,
+  WallpaperState,
+  WidgetDisabledEvent
+} from '../shared/types'
 
 const api: SettingsApi = {
   getAppInfo: () => ipcRenderer.invoke(IPC.getAppInfo),
@@ -31,6 +36,9 @@ const api: SettingsApi = {
   getBuiltins: () => ipcRenderer.invoke(IPC.getBuiltins),
   getWidgets: () => ipcRenderer.invoke(IPC.getWidgets),
   getWidgetRuntime: () => ipcRenderer.invoke(IPC.getWidgetRuntime),
+  getDisplays: () => ipcRenderer.invoke(IPC.getDisplays),
+  setWidgetBounds: (widgetId, bounds) =>
+    ipcRenderer.invoke(IPC.setWidgetBounds, widgetId, bounds),
   getSavedAiWidgets: () => ipcRenderer.invoke(IPC.getSavedAiWidgets),
   getWallpaperState: () => ipcRenderer.invoke(IPC.wallpaperGetState),
   addWallpapers: () => ipcRenderer.invoke(IPC.wallpaperAddFiles),
@@ -72,6 +80,13 @@ const api: SettingsApi = {
   getEditMode: () => ipcRenderer.invoke(IPC.getEditMode),
   setEditMode: (enabled) => ipcRenderer.invoke(IPC.setEditMode, enabled),
   getNotices: () => ipcRenderer.invoke(IPC.getNotices),
+  dismissNotice: (noticeId) => ipcRenderer.invoke(IPC.dismissNotice, noticeId),
+  clearNotices: () => ipcRenderer.invoke(IPC.clearNotices),
+  onWidgetDisabled: (callback) => {
+    const listener = (_event: IpcRendererEvent, info: WidgetDisabledEvent): void => callback(info)
+    ipcRenderer.on(IPC.widgetDisabled, listener)
+    return () => ipcRenderer.removeListener(IPC.widgetDisabled, listener)
+  },
   getAiConfig: () => ipcRenderer.invoke(IPC.aiGetConfig),
   saveAiSettings: (settings) => ipcRenderer.invoke(IPC.aiSaveSettings, settings),
   saveAiKey: (provider, key) => ipcRenderer.invoke(IPC.aiSaveKey, provider, key),

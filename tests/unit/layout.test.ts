@@ -3,6 +3,7 @@ import { DEFAULT_WIDGET_APPEARANCE } from '../../src/shared/appearance'
 import type { WidgetPlacement } from '../../src/shared/types'
 import {
   boundsForPlacement,
+  boundsFromRequest,
   centerBounds,
   clampPlacement,
   clampRect,
@@ -149,6 +150,35 @@ describe('placement conversion', () => {
     expect(
       displayForPlacement(placement({ displayId: 'secondary' }), [primary, secondary], primary).id
     ).toBe('secondary')
+  })
+})
+
+describe('desktop map bounds', () => {
+  const limits = { width: 160, height: 100 }
+
+  it('snaps a dragged rectangle to the grid and keeps its size', () => {
+    const rect = boundsFromRequest(primary, { x: 101, y: 53, width: 241, height: 141 }, limits, 48, 8)
+    expect(rect).toEqual({ x: 2024, y: 56, width: 240, height: 144 })
+  })
+
+  it('grows a rectangle that is smaller than the widget minimum', () => {
+    const rect = boundsFromRequest(primary, { x: 40, y: 24, width: 20, height: 20 }, limits, 48, 8)
+    expect(rect.width).toBe(160)
+    expect(rect.height).toBe(104)
+    expect(rect.x).toBe(1960)
+    expect(rect.y).toBe(24)
+  })
+
+  it('keeps the widget inside the work area when dragged off screen', () => {
+    const rect = boundsFromRequest(
+      primary,
+      { x: 9000, y: 9000, width: 240, height: 140 },
+      limits,
+      48,
+      8
+    )
+    expect(rect.x).toBe(primary.workArea.x + primary.workArea.width - 48)
+    expect(rect.y).toBe(primary.workArea.y + primary.workArea.height - 48)
   })
 })
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { appearanceCss, hasCustomAppearance } from '../../shared/appearance'
 import type {
   AppEntry,
   AppGridState,
@@ -27,13 +28,31 @@ interface WidgetPreviewProps {
   className?: string
 }
 
+const BROWSER_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-b" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%230066ff"/><stop offset="100%" stop-color="%2300d4ff"/></linearGradient><linearGradient id="needle-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23ff3366"/><stop offset="100%" stop-color="%23ff6b6b"/></linearGradient><linearGradient id="needle-w" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%23ffffff"/><stop offset="100%" stop-color="%23cbd5e1"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-b)"/><circle cx="32" cy="32" r="22" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="rgba(255,255,255,0.08)"/><circle cx="32" cy="32" r="16" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-dasharray="2 3" fill="none"/><g transform="rotate(45 32 32)"><polygon points="32,13 36,32 32,30 28,32" fill="url(%23needle-r)"/><polygon points="32,51 36,32 32,30 28,32" fill="url(%23needle-w)"/><circle cx="32" cy="32" r="3.5" fill="%23ffffff"/><circle cx="32" cy="32" r="1.8" fill="%230066ff"/></g></svg>'
+
+const FILES_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-f" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%230284c7"/><stop offset="100%" stop-color="%2338bdf8"/></linearGradient><linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%23ffffff"/><stop offset="100%" stop-color="%23f1f5f9"/></linearGradient><linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%2338bdf8"/><stop offset="100%" stop-color="%230369a1"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-f)"/><path d="M14 22c0-1.1.9-2 2-2h10l3 3h19c1.1 0 2 .9 2 2v23c0 1.1-.9 2-2 2H16c-1.1 0-2-.9-2-2V22z" fill="%23026aa2"/><rect x="18" y="22" width="28" height="20" rx="3" fill="url(%23sheet)"/><line x1="22" y1="27" x2="36" y2="27" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round"/><line x1="22" y1="32" x2="40" y2="32" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round"/><path d="M14 28c0-1.1.9-2 2-2h32c1.1 0 2 .9 2 2v18c0 2.2-1.8 4-4 4H18c-2.2 0-4-1.8-4-4V28z" fill="url(%23front)"/></svg>'
+
+const MUSIC_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-m" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%23ff007a"/><stop offset="50%" stop-color="%23a855f7"/><stop offset="100%" stop-color="%236366f1"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-m)"/><path d="M26 42a5 5 0 1 1-5-5c1.4 0 2.6.5 3.5 1.3V19c0-1.1.9-2 2-2l16-3.5c1.2-.3 2.5.6 2.5 1.8v18.2a5 5 0 1 1-5-5c1.4 0 2.6.5 3.5 1.3V21l-14 3v16.5a5 5 0 0 1-2.5-.5z" fill="%23ffffff"/></svg>'
+
+const TERMINAL_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-t" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%231e293b"/><stop offset="100%" stop-color="%230f172a"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-t)" stroke="rgba(255,255,255,0.14)" stroke-width="1.5"/><rect x="8" y="14" width="48" height="36" rx="6" fill="%23020617" stroke="rgba(255,255,255,0.08)"/><circle cx="15" cy="20" r="2" fill="%23ef4444"/><circle cx="21" cy="20" r="2" fill="%23f59e0b"/><circle cx="27" cy="20" r="2" fill="%2310b981"/><path d="M16 29l6 5-6 5" fill="none" stroke="%2322c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="26" y1="39" x2="36" y2="39" stroke="%2338bdf8" stroke-width="2.5" stroke-linecap="round"/></svg>'
+
+const NOTES_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-n" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%23f59e0b"/><stop offset="100%" stop-color="%23d97706"/></linearGradient><linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%23ffffff"/><stop offset="100%" stop-color="%23fef3c7"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-n)"/><rect x="14" y="12" width="36" height="40" rx="5" fill="url(%23paper)"/><line x1="20" y1="22" x2="44" y2="22" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="28" x2="44" y2="28" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="34" x2="44" y2="34" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="40" x2="34" y2="40" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round"/><g transform="translate(36,26) rotate(42)"><rect x="0" y="0" width="6" height="20" rx="2" fill="%23ef4444"/><polygon points="0,20 6,20 3,25" fill="%23fbbf24"/><polygon points="2,24 4,24 3,26" fill="%231e293b"/></g></svg>'
+
+const SETTINGS_ICON =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="bg-s" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="%2364748b"/><stop offset="100%" stop-color="%23334155"/></linearGradient><linearGradient id="gear" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="%23f8fafc"/><stop offset="100%" stop-color="%2394a3b8"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(%23bg-s)"/><g transform="translate(32,32)"><circle r="16" fill="url(%23gear)"/><circle r="7" fill="%23334155"/><circle r="4" fill="%231e293b"/><rect x="-3" y="-21" width="6" height="42" rx="2" fill="url(%23gear)"/><rect x="-3" y="-21" width="6" height="42" rx="2" fill="url(%23gear)" transform="rotate(45)"/><rect x="-3" y="-21" width="6" height="42" rx="2" fill="url(%23gear)" transform="rotate(90)"/><rect x="-3" y="-21" width="6" height="42" rx="2" fill="url(%23gear)" transform="rotate(135)"/></g></svg>'
+
 const DEMO_APPS: AppEntry[] = [
-  { id: 'preview-browser', name: 'Browser', kind: 'lnk', hidden: false, iconUrl: null },
-  { id: 'preview-files', name: 'Files', kind: 'lnk', hidden: false, iconUrl: null },
-  { id: 'preview-music', name: 'Music', kind: 'lnk', hidden: false, iconUrl: null },
-  { id: 'preview-terminal', name: 'Terminal', kind: 'lnk', hidden: false, iconUrl: null },
-  { id: 'preview-notes', name: 'Notes', kind: 'lnk', hidden: false, iconUrl: null },
-  { id: 'preview-settings', name: 'Settings', kind: 'uwp', hidden: false, iconUrl: null }
+  { id: 'preview-browser', name: 'Browser', kind: 'lnk', hidden: false, iconUrl: BROWSER_ICON },
+  { id: 'preview-files', name: 'Files', kind: 'lnk', hidden: false, iconUrl: FILES_ICON },
+  { id: 'preview-music', name: 'Music', kind: 'lnk', hidden: false, iconUrl: MUSIC_ICON },
+  { id: 'preview-terminal', name: 'Terminal', kind: 'lnk', hidden: false, iconUrl: TERMINAL_ICON },
+  { id: 'preview-notes', name: 'Notes', kind: 'lnk', hidden: false, iconUrl: NOTES_ICON },
+  { id: 'preview-settings', name: 'Settings', kind: 'uwp', hidden: false, iconUrl: SETTINGS_ICON }
 ]
 
 const DEMO_STATS: WidgetSystemStats = {
@@ -174,24 +193,51 @@ export default function WidgetPreview({
 }: WidgetPreviewProps): JSX.Element {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const appearanceRef = useRef(appearance)
+  const darkRef = useRef(dark)
+  const liveCssRef = useRef<string | null>(null)
   const [scale, setScale] = useState(1)
   const [appearanceToken, setAppearanceToken] = useState<string | null>(null)
   const key = previewKey(source)
-  const appearanceKey = useMemo(() => (appearance ? JSON.stringify(appearance) : ''), [appearance])
+  const hasAppearance = Boolean(appearance)
   const activeAppearanceToken = appearance ? appearanceToken : null
   const src = useMemo(
     () => previewUrl(source, dark, activeAppearanceToken, env),
     [activeAppearanceToken, dark, env, source]
   )
+  const liveCss = useMemo(() => {
+    if (!appearance) {
+      return null
+    }
+    const background = appearance.bgImage
+    const resolved =
+      assetWidgetId && background && !background.startsWith('data:')
+        ? { ...appearance, bgImage: `widget://${assetWidgetId}/${background}` }
+        : appearance
+    return hasCustomAppearance(resolved) ? appearanceCss(resolved) : ''
+  }, [appearance, assetWidgetId])
 
   useEffect(() => {
-    if (!appearance) {
+    appearanceRef.current = appearance
+  }, [appearance])
+
+  useEffect(() => {
+    darkRef.current = dark
+  }, [dark])
+
+  useEffect(() => {
+    liveCssRef.current = liveCss
+  }, [liveCss])
+
+  useEffect(() => {
+    const initial = appearanceRef.current
+    if (!initial) {
       return
     }
     let cancelled = false
     let token: string | null = null
     void window.api
-      .createWidgetPreview(appearance, dark ? 'dark' : 'light', assetWidgetId)
+      .createWidgetPreview(initial, darkRef.current ? 'dark' : 'light', assetWidgetId)
       .then((created) => {
         token = created
         if (!cancelled) {
@@ -205,7 +251,15 @@ export default function WidgetPreview({
         void window.api.releaseWidgetPreview(token)
       }
     }
-  }, [appearance, appearanceKey, assetWidgetId, dark])
+  }, [assetWidgetId, hasAppearance])
+
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame || liveCss === null) {
+      return
+    }
+    frame.contentWindow?.postMessage({ type: 'hl-appearance', css: liveCss }, '*')
+  }, [liveCss])
 
   useEffect(() => {
     const node = wrapRef.current
@@ -318,6 +372,9 @@ export default function WidgetPreview({
         port.start()
       }
       frame.contentWindow?.postMessage({ type: 'hl-init' }, '*', [channel.port2])
+      if (liveCssRef.current !== null) {
+        frame.contentWindow?.postMessage({ type: 'hl-appearance', css: liveCssRef.current }, '*')
+      }
     }
 
     frame.addEventListener('load', onLoad)

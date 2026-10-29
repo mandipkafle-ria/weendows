@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
-import { resolveWidgetAppearance } from '../../shared/appearance'
-import { findBuiltin, findBuiltinVariant } from '../../shared/builtins'
+import { findBuiltinVariant } from '../../shared/builtins'
 import { WIDGET_CATEGORIES } from '../../shared/types'
 import type {
   BuiltinWidget,
@@ -13,12 +12,13 @@ import type {
 } from '../../shared/types'
 import { t } from '../i18n'
 import type { ToastLevel } from './useToasts'
+import DesktopCanvas from './DesktopCanvas'
 import ThemeScene from './ThemeScene'
 import { THEME_OPTIONS, type ThemeEnvId } from './themeEnvironments'
 import WidgetCatalog from './WidgetCatalog'
 import WidgetCategoryPage from './WidgetCategoryPage'
 import WidgetCustomizeSheet from './WidgetCustomizeSheet'
-import WidgetPreview, { type PreviewSource } from './WidgetPreview'
+import WidgetPreview from './WidgetPreview'
 
 interface WidgetsPanelProps {
   widgets: WidgetSummary[]
@@ -33,8 +33,6 @@ interface WidgetsPanelProps {
 }
 
 type StudioView = 'browse' | 'desktop' | 'saved'
-
-const OPACITY_VALUES = [1, 0.8, 0.6]
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -65,31 +63,6 @@ function variantName(variantId: string): string {
   return value === key ? variantId : value
 }
 
-function previewDimensions(
-  manifest: WidgetManifest,
-  builtins: BuiltinWidget[]
-): { width: number; height: number } {
-  if (manifest.builtinType) {
-    const builtin = builtins.find((entry) => entry.type === manifest.builtinType)
-    if (builtin) {
-      const variant = findBuiltinVariant(builtin, manifest.variant)
-      return { width: variant.width, height: variant.height }
-    }
-  }
-  return { width: manifest.width, height: manifest.height }
-}
-
-function previewSource(manifest: WidgetManifest): PreviewSource {
-  if (manifest.kind === 'builtin' && manifest.builtinType) {
-    return {
-      kind: 'builtin',
-      type: manifest.builtinType,
-      variant: manifest.variant ?? 'classic'
-    }
-  }
-  return { kind: 'widget', id: manifest.id }
-}
-
 function SearchIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -112,7 +85,6 @@ export default function WidgetsPanel({
 }: WidgetsPanelProps): JSX.Element {
   const [pending, setPending] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
-  const [sortByRam, setSortByRam] = useState(false)
   const [view, setView] = useState<StudioView>('browse')
   const [browseSubView, setBrowseSubView] = useState<'scene' | 'catalog'>('scene')
   const [themeEnv, setThemeEnv] = useState<ThemeEnvId>('sky')
@@ -139,17 +111,6 @@ export default function WidgetsPanel({
     () => new Map(runtime.map((entry) => [entry.widgetId, entry])),
     [runtime]
   )
-
-  const orderedWidgets = useMemo(() => {
-    if (!sortByRam) {
-      return widgets
-    }
-    return [...widgets].sort(
-      (left, right) =>
-        (runtimeById.get(right.placement.widgetId)?.memoryMB ?? 0) -
-        (runtimeById.get(left.placement.widgetId)?.memoryMB ?? 0)
-    )
-  }, [runtimeById, sortByRam, widgets])
 
   const filteredBuiltins = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -638,13 +599,6 @@ export default function WidgetsPanel({
             <div className="toolbar-actions">
               <button
                 type="button"
-                className="button-quiet"
-                onClick={() => setSortByRam((current) => !current)}
-              >
-                {sortByRam ? t('widgets.sortDefault') : t('widgets.sortRam')}
-              </button>
-              <button
-                type="button"
                 className="button-primary"
                 onClick={() => {
                   setView('browse')
@@ -656,7 +610,7 @@ export default function WidgetsPanel({
             </div>
           </div>
 
-          {orderedWidgets.length === 0 ? (
+          {widgets.length === 0 ? (
             <div className="empty-state empty-desktop">
               <span className="empty-icon" aria-hidden="true">
                 {Array.from({ length: 9 }, (_, index) => (
@@ -677,254 +631,29 @@ export default function WidgetsPanel({
               </button>
             </div>
           ) : (
-            <div className="desktop-list">
-              {orderedWidgets.map((widget) => {
-                const { manifest, placement } = widget
-                const stats = runtimeById.get(placement.widgetId)
-                const opacityOptions = OPACITY_VALUES.includes(placement.opacity)
-                  ? OPACITY_VALUES
-                  : [...OPACITY_VALUES, placement.opacity].sort((left, right) => right - left)
-                const builtin = manifest.builtinType ? findBuiltin(manifest.builtinType) : undefined
-                const dimensions = previewDimensions(manifest, builtins)
-                const status = stats?.disabledReason
-                  ? t('widgets.statusDisabled')
-                  : placement.enabled
-                    ? t('widgets.statusRunning')
-                    : t('widgets.hiddenStatus')
-                const variantLabel =
-                  builtin && manifest.variant ? variantName(manifest.variant) : null
-                const themeLabel =
-                  placement.themeOverride === 'dark'
-                    ? t('general.themeDark')
-                    : placement.themeOverride === 'light'
-                      ? t('general.themeLight')
-                      : t('widgets.customize.themeAuto')
-                return (
-                  <article className="desktop-card" key={placement.widgetId}>
-                    <div className="desktop-thumb">
-                      <WidgetPreview
-                        source={previewSource(manifest)}
-                        width={dimensions.width}
-                        height={dimensions.height}
-                        dark={(placement.themeOverride ?? general.resolvedWidgetTheme) === 'dark'}
-                        appearance={resolveWidgetAppearance(placement)}
-                        assetWidgetId={placement.widgetId}
-                        cursorStyle={general.cursor.style}
-                        title={manifest.name}
-                      />
-                    </div>
-
-                    <div className="desktop-card-main">
-                      <div className="desktop-card-head">
-                        <div className="desktop-name">
-                          <h3>{manifest.name}</h3>
-                          <span className="meta-line">
-                            {manifest.kind === 'builtin'
-                              ? t('widgets.kindBuiltin')
-                              : t('widgets.kindAi')}{' '}
-                            &middot;{' '}
-                            {t('widgets.dimensions', {
-                              width: placement.width,
-                              height: placement.height
-                            })}
-                            {variantLabel ? ` · ${variantLabel}` : ''} &middot; {themeLabel}
-                          </span>
-                        </div>
-                        <div className="desktop-status">
-                          <span
-                            className={
-                              stats?.disabledReason
-                                ? 'status-pill status-bad'
-                                : placement.enabled
-                                  ? 'status-pill status-on'
-                                  : 'status-pill status-off'
-                            }
-                          >
-                            <span className="status-dot" aria-hidden="true" />
-                            {status}
-                          </span>
-                          {stats && (
-                            <span className="runtime-text">
-                              {stats.running
-                                ? `${stats.cpuPercent.toFixed(1)}% · ${Math.round(
-                                    stats.memoryMB
-                                  )} MB`
-                                : t('widgets.stopped')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="desktop-controls">
-                        {builtin && builtin.variants.length > 1 && (
-                          <label className="inline-field">
-                            <span>{t('widgets.design')}</span>
-                            <select
-                              value={manifest.variant ?? builtin.variants[0]?.id ?? ''}
-                              disabled={pending !== null}
-                              onChange={(event) => void changeVariant(widget, event.target.value)}
-                            >
-                              {builtin.variants.map((variant) => (
-                                <option value={variant.id} key={variant.id}>
-                                  {variantName(variant.id)}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
-                        <label className="inline-field">
-                          <span>{t('widgets.customize.theme')}</span>
-                          <select
-                            value={placement.themeOverride ?? 'auto'}
-                            disabled={pending !== null}
-                            onChange={(event) => void changeTheme(widget, event.target.value)}
-                          >
-                            <option value="auto">{t('widgets.customize.themeAuto')}</option>
-                            <option value="dark">{t('general.themeDark')}</option>
-                            <option value="light">{t('general.themeLight')}</option>
-                          </select>
-                        </label>
-                        <label className="inline-field">
-                          <span>{t('widgets.opacity')}</span>
-                          <select
-                            value={placement.opacity}
-                            disabled={pending !== null}
-                            onChange={(event) =>
-                              void setOpacity(widget, Number(event.target.value))
-                            }
-                          >
-                            {opacityOptions.map((value) => (
-                              <option value={value} key={value}>
-                                {Math.round(value * 100)}%
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <div className="desktop-quick-actions">
-                          <button
-                            type="button"
-                            className="button-secondary button-compact"
-                            onClick={() => void toggleEnabled(widget, !placement.enabled)}
-                            disabled={pending !== null || (general.safeMode && !placement.enabled)}
-                          >
-                            {placement.enabled ? t('common.disable') : t('common.enable')}
-                          </button>
-                          <button
-                            type="button"
-                            className="button-secondary button-compact"
-                            onClick={() => void toggleLocked(widget)}
-                            disabled={pending !== null}
-                          >
-                            {placement.locked ? t('widgets.unlock') : t('widgets.lock')}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="desktop-footer">
-                        <div className="desktop-row-actions">
-                          {builtin && (
-                            <button
-                              type="button"
-                              className="button-quiet button-compact"
-                              onClick={() => openCustomizeExisting(widget)}
-                            >
-                              {t('widgets.customize.action')}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="button-quiet button-compact"
-                            onClick={() =>
-                              void run(`duplicate:${placement.widgetId}`, () =>
-                                window.api.duplicateWidget(placement.widgetId)
-                              )
-                            }
-                            disabled={pending !== null || general.safeMode}
-                          >
-                            {t('widgets.duplicate')}
-                          </button>
-                          <details className="more-menu">
-                            <summary aria-label={t('widgets.moreActions')}>
-                              <span aria-hidden="true">&#8943;</span>
-                            </summary>
-                            <div className="more-menu-panel">
-                              {manifest.permissions.length === 0 ? (
-                                <span className="menu-info">{t('widgets.permissionsNone')}</span>
-                              ) : (
-                                <details className="menu-permissions">
-                                  <summary className="menu-item">
-                                    {t('widgets.permissionsCount', {
-                                      count: manifest.permissions.length
-                                    })}
-                                  </summary>
-                                  <div className="menu-permission-list">
-                                    {manifest.permissions.map((permission) => (
-                                      <label className="permission-toggle" key={permission}>
-                                        <input
-                                          type="checkbox"
-                                          checked={manifest.grantedPermissions.includes(permission)}
-                                          disabled={pending !== null}
-                                          onChange={(event) =>
-                                            void togglePermission(
-                                              widget,
-                                              permission,
-                                              event.target.checked
-                                            )
-                                          }
-                                        />
-                                        <span>{permissionText(permission)}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                  {manifest.allowedHosts.length > 0 && (
-                                    <span className="permission-hosts">
-                                      {t('widgets.approvedHosts', {
-                                        hosts: manifest.allowedHosts.join(', ')
-                                      })}
-                                    </span>
-                                  )}
-                                </details>
-                              )}
-                              <button
-                                type="button"
-                                className="menu-item"
-                                onClick={() =>
-                                  void run(`reload:${placement.widgetId}`, () =>
-                                    window.api.reloadWidget(placement.widgetId)
-                                  )
-                                }
-                                disabled={pending !== null}
-                              >
-                                {t('widgets.reload')}
-                              </button>
-                              {manifest.kind === 'ai' && (
-                                <button
-                                  type="button"
-                                  className="menu-item"
-                                  onClick={() => onEditWithAi(placement.widgetId)}
-                                >
-                                  {t('widgets.editWithAi')}
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="menu-item menu-item-danger"
-                                onClick={() => void removeWidget(placement.widgetId)}
-                                disabled={pending !== null}
-                              >
-                                {pending === `remove:${placement.widgetId}`
-                                  ? t('common.removing')
-                                  : t('common.remove')}
-                              </button>
-                            </div>
-                          </details>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
+            <DesktopCanvas
+              widgets={widgets}
+              general={general}
+              runtimeById={runtimeById}
+              pending={pending}
+              onRefresh={onRefresh}
+              onCustomize={openCustomizeExisting}
+              onVariant={changeVariant}
+              onTheme={changeTheme}
+              onOpacity={setOpacity}
+              onToggleEnabled={toggleEnabled}
+              onToggleLocked={toggleLocked}
+              onDuplicate={(widgetId) =>
+                void run(`duplicate:${widgetId}`, () => window.api.duplicateWidget(widgetId))
+              }
+              onReload={(widgetId) =>
+                void run(`reload:${widgetId}`, () => window.api.reloadWidget(widgetId))
+              }
+              onRemove={removeWidget}
+              onPermission={togglePermission}
+              onEditWithAi={onEditWithAi}
+              toast={toast}
+            />
           )}
         </section>
       )}

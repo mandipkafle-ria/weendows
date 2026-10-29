@@ -36,6 +36,7 @@ import {
   wallpaperLiveOptionsSchema,
   wallpaperSlideshowSchema,
   widgetAppearancePatchSchema,
+  widgetBoundsPatchSchema,
   widgetIdSchema,
   widgetVariantSchema
 } from '../shared/schemas'
@@ -446,6 +447,19 @@ export function registerIpcHandlers(services: IpcServices): void {
     })
   })
 
+  ipcMain.handle(IPC.getDisplays, (event, ...args) => {
+    assertSettingsSender(event)
+    assertNoArgs(args)
+    return services.layout.listDisplays()
+  })
+
+  ipcMain.handle(IPC.setWidgetBounds, (event, ...args) => {
+    assertSettingsSender(event)
+    const widgetId = widgetIdSchema.parse(args[0])
+    const bounds = widgetBoundsPatchSchema.parse(args[1])
+    return services.layout.setWidgetBounds(widgetId, bounds)
+  })
+
   ipcMain.handle(IPC.getSavedAiWidgets, (event, ...args) => {
     assertSettingsSender(event)
     assertNoArgs(args)
@@ -765,6 +779,18 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertSettingsSender(event)
     assertNoArgs(args)
     return services.notices.list()
+  })
+
+  ipcMain.handle(IPC.dismissNotice, (event, ...args) => {
+    assertSettingsSender(event)
+    const noticeId = z.string().min(1).max(64).parse(args[0])
+    services.notices.remove(noticeId)
+  })
+
+  ipcMain.handle(IPC.clearNotices, (event, ...args) => {
+    assertSettingsSender(event)
+    assertNoArgs(args)
+    services.notices.clear()
   })
 
   ipcMain.handle(IPC.shellGetState, (event, ...args) => {

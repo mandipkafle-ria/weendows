@@ -38,9 +38,12 @@ import {
 } from '../../shared/appearance'
 import type {
   CursorConfig,
+  DesktopDisplayInfo,
   ShellState,
   ThemeSource,
   WidgetAppearance,
+  WidgetBoundsPatch,
+  WidgetDisabledEvent,
   WidgetEventName,
   WidgetManifest,
   WidgetPlacement,
@@ -61,6 +64,7 @@ import {
 } from '../native/desktop-layer'
 import {
   boundsForPlacement,
+  boundsFromRequest,
   centerBounds,
   clampPlacement,
   clampRect,
@@ -141,6 +145,7 @@ export class LayoutService {
   private readonly badgeSenders = new Map<number, string>()
   private readonly failures = new Map<string, number[]>()
   private readonly disabledReasons = new Map<string, string>()
+  private readonly disabledListeners = new Set<(event: WidgetDisabledEvent) => void>()
   private readonly reloading = new Set<string>()
   private readonly autoReloadTimers = new Map<string, NodeJS.Timeout>()
   private readonly resizeTimers = new Map<string, NodeJS.Timeout>()
@@ -224,6 +229,13 @@ export class LayoutService {
   onWidgetsChanged(listener: () => void): () => void {
     this.changeListeners.add(listener)
     return () => this.changeListeners.delete(listener)
+  }
+
+  /** Told when a widget disables itself (badge stop, crash loop) so the
+   *  settings window can show a toast instead of a persistent notice. */
+  onWidgetDisabled(listener: (event: WidgetDisabledEvent) => void): () => void {
+    this.disabledListeners.add(listener)
+    return () => this.disabledListeners.delete(listener)
   }
 
   getSummaries(): WidgetSummary[] {
@@ -585,6 +597,65 @@ export class LayoutService {
     }
     this.emitChanged()
     return true
+  }
+
+  /** Every display with its DIP bounds and work area, primary first-class. */
+  listDisplays(): DesktopDisplayInfo[] {
+    const primaryId = String(screen.getPrimaryDisplay().id)
+    return screen.getAllDisplays().map((display) => ({
+      id: String(display.id),
+      bounds: { ...display.bounds },
+      workArea: { ...display.workArea },
+      primary: String(display.id) === primaryId,
+      scaleFactor: display.scaleFactor
+    }))
+  }
+
+  /**
+   * Move or resize a widget from the settings desktop map. The rectangle is
+   * relative to the target display, snapped to the same 8 DIP grid as dragging
+   * on the real desktop, clamped to the work area, then applied to the live
+   * window so the desktop updates immediately.
+   */
+  setWidgetBounds(widgetId: string, patch: WidgetBoundsPatch): WidgetSummary | null {
+    const placement = this.widgetService.getPlacement(widgetId)
+    const manifest = this.widgetService.getManifest(widgetId)
+    if (!placement || !manifest) {
+      return null
+    }
+    if (placement.locked) {
+      return this.widgetService.getSummary(widgetId)
+    }
+
+    const displays = screen.getAllDisplays()
+    const target =
+      displays.find((display) => String(display.id) === patch.displayId) ??
+      screen.getPrimaryDisplay()
+    const display = toDisplayLike(target)
+    const limits = effectiveMinSize(manifest)
+    const bounds = boundsFromRequest(
+      display,
+      patch,
+      { width: limits.minWidth, height: limits.minHeight },
+      MIN_VISIBLE_DIP,
+      SNAP_STEP_DIP
+    )
+
+    const updated = this.widgetService.updatePlacement(
+      widgetId,
+      placementFromBounds(placement, bounds, display)
+    )
+    if (!updated) {
+      return null
+    }
+
+    const managed = this.managed.get(widgetId)
+    if (managed) {
+      managed.win.setBounds(bounds)
+      this.sendState(managed)
+    }
+    this.emitChanged()
+    return this.widgetService.getSummary(widgetId)
   }
 
   async setWidgetAppearance(
@@ -1224,10 +1295,14 @@ export class LayoutService {
     }
 
     this.disabledReasons.set(widgetId, reason)
-    this.notices.add(
-      'error',
-      t('widgets.disabledNotice', { name: manifest?.name ?? widgetId, reason })
-    )
+    const event: WidgetDisabledEvent = {
+      widgetId,
+      name: manifest?.name ?? widgetId,
+      reason
+    }
+    for (const listener of this.disabledListeners) {
+      listener(event)
+    }
     this.detach(widgetId)
     this.emitChanged()
   }

@@ -136,6 +136,35 @@ export function clampPlacement(
   return placementFromBounds(placement, clamped, display)
 }
 
+/**
+ * Turn a display-relative rectangle (as dragged on the settings desktop map)
+ * into absolute bounds: grow to the minimum size, snap to the grid, then keep
+ * enough of the widget inside the work area.
+ */
+export function boundsFromRequest(
+  display: DisplayLike,
+  request: { x: number; y: number; width: number; height: number },
+  minSize: Size,
+  minVisible: number,
+  snapStep: number
+): Rect {
+  const width = Math.max(minSize.width, Math.round(request.width))
+  const height = Math.max(minSize.height, Math.round(request.height))
+  return clampRect(
+    snapRect(
+      {
+        x: display.bounds.x + request.x,
+        y: display.bounds.y + request.y,
+        width,
+        height
+      },
+      snapStep
+    ),
+    display.workArea,
+    minVisible
+  )
+}
+
 export function displayForPlacement(
   placement: WidgetPlacement,
   displays: readonly DisplayLike[],

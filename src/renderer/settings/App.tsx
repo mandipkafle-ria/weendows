@@ -106,6 +106,14 @@ function App(): JSX.Element {
     setRuntime(await window.api.getWidgetRuntime())
   }, [])
 
+  const dismissNotice = (noticeId: string): void => {
+    void window.api.dismissNotice(noticeId).catch(() => undefined)
+  }
+
+  const clearNotices = (): void => {
+    void window.api.clearNotices().catch(() => undefined)
+  }
+
   useEffect(() => {
     let cancelled = false
 
@@ -157,14 +165,20 @@ function App(): JSX.Element {
         })
         .catch(() => undefined)
     })
+    const offDisabled = window.api.onWidgetDisabled((info) => {
+      // A widget stopped from its problem badge should not leave a banner
+      // behind; a short toast is enough.
+      pushToast(t('widgets.disabledToast', { name: info.name }), 'info')
+    })
 
     return () => {
       cancelled = true
       offWidgets()
       offNotices()
       offTheme()
+      offDisabled()
     }
-  }, [refreshRuntime, refreshWidgets])
+  }, [pushToast, refreshRuntime, refreshWidgets])
 
   useEffect(() => {
     const root = document.documentElement
@@ -336,11 +350,27 @@ function App(): JSX.Element {
 
           {notices.length > 0 && (
             <section className="notices" aria-live="polite" aria-label={t('app.noticesLabel')}>
-              {notices.map((notice) => (
-                <div className={`notice notice-${notice.level}`} key={notice.id}>
-                  {notice.message}
-                </div>
-              ))}
+              <div className="notices-head">
+                <span>{t('app.noticesHeading')}</span>
+                <button type="button" className="notices-clear" onClick={clearNotices}>
+                  {t('app.clearNotices')}
+                </button>
+              </div>
+              <div className="notices-list">
+                {notices.map((notice) => (
+                  <div className={`notice notice-${notice.level}`} key={notice.id}>
+                    <span className="notice-message">{notice.message}</span>
+                    <button
+                      type="button"
+                      className="notice-dismiss"
+                      aria-label={t('app.dismissNotice')}
+                      onClick={() => dismissNotice(notice.id)}
+                    >
+                      &#10005;
+                    </button>
+                  </div>
+                ))}
+              </div>
             </section>
           )}
 

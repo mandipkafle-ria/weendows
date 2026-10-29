@@ -29,7 +29,11 @@ function placement(overrides: Partial<WidgetPlacement> = {}): Omit<WidgetPlaceme
   }
 }
 
-async function makeService(): Promise<{ service: WidgetService; widgetsDir: string }> {
+async function makeService(): Promise<{
+  service: WidgetService
+  widgetsDir: string
+  builtinsDir: string
+}> {
   const root = await mkdtemp(join(tmpdir(), 'homelayer-widget-service-'))
   roots.push(root)
   const widgetsDir = join(root, 'widgets')
@@ -53,7 +57,7 @@ async function makeService(): Promise<{ service: WidgetService; widgetsDir: stri
     createId: () => `ai-test-${++sequence}`
   })
   await service.load()
-  return { service, widgetsDir }
+  return { service, widgetsDir, builtinsDir }
 }
 
 async function createSavedWidget(service: WidgetService): Promise<string> {
@@ -136,6 +140,34 @@ describe('built-in variants', () => {
 
     expect(updated.variant).toBe('terminal')
     expect(service.getPlacement(summary.manifest.id)).toMatchObject({ width: 225, height: 120 })
+  })
+})
+
+describe('builtin refresh', () => {
+  it('refreshes shipped files and keeps per-widget state', async () => {
+    const { service, widgetsDir, builtinsDir } = await makeService()
+    const clock = findBuiltin('clock')
+    if (!clock) {
+      throw new Error('Clock built-in is missing')
+    }
+
+    const summary = await service.create(clock, placement())
+    const folder = join(widgetsDir, summary.manifest.id)
+    await writeFile(join(folder, 'storage.json'), '{"note":"keep"}')
+
+    await writeFile(
+      join(builtinsDir, 'clock', 'index.html'),
+      '<!doctype html><title>Clock v2</title>'
+    )
+    await writeFile(join(builtinsDir, 'clock', 'icons.js'), '/* icons v2 */')
+
+    const refreshed = await service.syncBuiltinFiles()
+
+    expect(refreshed).toBe(1)
+    expect(await readFile(join(folder, 'index.html'), 'utf8')).toContain('Clock v2')
+    expect(await readFile(join(folder, 'icons.js'), 'utf8')).toBe('/* icons v2 */')
+    expect(await readFile(join(folder, 'storage.json'), 'utf8')).toBe('{"note":"keep"}')
+    expect(await service.syncBuiltinFiles()).toBe(0)
   })
 })
 

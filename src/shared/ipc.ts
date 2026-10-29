@@ -15,6 +15,7 @@ import type {
   BundlePopoverResult,
   BundlePopoverState,
   DiagnosticsExport,
+  DesktopDisplayInfo,
   GeneralState,
   Notice,
   ShellState,
@@ -30,6 +31,8 @@ import type {
   WidgetManifest,
   WidgetPermission,
   WidgetAppearance,
+  WidgetBoundsPatch,
+  WidgetDisabledEvent,
   WidgetRuntimeInfo,
   WidgetSummary,
   WidgetSystemStats
@@ -63,6 +66,8 @@ export const IPC = {
   getBuiltins: 'widgets:get-builtins',
   getWidgets: 'widgets:get-all',
   getWidgetRuntime: 'widgets:get-runtime',
+  getDisplays: 'layout:get-displays',
+  setWidgetBounds: 'layout:set-widget-bounds',
   getSavedAiWidgets: 'widgets:get-saved-ai',
   addWidget: 'widgets:add',
   addAiWidgetCopy: 'widgets:add-ai-copy',
@@ -81,6 +86,9 @@ export const IPC = {
   editModeChanged: 'layout:edit-mode-changed',
   getNotices: 'notices:get',
   noticesChanged: 'notices:changed',
+  dismissNotice: 'notices:dismiss',
+  clearNotices: 'notices:clear',
+  widgetDisabled: 'widgets:disabled',
   shellGetState: 'shell:get-state',
   shellStateChanged: 'shell:state-changed',
   shellDragStart: 'shell:drag-start',
@@ -219,6 +227,8 @@ export interface SettingsApi {
   getBuiltins: () => Promise<BuiltinWidget[]>
   getWidgets: () => Promise<WidgetSummary[]>
   getWidgetRuntime: () => Promise<WidgetRuntimeInfo[]>
+  getDisplays: () => Promise<DesktopDisplayInfo[]>
+  setWidgetBounds: (widgetId: string, bounds: WidgetBoundsPatch) => Promise<WidgetSummary | null>
   getSavedAiWidgets: () => Promise<WidgetManifest[]>
   getWallpaperState: () => Promise<WallpaperState>
   addWallpapers: () => Promise<WallpaperState>
@@ -268,6 +278,9 @@ export interface SettingsApi {
   getEditMode: () => Promise<boolean>
   setEditMode: (enabled: boolean) => Promise<boolean>
   getNotices: () => Promise<Notice[]>
+  dismissNotice: (noticeId: string) => Promise<void>
+  clearNotices: () => Promise<void>
+  onWidgetDisabled: (callback: (event: WidgetDisabledEvent) => void) => () => void
   getAiConfig: () => Promise<AiConfig>
   saveAiSettings: (settings: AiSettings) => Promise<AiConfig>
   saveAiKey: (provider: AiConfig['provider'], key: string) => Promise<AiConfig>

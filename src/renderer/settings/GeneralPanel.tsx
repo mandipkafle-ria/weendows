@@ -13,6 +13,45 @@ const ACCENT_LABEL_KEYS: Record<AccentColor, string> = {
   rose: 'general.accentRose'
 }
 
+function ThemeIcon({ mode }: { mode: ThemeSource }): JSX.Element {
+  const common = {
+    className: 'segment-icon',
+    viewBox: '0 0 24 24',
+    width: 13,
+    height: 13,
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true
+  }
+
+  if (mode === 'light') {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="4.2" />
+        <path d="M12 2.6v2.1M12 19.3v2.1M4.3 4.3l1.5 1.5M18.2 18.2l1.5 1.5M2.6 12h2.1M19.3 12h2.1M4.3 19.7l1.5-1.5M18.2 5.8l1.5-1.5" />
+      </svg>
+    )
+  }
+
+  if (mode === 'system') {
+    return (
+      <svg {...common}>
+        <rect x="3" y="4" width="18" height="12" rx="2" />
+        <path d="M9 20h6M12 16v4" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2z" />
+    </svg>
+  )
+}
+
 interface GeneralPanelProps {
   general: GeneralState
   onGeneral: (general: GeneralState) => void
@@ -212,7 +251,8 @@ export default function GeneralPanel({
             <span>{t('general.settingsThemeHint')}</span>
           </div>
           <div
-            className="segmented-control"
+            className="segmented-control mode-switch"
+            data-tone={general.theme === 'system' ? 'auto' : general.theme}
             role="radiogroup"
             aria-label={t('general.settingsTheme')}
           >
@@ -232,6 +272,7 @@ export default function GeneralPanel({
                 disabled={pending !== null}
                 onClick={() => void setTheme(value)}
               >
+                <ThemeIcon mode={value} />
                 {label}
               </button>
             ))}
@@ -244,7 +285,10 @@ export default function GeneralPanel({
             <span>{t('general.widgetDefaultThemeHint')}</span>
           </div>
           <div
-            className="segmented-control"
+            className="segmented-control mode-switch"
+            data-tone={
+              general.widgetDefaultTheme === 'system' ? 'auto' : general.widgetDefaultTheme
+            }
             role="radiogroup"
             aria-label={t('general.widgetDefaultTheme')}
           >
@@ -264,6 +308,7 @@ export default function GeneralPanel({
                 disabled={pending !== null}
                 onClick={() => void setWidgetDefaultTheme(value)}
               >
+                <ThemeIcon mode={value} />
                 {label}
               </button>
             ))}

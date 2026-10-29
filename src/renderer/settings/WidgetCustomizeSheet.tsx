@@ -7,7 +7,8 @@ import type {
   WidgetAppearance,
   WidgetBgImageFit,
   WidgetBgStyle,
-  WidgetSummary
+  WidgetSummary,
+  WidgetVariant
 } from '../../shared/types'
 import { t } from '../i18n'
 import ColorPicker from './ColorPicker'
@@ -43,6 +44,79 @@ function catalogName(type: string, fallback: string): string {
   const key = `widgets.catalog.${type}.name`
   const value = t(key)
   return value === key ? fallback : value
+}
+
+// A small abstract mark for each design, so the picker reads as a visual set
+// instead of a row of identical pills. Variant tags carry the intent ("neon",
+// "analog", "minimal"...), so the mark follows the design language.
+function variantMotif(variant: WidgetVariant): JSX.Element {
+  const key = [variant.id, ...(variant.tags ?? [])].join(' ')
+  const common = {
+    viewBox: '0 0 24 24',
+    width: 18,
+    height: 18,
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.7,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true
+  }
+
+  if (/analog|ring|dial|orbit/i.test(key)) {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 7.5V12l2.6 2.2" />
+      </svg>
+    )
+  }
+  if (/neon|glow|cyber|aurora|electric|pulse/i.test(key)) {
+    return (
+      <svg {...common}>
+        <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z" />
+      </svg>
+    )
+  }
+  if (/terminal|mono|pixel|retro|matrix|type|dot/i.test(key)) {
+    return (
+      <svg {...common}>
+        <rect x="3" y="4.5" width="18" height="15" rx="2.6" />
+        <path d="M7.5 10 10 12.5l-2.5 2.5M12.6 15h4" />
+      </svg>
+    )
+  }
+  if (/minimal|clean|bare|slim|serene/i.test(key)) {
+    return (
+      <svg {...common}>
+        <path d="M4 9h16M4 15h9" />
+      </svg>
+    )
+  }
+  if (/glass|frost|blur|crystal/i.test(key)) {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+        <path d="M8.5 15.5 15.5 8.5" opacity="0.6" />
+      </svg>
+    )
+  }
+  if (/calendar|grid|month|week|apps|folder|tile/i.test(key)) {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="3.5" width="7" height="7" rx="1.8" />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="1.8" />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="1.8" />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="1.8" />
+      </svg>
+    )
+  }
+  return (
+    <svg {...common}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+      <path d="M8 10h8M8 14h5" />
+    </svg>
+  )
 }
 
 export default function WidgetCustomizeSheet({
@@ -226,38 +300,61 @@ export default function WidgetCustomizeSheet({
           <div className="customize-controls">
             <section className="customize-section">
               <h3>{t('widgets.customize.design')}</h3>
-              <div className="variant-row" role="radiogroup" aria-label={t('widgets.design')}>
-                {builtin.variants.map((entry) => (
-                  <button
-                    type="button"
-                    key={entry.id}
-                    role="radio"
-                    aria-checked={variant === entry.id}
-                    className={
-                      variant === entry.id ? 'variant-pill variant-active' : 'variant-pill'
-                    }
-                    onClick={() => setVariant(entry.id)}
-                  >
-                    {variantName(entry.id)}
-                  </button>
-                ))}
+              <div className="design-grid" role="radiogroup" aria-label={t('widgets.design')}>
+                {builtin.variants.map((entry) => {
+                  const selected = variant === entry.id
+                  return (
+                    <button
+                      type="button"
+                      key={entry.id}
+                      role="radio"
+                      aria-checked={selected}
+                      title={`${entry.width} × ${entry.height}`}
+                      className={selected ? 'design-card design-card-active' : 'design-card'}
+                      onClick={() => setVariant(entry.id)}
+                    >
+                      <span className="design-card-motif" aria-hidden="true">
+                        {variantMotif(entry)}
+                      </span>
+                      <span className="design-card-text">
+                        <span className="design-card-name">{variantName(entry.id)}</span>
+                        <span className="design-card-size">
+                          {entry.width} × {entry.height}
+                        </span>
+                      </span>
+                      <span className="design-card-check" aria-hidden="true">
+                        <svg viewBox="0 0 12 12" width="10" height="10">
+                          <path
+                            d="M2.4 6.2 4.7 8.5 9.6 3.6"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </section>
 
             <section className="customize-section">
               <h3>{t('widgets.customize.theme')}</h3>
               <div
-                className="segmented-control"
+                className="segmented-control mode-switch"
+                data-tone={appearance.themeOverride ?? 'auto'}
                 role="radiogroup"
                 aria-label={t('widgets.customize.theme')}
               >
                 {(
                   [
-                    [null, t('widgets.customize.themeAuto')],
-                    ['dark', t('general.themeDark')],
-                    ['light', t('general.themeLight')]
+                    [null, t('widgets.customize.themeAuto'), 'auto'],
+                    ['dark', t('general.themeDark'), 'dark'],
+                    ['light', t('general.themeLight'), 'light']
                   ] as const
-                ).map(([value, label]) => (
+                ).map(([value, label, mode]) => (
                   <button
                     type="button"
                     role="radio"
@@ -266,7 +363,58 @@ export default function WidgetCustomizeSheet({
                     key={value ?? 'auto'}
                     onClick={() => update({ themeOverride: value })}
                   >
-                    {label}
+                    {mode === 'auto' && (
+                      <svg
+                        className="segment-icon"
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z" />
+                      </svg>
+                    )}
+                    {mode === 'dark' && (
+                      <svg
+                        className="segment-icon"
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                      </svg>
+                    )}
+                    {mode === 'light' && (
+                      <svg
+                        className="segment-icon"
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="5" />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                      </svg>
+                    )}
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
@@ -279,16 +427,69 @@ export default function WidgetCustomizeSheet({
                 role="radiogroup"
                 aria-label={t('widgets.customize.background')}
               >
-                {(['solid', 'blur', 'transparent'] as WidgetBgStyle[]).map((style) => (
+                {(
+                  [
+                    ['solid', t('widgets.customize.bg_solid'), 'solid'],
+                    ['blur', t('widgets.customize.bg_blur'), 'blur'],
+                    ['transparent', t('widgets.customize.bg_transparent'), 'transparent']
+                  ] as const
+                ).map(([style, label, bgKind]) => (
                   <button
                     type="button"
                     role="radio"
                     aria-checked={appearance.bgStyle === style}
                     className={appearance.bgStyle === style ? 'segment-active' : ''}
                     key={style}
-                    onClick={() => update({ bgStyle: style })}
+                    onClick={() => update({ bgStyle: style as WidgetBgStyle })}
                   >
-                    {t(`widgets.customize.bg_${style}`)}
+                    {bgKind === 'solid' && (
+                      <svg
+                        className="segment-icon"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="4" />
+                      </svg>
+                    )}
+                    {bgKind === 'blur' && (
+                      <svg
+                        className="segment-icon"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                        <path
+                          d="M12 3a9 9 0 0 0 0 18v-18z"
+                          fill="currentColor"
+                          fillOpacity="0.45"
+                        />
+                      </svg>
+                    )}
+                    {bgKind === 'transparent' && (
+                      <svg
+                        className="segment-icon"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="4" />
+                        <line x1="3" y1="21" x2="21" y2="3" />
+                      </svg>
+                    )}
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
@@ -370,6 +571,14 @@ export default function WidgetCustomizeSheet({
                 max={64}
                 suffix="px"
                 onChange={(cornerRadius) => update({ cornerRadius })}
+              />
+              <SliderField
+                label={t('widgets.customize.borderWidth')}
+                value={appearance.borderWidth}
+                min={0}
+                max={8}
+                suffix="px"
+                onChange={(borderWidth) => update({ borderWidth })}
               />
               <SliderField
                 label={t('widgets.customize.border')}

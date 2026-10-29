@@ -239,7 +239,10 @@ if (!hasLock) {
         widgetsDir,
         builtinsDir,
         layout: layoutStore,
-        notices
+        notices,
+        onBuiltinRefresh: (info) => {
+          log.info('Refreshed builtin widget files', info)
+        }
       })
       widgetService = service
       await service.load()
@@ -538,6 +541,13 @@ if (!hasLock) {
         const settings = getSettingsWindow()
         if (settings && !settings.isDestroyed()) {
           settings.webContents.send(IPC.widgetsChanged)
+        }
+      })
+
+      layoutService.onWidgetDisabled((info) => {
+        const settings = getSettingsWindow()
+        if (settings && !settings.isDestroyed()) {
+          settings.webContents.send(IPC.widgetDisabled, info)
         }
       })
 

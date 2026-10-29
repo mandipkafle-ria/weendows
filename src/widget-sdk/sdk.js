@@ -61,6 +61,26 @@
     })
   })
 
+  window.addEventListener('message', function (event) {
+    if (event.source !== window.parent || !event.data || event.data.type !== 'hl-appearance') {
+      return
+    }
+    var css = typeof event.data.css === 'string' ? event.data.css : ''
+    var style = document.querySelector('style[data-homelayer-appearance]')
+    if (!css) {
+      if (style && style.parentNode) {
+        style.parentNode.removeChild(style)
+      }
+      return
+    }
+    if (!style) {
+      style = document.createElement('style')
+      style.setAttribute('data-homelayer-appearance', '')
+      document.head.appendChild(style)
+    }
+    style.textContent = css
+  })
+
   function call(method, params) {
     return new Promise(function (resolve, reject) {
       var id = ++seq

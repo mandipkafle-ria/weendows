@@ -49,6 +49,7 @@ export interface WidgetAppearance {
   bgImage: string | null
   bgImageFit: WidgetBgImageFit
   cornerRadius: number
+  borderWidth: number
   borderOpacity: number
   borderColor: string | null
   contentOpacity: number
@@ -187,6 +188,31 @@ export interface WidgetRuntimeInfo {
   enabled: boolean
   disabledReason: string | null
   failures: number
+}
+
+/** Sent to the settings window when a widget is disabled outside of it. */
+export interface WidgetDisabledEvent {
+  widgetId: string
+  name: string
+  reason: string
+}
+
+/** One physical display, in DIP, as the OS reports it. */
+export interface DesktopDisplayInfo {
+  id: string
+  bounds: { x: number; y: number; width: number; height: number }
+  workArea: { x: number; y: number; width: number; height: number }
+  primary: boolean
+  scaleFactor: number
+}
+
+/** A widget rectangle expressed relative to one display's top-left corner. */
+export interface WidgetBoundsPatch {
+  displayId: string
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 export interface AppBundleSummary {
