@@ -3,6 +3,7 @@ import { findBuiltinVariant } from '../../shared/builtins'
 import type { BuiltinWidget, GeneralState, WidgetCategory, WidgetVariant } from '../../shared/types'
 import { t } from '../i18n'
 import type { ThemeEnvId } from './themeEnvironments'
+import ExpandableSearch from './ExpandableSearch'
 import WidgetPreview from './WidgetPreview'
 
 const PARTICLE_COUNT: Record<ThemeEnvId, number> = {
@@ -136,7 +137,11 @@ export default function ThemeScene({
       data-theme-env={themeEnv}
       data-theme-mode={themeMode ?? (sceneDark ? 'dark' : 'light')}
     >
-      <div className="scene-atmosphere" key={`${themeEnv}-${sceneDark ? 'dark' : 'light'}`} aria-hidden="true">
+      <div
+        className="scene-atmosphere"
+        key={`${themeEnv}-${sceneDark ? 'dark' : 'light'}`}
+        aria-hidden="true"
+      >
         <div className="scene-cloud scene-cloud-1" />
         <div className="scene-cloud scene-cloud-2" />
         <div className="scene-cloud scene-cloud-3" />
@@ -207,16 +212,14 @@ export default function ThemeScene({
           ))}
         </div>
 
-        <label className="scene-filter-search">
-          <span className="sr-only">{t('widgets.searchLabel')}</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={t('widgets.searchPlaceholder')}
-            spellCheck={false}
-          />
-        </label>
+        <ExpandableSearch
+          className="scene-filter-search"
+          value={query}
+          onChange={onQueryChange}
+          label={t('widgets.searchLabel')}
+          placeholder={t('widgets.searchPlaceholder')}
+          clearLabel={t('widgets.clearSearch')}
+        />
 
         <button type="button" className="scene-catalog-btn" onClick={onSwitchToCatalog}>
           {t('widgets.galleryTitle')}

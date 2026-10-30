@@ -14,12 +14,13 @@ import AppAiPanel from './AiPanel'
 import AppsPanel from './AppsPanel'
 import GeneralPanel from './GeneralPanel'
 import Onboarding from './Onboarding'
+import TaskbarPanel from './TaskbarPanel'
 import { ToastStack } from './Toasts'
 import { useToasts } from './useToasts'
 import WallpaperPanel from './WallpaperPanel'
 import WidgetsPanel from './WidgetsPanel'
 
-type TabId = 'general' | 'widgets' | 'apps' | 'wallpapers' | 'ai' | 'about'
+type TabId = 'general' | 'widgets' | 'apps' | 'wallpapers' | 'taskbar' | 'ai' | 'about'
 type NavGroup = 'desktop' | 'tools' | 'app'
 
 const DEFAULT_TAB: { id: TabId; label: string; subtitle: string; group: NavGroup } = {
@@ -43,6 +44,12 @@ const TABS: Array<{ id: TabId; label: string; subtitle: string; group: NavGroup 
     subtitle: 'app.tabs.wallpapersBody',
     group: 'desktop'
   },
+  {
+    id: 'taskbar',
+    label: 'app.tabs.taskbar',
+    subtitle: 'app.tabs.taskbarBody',
+    group: 'desktop'
+  },
   { id: 'apps', label: 'app.tabs.apps', subtitle: 'app.tabs.appsBody', group: 'tools' },
   { id: 'ai', label: 'app.tabs.ai', subtitle: 'app.tabs.aiBody', group: 'tools' },
   { id: 'about', label: 'app.tabs.about', subtitle: 'app.tabs.aboutBody', group: 'app' }
@@ -58,6 +65,7 @@ const ICON_PATHS: Record<TabId, string> = {
   general: 'M4 7h9M4 17h5M17 17h3M13 7h7M9 4v6M9 14v6M17 14v6M7 14v6',
   widgets: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
   wallpapers: 'M4 5h16v14H4zM4 15l4.5-4.5 4 4L16 11l4 4M15 8.5h.01',
+  taskbar: 'M3 6h18v12H3zM3 14h18M7 17h2M12 17h2M17 17h2',
   apps: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
   ai: 'M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8zM5 16l.6 1.6 1.6.6-1.6.6L5 20.4l-.6-1.6-1.6-.6 1.6-.6z',
   about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 10v6M12 7h.01'
@@ -395,6 +403,7 @@ function App(): JSX.Element {
           )}
           {tab === 'apps' && <AppsPanel toast={pushToast} />}
           {tab === 'wallpapers' && <WallpaperPanel />}
+          {tab === 'taskbar' && <TaskbarPanel toast={pushToast} />}
           {tab === 'ai' && (
             <AppAiPanel
               key={editWidgetId ?? 'new'}

@@ -16,6 +16,7 @@ import {
 } from '../../shared/builtins'
 import {
   AI_PREVIEW_PREFIX,
+  APP_GRID_TYPE,
   CLOCK_WIDGET_ID,
   MAGNETISM_DIP,
   MIN_VISIBLE_DIP,
@@ -498,29 +499,36 @@ export class LayoutService {
     return withoutWidgetId(clampPlacement(placement, display, MIN_VISIBLE_DIP))
   }
 
-  async removeWidget(widgetId: string, parent: BrowserWindow | null): Promise<boolean> {
+  async removeWidget(
+    widgetId: string,
+    parent: BrowserWindow | null,
+    confirmed = false
+  ): Promise<boolean> {
     const managed = this.managed.get(widgetId)
     const manifest = managed?.manifest ?? this.widgetService.getManifest(widgetId)
     if (!manifest || !this.widgetService.getPlacement(widgetId)) {
       return false
     }
 
-    const options = {
-      type: 'warning' as const,
-      buttons: [t('common.cancel'), t('common.remove')],
-      defaultId: 0,
-      cancelId: 0,
-      noLink: true,
-      title: t('dialog.removeTitle', { name: manifest.name }),
-      message: t('dialog.removeMessage', { name: manifest.name }),
-      detail: manifest.kind === 'ai' ? t('dialog.removeAiDetail') : t('dialog.removeBuiltinDetail')
-    }
-    const result =
-      parent && !parent.isDestroyed()
-        ? await dialog.showMessageBox(parent, options)
-        : await dialog.showMessageBox(options)
-    if (result.response !== 1) {
-      return false
+    if (!confirmed) {
+      const options = {
+        type: 'warning' as const,
+        buttons: [t('common.cancel'), t('common.remove')],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+        title: t('dialog.removeTitle', { name: manifest.name }),
+        message: t('dialog.removeMessage', { name: manifest.name }),
+        detail:
+          manifest.kind === 'ai' ? t('dialog.removeAiDetail') : t('dialog.removeBuiltinDetail')
+      }
+      const result =
+        parent && !parent.isDestroyed()
+          ? await dialog.showMessageBox(parent, options)
+          : await dialog.showMessageBox(options)
+      if (result.response !== 1) {
+        return false
+      }
     }
 
     this.detach(widgetId)
@@ -530,7 +538,11 @@ export class LayoutService {
     return true
   }
 
-  async deleteAiWidget(widgetId: string, parent: BrowserWindow | null): Promise<boolean> {
+  async deleteAiWidget(
+    widgetId: string,
+    parent: BrowserWindow | null,
+    confirmed = false
+  ): Promise<boolean> {
     const manifest = this.widgetService.getManifest(widgetId)
     if (!manifest || manifest.kind !== 'ai') {
       return false
@@ -539,22 +551,24 @@ export class LayoutService {
       throw new Error('Remove the widget from the desktop before deleting it.')
     }
 
-    const options = {
-      type: 'warning' as const,
-      buttons: [t('common.cancel'), t('dialog.deleteButton')],
-      defaultId: 0,
-      cancelId: 0,
-      noLink: true,
-      title: t('dialog.deleteTitle', { name: manifest.name }),
-      message: t('dialog.deleteMessage', { name: manifest.name }),
-      detail: t('dialog.deleteDetail')
-    }
-    const result =
-      parent && !parent.isDestroyed()
-        ? await dialog.showMessageBox(parent, options)
-        : await dialog.showMessageBox(options)
-    if (result.response !== 1) {
-      return false
+    if (!confirmed) {
+      const options = {
+        type: 'warning' as const,
+        buttons: [t('common.cancel'), t('dialog.deleteButton')],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+        title: t('dialog.deleteTitle', { name: manifest.name }),
+        message: t('dialog.deleteMessage', { name: manifest.name }),
+        detail: t('dialog.deleteDetail')
+      }
+      const result =
+        parent && !parent.isDestroyed()
+          ? await dialog.showMessageBox(parent, options)
+          : await dialog.showMessageBox(options)
+      if (result.response !== 1) {
+        return false
+      }
     }
 
     const deleted = await this.widgetService.delete(widgetId)
@@ -757,6 +771,48 @@ export class LayoutService {
         managed.win.webContents.send(IPC.widgetEvent, { event, data })
       }
     }
+  }
+
+  broadcastWidgetEventAtPoint(
+    event: WidgetEventName,
+    data: Record<string, unknown>,
+    point: Point
+  ): void {
+    for (const managed of this.managed.values()) {
+      if (managed.win.isDestroyed() || managed.manifest.builtinType !== APP_GRID_TYPE) {
+        continue
+      }
+      const bounds = managed.win.getBounds()
+      managed.win.webContents.send(IPC.widgetEvent, {
+        event,
+        data: {
+          ...data,
+          local: { x: point.x - bounds.x, y: point.y - bounds.y }
+        }
+      })
+    }
+  }
+
+  appGridAtPoint(point: Point): { widgetId: string; bounds: Rect } | null {
+    for (const [widgetId, managed] of this.managed) {
+      if (
+        managed.win.isDestroyed() ||
+        !managed.win.isVisible() ||
+        managed.manifest.builtinType !== APP_GRID_TYPE
+      ) {
+        continue
+      }
+      const bounds = managed.win.getBounds()
+      if (
+        point.x >= bounds.x &&
+        point.x <= bounds.x + bounds.width &&
+        point.y >= bounds.y &&
+        point.y <= bounds.y + bounds.height
+      ) {
+        return { widgetId, bounds }
+      }
+    }
+    return null
   }
 
   notifyChanged(): void {

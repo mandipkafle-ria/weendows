@@ -1,6 +1,7 @@
 import { useMemo, useState, type JSX } from 'react'
 import type { BuiltinWidget, GeneralState, WidgetCategory, WidgetSummary } from '../../shared/types'
 import { t } from '../i18n'
+import ExpandableSearch from './ExpandableSearch'
 import type { ThemeEnvId } from './themeEnvironments'
 import WidgetPreview from './WidgetPreview'
 
@@ -119,14 +120,14 @@ export default function WidgetCategoryPage({
               {t('widgets.categoryCount', { count: entries.length })}
             </span>
           </div>
-          <label className="search-field">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('widgets.searchPlaceholder')}
-              spellCheck={false}
-            />
-          </label>
+          <ExpandableSearch
+            className="search-field category-search"
+            value={query}
+            onChange={setQuery}
+            label={t('widgets.searchLabel')}
+            placeholder={t('widgets.searchPlaceholder')}
+            clearLabel={t('widgets.clearSearch')}
+          />
         </div>
         <div className="filter-chips" role="group" aria-label={t('widgets.styleFilters')}>
           <button

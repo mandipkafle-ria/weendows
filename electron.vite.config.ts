@@ -14,7 +14,8 @@ export default defineConfig({
           'shell-preload': resolve('src/preload/shell-preload.ts'),
           'badge-preload': resolve('src/preload/badge-preload.ts'),
           'bundle-preload': resolve('src/preload/bundle-preload.ts'),
-          'wallpaper-preload': resolve('src/preload/wallpaper-preload.ts')
+          'wallpaper-preload': resolve('src/preload/wallpaper-preload.ts'),
+          'taskbar-preload': resolve('src/preload/taskbar-preload.ts')
         }
       }
     }
@@ -31,7 +32,8 @@ export default defineConfig({
           settings: resolve('src/renderer/settings/index.html'),
           'widget-shell': resolve('src/renderer/widget-shell/index.html'),
           'wallpaper-host': resolve('src/renderer/wallpaper-host/index.html'),
-          'wallpaper-thumbnail': resolve('src/renderer/wallpaper-thumbnail/index.html')
+          'wallpaper-thumbnail': resolve('src/renderer/wallpaper-thumbnail/index.html'),
+          taskbar: resolve('src/renderer/taskbar/index.html')
         }
       }
     },

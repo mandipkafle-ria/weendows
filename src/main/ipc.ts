@@ -24,12 +24,15 @@ import {
   aiSettingsSchema,
   appIdSchema,
   builtinTypeSchema,
+  bundleIdSchema,
   bundleNameSchema,
   cursorConfigPatchSchema,
   cursorStyleSchema,
   gridIndexSchema,
   noArgsSchema,
   permissionSchema,
+  taskbarAnchorSchema,
+  taskbarSettingsPatchSchema,
   themeSourceSchema,
   wallpaperFitSchema,
   wallpaperIdSchema,
@@ -61,6 +64,7 @@ import type { HotkeyService } from './hotkeys'
 import { readLicenses } from './services/licenses'
 import type { NoticeService } from './services/notices'
 import type { StartupService } from './services/startup'
+import type { TaskbarService } from './services/taskbar'
 import type { WallpaperService } from './services/wallpaper-service'
 import type { WidgetApiService } from './services/widget-api'
 import type { WidgetService } from './services/widget-service'
@@ -84,6 +88,7 @@ export interface IpcServices {
   hotkeys: HotkeyService
   scanner: AppScanner
   appGrid: AppGridService
+  taskbar: TaskbarService
   safeMode: boolean
   safeModeReason: SafeModeReason
 }
@@ -122,7 +127,7 @@ function appsAndBundlesState(services: IpcServices): AppsAndBundlesState {
       enabled: summary.placement.enabled
     }))
 
-  return {
+  const state: AppsAndBundlesState = {
     apps,
     hiddenCount: apps.filter((entry) => entry.hidden).length,
     bundles: services.appGrid.listBundles(),
@@ -130,16 +135,26 @@ function appsAndBundlesState(services: IpcServices): AppsAndBundlesState {
     lastScanAt: services.scanner.lastScanTime(),
     gridWidgets
   }
+  services.taskbar.notifyChanged()
+  return state
+}
+
+function isSettingsSender(event: IpcMainInvokeEvent | IpcMainEvent): boolean {
+  const settingsWindow = getSettingsWindow()
+  return (
+    !!settingsWindow && !settingsWindow.isDestroyed() && event.sender === settingsWindow.webContents
+  )
 }
 
 function assertSettingsSender(event: IpcMainInvokeEvent): void {
-  const settingsWindow = getSettingsWindow()
-  if (
-    !settingsWindow ||
-    settingsWindow.isDestroyed() ||
-    event.sender !== settingsWindow.webContents
-  ) {
+  if (!isSettingsSender(event)) {
     throw new Error('Unexpected IPC sender')
+  }
+}
+
+function assertTaskbarSender(services: IpcServices, event: IpcMainInvokeEvent): void {
+  if (!services.taskbar.isSender(event.sender)) {
+    throw new Error('Unexpected taskbar IPC sender')
   }
 }
 
@@ -621,7 +636,8 @@ export function registerIpcHandlers(services: IpcServices): void {
   ipcMain.handle(IPC.removeWidget, async (event, ...args) => {
     assertSettingsSender(event)
     const widgetId = widgetIdSchema.parse(args[0])
-    const removed = await services.layout.removeWidget(widgetId, getSettingsWindow())
+    const confirmed = z.boolean().optional().parse(args[1]) ?? false
+    const removed = await services.layout.removeWidget(widgetId, getSettingsWindow(), confirmed)
     if (removed) {
       services.popover.closeForWidget(widgetId)
     }
@@ -631,7 +647,8 @@ export function registerIpcHandlers(services: IpcServices): void {
   ipcMain.handle(IPC.deleteAiWidget, async (event, ...args) => {
     assertSettingsSender(event)
     const widgetId = widgetIdSchema.parse(args[0])
-    return services.layout.deleteAiWidget(widgetId, getSettingsWindow())
+    const confirmed = z.boolean().optional().parse(args[1]) ?? false
+    return services.layout.deleteAiWidget(widgetId, getSettingsWindow(), confirmed)
   })
 
   ipcMain.handle(IPC.appsGetState, (event, ...args) => {
@@ -645,6 +662,39 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertNoArgs(args)
     await services.scanner.refresh()
     return appsAndBundlesState(services)
+  })
+
+  ipcMain.handle(IPC.taskbarGetState, (event, ...args) => {
+    if (!isSettingsSender(event) && !services.taskbar.isSender(event.sender)) {
+      throw new Error('Unexpected IPC sender')
+    }
+    assertNoArgs(args)
+    return services.taskbar.state()
+  })
+
+  ipcMain.handle(IPC.taskbarUpdate, (event, ...args) => {
+    assertSettingsSender(event)
+    const patch = taskbarSettingsPatchSchema.parse(args[0])
+    return services.taskbar.update(patch)
+  })
+
+  ipcMain.handle(IPC.taskbarLaunchApp, async (event, ...args) => {
+    assertTaskbarSender(services, event)
+    const appId = appIdSchema.parse(args[0])
+    await services.taskbar.launchApp(appId)
+  })
+
+  ipcMain.handle(IPC.taskbarOpenBundle, async (event, ...args) => {
+    assertTaskbarSender(services, event)
+    const bundleId = bundleIdSchema.parse(args[0])
+    const anchor = taskbarAnchorSchema.parse(args[1])
+    await services.taskbar.openBundle(bundleId, anchor)
+  })
+
+  ipcMain.handle(IPC.taskbarOpenSettings, (event, ...args) => {
+    assertTaskbarSender(services, event)
+    assertNoArgs(args)
+    showSettingsWindow()
   })
 
   ipcMain.handle(IPC.appAddToHomescreen, async (event, ...args) => {

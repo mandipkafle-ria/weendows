@@ -20,12 +20,24 @@ export interface WallpaperWindow {
   strategy: UsedWallpaperStrategy
 }
 
+const WALLPAPER_OVERSCAN_DIP = 2
+
+export function wallpaperBoundsFor(display: Display): Display['bounds'] {
+  return {
+    x: display.bounds.x - WALLPAPER_OVERSCAN_DIP,
+    y: display.bounds.y - WALLPAPER_OVERSCAN_DIP,
+    width: display.bounds.width + WALLPAPER_OVERSCAN_DIP * 2,
+    height: display.bounds.height + WALLPAPER_OVERSCAN_DIP * 2
+  }
+}
+
 export function createWallpaperWindow(display: Display): BrowserWindow {
+  const bounds = wallpaperBoundsFor(display)
   const win = new BrowserWindow({
-    x: display.bounds.x,
-    y: display.bounds.y,
-    width: display.bounds.width,
-    height: display.bounds.height,
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
     show: false,
     frame: false,
     transparent: false,
@@ -100,5 +112,5 @@ export function nativeWindowHandle(win: BrowserWindow): bigint {
 }
 
 export function setWallpaperWindowBounds(win: BrowserWindow, display: Display): void {
-  win.setBounds(display.bounds)
+  win.setBounds(wallpaperBoundsFor(display))
 }

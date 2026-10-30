@@ -16,6 +16,7 @@ import {
   loadWallpaperHost,
   nativeWindowHandle,
   setWallpaperWindowBounds,
+  wallpaperBoundsFor,
   type WallpaperWindow
 } from '../windows/wallpaper-window'
 import log from './logger'
@@ -305,7 +306,7 @@ export class WallpaperLiveService {
         existing.bounds = { ...display.bounds }
         setWallpaperWindowBounds(existing.win, display)
         try {
-          const rect = screen.dipToScreenRect(existing.win, display.bounds)
+          const rect = screen.dipToScreenRect(existing.win, wallpaperBoundsFor(display))
           const attach = await attachToDesktop(existing.hwnd, rect, this.strategy)
           existing.parent = attach.parent
           existing.strategy = attach.strategy
@@ -335,7 +336,7 @@ export class WallpaperLiveService {
         'Timed out loading the live wallpaper host'
       )
       const hwnd = nativeWindowHandle(win)
-      const rect = screen.dipToScreenRect(win, display.bounds)
+      const rect = screen.dipToScreenRect(win, wallpaperBoundsFor(display))
       const attach = await attachToDesktop(hwnd, rect, this.strategy)
       win.showInactive()
       this.windows.set(display.id, {

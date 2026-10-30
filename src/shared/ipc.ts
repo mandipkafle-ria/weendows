@@ -19,6 +19,9 @@ import type {
   GeneralState,
   Notice,
   ShellState,
+  TaskbarAnchor,
+  TaskbarSettingsPatch,
+  TaskbarState,
   ThemeChangedEvent,
   ThemeSource,
   WidgetEvent,
@@ -149,6 +152,12 @@ export const IPC = {
   wallpaperRestore: 'wallpaper:restore',
   wallpaperChanged: 'wallpaper:changed',
   wallpaperHostEvent: 'wallpaper:host-event',
+  taskbarGetState: 'taskbar:get-state',
+  taskbarUpdate: 'taskbar:update',
+  taskbarLaunchApp: 'taskbar:launch-app',
+  taskbarOpenBundle: 'taskbar:open-bundle',
+  taskbarOpenSettings: 'taskbar:open-settings',
+  taskbarChanged: 'taskbar:changed',
   openExternal: 'app:open-external'
 } as const
 
@@ -247,13 +256,16 @@ export interface SettingsApi {
   ) => Promise<WidgetSummary>
   addAiWidgetCopy: (widgetId: string) => Promise<WidgetSummary>
   duplicateWidget: (widgetId: string) => Promise<WidgetSummary>
-  removeWidget: (widgetId: string) => Promise<boolean>
-  deleteAiWidget: (widgetId: string) => Promise<boolean>
+  removeWidget: (widgetId: string, confirmed?: boolean) => Promise<boolean>
+  deleteAiWidget: (widgetId: string, confirmed?: boolean) => Promise<boolean>
   setWidgetEnabled: (widgetId: string, enabled: boolean) => Promise<WidgetSummary | null>
   setWidgetLocked: (widgetId: string, locked: boolean) => Promise<boolean>
   setWidgetOpacity: (widgetId: string, opacity: number) => Promise<boolean>
   setWidgetVariant: (widgetId: string, variant: string) => Promise<WidgetSummary | null>
   reloadWidget: (widgetId: string) => Promise<void>
+  getTaskbarState: () => Promise<TaskbarState>
+  updateTaskbar: (patch: TaskbarSettingsPatch) => Promise<TaskbarState>
+  onTaskbarChanged: (callback: (state: TaskbarState) => void) => () => void
   getAppsAndBundles: () => Promise<AppsAndBundlesState>
   refreshApps: () => Promise<AppsAndBundlesState>
   addAppToHomescreen: (
@@ -311,6 +323,14 @@ export interface ShellApi {
 
 export interface WallpaperHostApi {
   onEvent: (callback: (event: WallpaperHostEvent) => void) => () => void
+}
+
+export interface TaskbarApi {
+  getState: () => Promise<TaskbarState>
+  launchApp: (appId: string) => Promise<void>
+  openBundle: (bundleId: string, anchor: TaskbarAnchor) => Promise<void>
+  openSettings: () => void
+  onState: (callback: (state: TaskbarState) => void) => () => void
 }
 
 export interface BundlePopoverApi {

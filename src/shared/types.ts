@@ -229,6 +229,47 @@ export interface AppGridWidgetOption {
   enabled: boolean
 }
 
+export const TASKBAR_MODES = ['overlay', 'replace'] as const
+export type TaskbarMode = (typeof TASKBAR_MODES)[number]
+
+export const TASKBAR_POSITIONS = ['bottom', 'top'] as const
+export type TaskbarPosition = (typeof TASKBAR_POSITIONS)[number]
+
+export const TASKBAR_THEMES = ['dark', 'light', 'accent', 'glass'] as const
+export type TaskbarTheme = (typeof TASKBAR_THEMES)[number]
+
+export type TaskbarItemRef = { type: 'app'; appId: string } | { type: 'bundle'; bundleId: string }
+
+export interface TaskbarSettingsFile {
+  schema: 1
+  enabled: boolean
+  mode: TaskbarMode
+  position: TaskbarPosition
+  theme: TaskbarTheme
+  opacity: number
+  height: number
+  showClock: boolean
+  showSettingsButton: boolean
+  items: TaskbarItemRef[]
+}
+
+export type TaskbarSettingsPatch = Partial<Omit<TaskbarSettingsFile, 'schema'>>
+
+export interface TaskbarState {
+  settings: TaskbarSettingsFile
+  apps: AppEntry[]
+  bundles: AppBundleSummary[]
+  systemTaskbarHidden: boolean
+  nativeError: string | null
+}
+
+export interface TaskbarAnchor {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface AppsAndBundlesState {
   apps: AppEntry[]
   hiddenCount: number
@@ -377,7 +418,7 @@ export interface WidgetLogEntry {
   at: string
 }
 
-export type WidgetEventName = 'theme' | 'resize' | 'editmode' | 'apps'
+export type WidgetEventName = 'theme' | 'resize' | 'editmode' | 'apps' | 'drag'
 
 export interface WidgetEvent {
   event: WidgetEventName
@@ -464,6 +505,8 @@ export interface WallpaperItem {
   fit: WallpaperFit
   posterFile?: string
   interactive?: boolean
+  /** True for wallpapers seeded from the built-in wallpapers directory */
+  builtin?: boolean
 }
 
 export interface WallpaperConfig {

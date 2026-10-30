@@ -108,7 +108,8 @@ export async function validateHtmlWallpaperFolder(
   wallpapersDir: string,
   folder: string
 ): Promise<{ folder: string; indexFile: string }> {
-  const source = await validateHtmlSourceFolder(folder)
+  const resolved = isAbsolute(folder) ? folder : join(wallpapersDir, folder)
+  const source = await validateHtmlSourceFolder(resolved)
   const base = await realpath(wallpapersDir)
   if (!isPathInside(base, source.folder)) {
     throw new Error('HTML wallpaper folder is outside the wallpaper library')

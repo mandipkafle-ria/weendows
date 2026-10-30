@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX } from 'react'
+import { useEffect, useMemo, useState, type JSX } from 'react'
 import { cursorImage } from '../../shared/cursor'
 import type {
   CursorClickAnimation,
@@ -39,6 +39,11 @@ function sameCursor(a: CursorConfig, b: CursorConfig): boolean {
   )
 }
 
+function cursorCss(cursor: CursorConfig): string {
+  const image = cursor.style === 'system' ? null : cursorImage(cursor)
+  return image ? `url("${image.url}") ${image.hotspotX} ${image.hotspotY}, auto` : 'auto'
+}
+
 interface CursorGalleryProps {
   general: GeneralState
   onGeneral: (general: GeneralState) => void
@@ -60,6 +65,14 @@ export default function CursorGallery({
     activeStyle !== 'system' && (SYSTEM_CURSOR_STYLES as readonly string[]).includes(activeStyle)
   const preview = useMemo(() => cursorImage(draft), [draft])
   const dirty = !sameCursor(draft, general.cursor) || systemWide !== general.cursor.systemWide
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--hl-app-cursor', cursorCss(draft))
+    return () => {
+      root.style.setProperty('--hl-app-cursor', cursorCss(general.cursor))
+    }
+  }, [draft, general.cursor])
 
   const update = (patch: Partial<CursorConfig>): void => {
     setDraft((current) => ({ ...current, ...patch }))
@@ -99,7 +112,7 @@ export default function CursorGallery({
     setSystemWide(general.cursor.systemWide)
   }
 
-  const cursorCss = preview
+  const previewCursorCss = preview
     ? `url("${preview.url}") ${preview.hotspotX} ${preview.hotspotY}, auto`
     : 'auto'
 
@@ -139,7 +152,7 @@ export default function CursorGallery({
 
       <div
         className="cursor-stage"
-        style={{ cursor: cursorCss }}
+        style={{ cursor: previewCursorCss }}
         onClick={() => setPulse((n) => n + 1)}
       >
         <div className="cursor-stage-card">

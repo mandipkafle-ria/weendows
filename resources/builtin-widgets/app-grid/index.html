@@ -1844,17 +1844,28 @@
           </div>
         </div>
 
-        <div class="drawer-section drawer-toggle-row">
-          <label class="drawer-switch">
-            <span class="drawer-switch-copy">
-              <strong>Hide labels</strong>
-              <small>Icons only</small>
-            </span>
-            <input type="checkbox" id="toggle-hide-labels" />
-            <span class="drawer-switch-track" aria-hidden="true">
-              <span class="drawer-switch-thumb"></span>
-            </span>
-          </label>
+        <div class="drawer-section">
+          <span class="drawer-label">Display</span>
+          <div class="drawer-chips" id="display-chips" role="radiogroup" aria-label="Display mode">
+            <button
+              class="drawer-chip"
+              data-display-val="icon-label"
+              type="button"
+              role="radio"
+              aria-checked="false"
+            >
+              <span>Icon + name</span>
+            </button>
+            <button
+              class="drawer-chip"
+              data-display-val="icon"
+              type="button"
+              role="radio"
+              aria-checked="false"
+            >
+              <span>Icon only</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1911,7 +1922,7 @@
         var themeChips = document.getElementById('theme-chips')
         var folderChips = document.getElementById('folder-chips')
         var shapeChips = document.getElementById('shape-chips')
-        var toggleHideLabels = document.getElementById('toggle-hide-labels')
+        var displayChips = document.getElementById('display-chips')
         var tileContextMenu = document.getElementById('tile-context-menu')
         var menuLaunchApp = document.getElementById('menu-launch-app')
         var menuCreateFolder = document.getElementById('menu-create-folder')
@@ -1925,6 +1936,7 @@
           theme: document.documentElement.dataset.variant || 'classic',
           folderStyle: 'grid',
           iconShape: 'squircle',
+          displayMode: 'icon-label',
           hideLabels: false
         }
 
@@ -1937,6 +1949,7 @@
         var refreshBusy = false
         var drag = null
         var hoverTarget = null
+        var crossHover = null
         var mergeTimer = null
         var mergeTargetKey = null
         var suppressClick = false
@@ -2444,10 +2457,16 @@
             userPrefs.iconShape = prefs.iconShape
             document.documentElement.dataset.iconShape = prefs.iconShape
           }
-          if (typeof prefs.hideLabels === 'boolean') {
-            userPrefs.hideLabels = prefs.hideLabels
-            document.documentElement.dataset.hideLabels = prefs.hideLabels ? 'true' : 'false'
-          }
+          var displayMode =
+            prefs.displayMode === 'icon' || prefs.displayMode === 'icon-label'
+              ? prefs.displayMode
+              : prefs.hideLabels
+                ? 'icon'
+                : 'icon-label'
+          userPrefs.displayMode = displayMode
+          userPrefs.hideLabels = displayMode === 'icon'
+          document.documentElement.dataset.hideLabels =
+            userPrefs.hideLabels ? 'true' : 'false'
           updateStyleChips()
           renderGrid()
         }
@@ -2483,8 +2502,13 @@
               btn.setAttribute('aria-checked', on ? 'true' : 'false')
             })
           }
-          if (toggleHideLabels) {
-            toggleHideLabels.checked = Boolean(userPrefs.hideLabels)
+          if (displayChips) {
+            var dBtns = displayChips.querySelectorAll('.drawer-chip')
+            Array.prototype.forEach.call(dBtns, function (btn) {
+              var on = btn.dataset.displayVal === userPrefs.displayMode
+              btn.classList.toggle('active', on)
+              btn.setAttribute('aria-checked', on ? 'true' : 'false')
+            })
           }
         }
 
@@ -2665,6 +2689,21 @@
           return nx >= 0.2 && nx <= 0.8 && ny >= 0.2 && ny <= 0.8
         }
 
+        function dragItemRef(item) {
+          if (!item) return null
+          if (item.type === 'app') {
+            return { type: 'app', appId: item.app.id }
+          }
+          return { type: 'bundle', bundleId: item.bundle.id }
+        }
+
+        function clearCrossHover() {
+          if (crossHover) {
+            crossHover.classList.remove('drop-target')
+            crossHover = null
+          }
+        }
+
         function updateDrag(event) {
           if (!drag) {
             return
@@ -2683,6 +2722,10 @@
             drag.ghost.className = 'tile drag-ghost'
             drag.ghost.removeAttribute('data-index')
             document.body.appendChild(drag.ghost)
+            var sourceItem = state.items[drag.index]
+            if (sourceItem) {
+              window.hl.grid.dragStart(dragItemRef(sourceItem)).catch(function () {})
+            }
           }
 
           drag.ghost.style.left = event.clientX + 'px'
@@ -2739,11 +2782,14 @@
 
           var targetElement = document.elementFromPoint(event.clientX, event.clientY)
           var target = targetElement ? targetElement.closest('.tile') : null
-          var targetIndex = target ? Number(target.dataset.index) : state.items.length - 1
           var sourceItem = state.items[current.index]
-          if (!sourceItem) {
+          clearCrossHover()
+          if (!target || !sourceItem) {
+            window.hl.grid.dragEnd({ cancel: false }).catch(function () {})
             return
           }
+
+          window.hl.grid.dragEnd({ cancel: false }).catch(function () {})
 
           if (sourceItem.type === 'app' && sourceKey) {
             window.hl.grid
@@ -2755,6 +2801,7 @@
             return
           }
 
+          var targetIndex = Number(target.dataset.index)
           if (!Number.isInteger(targetIndex) || targetIndex === current.index) {
             return
           }
@@ -2798,14 +2845,19 @@
         grid.addEventListener('pointermove', updateDrag)
         grid.addEventListener('pointerup', finishDrag)
         grid.addEventListener('pointercancel', function () {
-          if (drag && drag.ghost) {
-            drag.ghost.remove()
+          var cancelled = drag
+          if (cancelled && cancelled.active) {
+            window.hl.grid.dragEnd({ cancel: true }).catch(function () {})
           }
-          if (drag) {
-            drag.tile.classList.remove('dragging')
+          if (cancelled && cancelled.ghost) {
+            cancelled.ghost.remove()
+          }
+          if (cancelled) {
+            cancelled.tile.classList.remove('dragging')
           }
           drag = null
           clearHover()
+          clearCrossHover()
         })
 
         grid.addEventListener('click', function (event) {
@@ -2958,10 +3010,15 @@
           })
         }
 
-        if (toggleHideLabels) {
-          toggleHideLabels.addEventListener('change', function () {
-            userPrefs.hideLabels = toggleHideLabels.checked
-            document.documentElement.dataset.hideLabels = userPrefs.hideLabels ? 'true' : 'false'
+        if (displayChips) {
+          displayChips.addEventListener('click', function (event) {
+            var chip = event.target.closest('.drawer-chip')
+            if (!chip || !chip.dataset.displayVal) return
+            userPrefs.displayMode = chip.dataset.displayVal
+            userPrefs.hideLabels = userPrefs.displayMode === 'icon'
+            document.documentElement.dataset.hideLabels =
+              userPrefs.hideLabels ? 'true' : 'false'
+            updateStyleChips()
             savePrefs()
           })
         }
@@ -3072,6 +3129,35 @@
           if (Array.isArray(apps)) {
             state.apps = apps
             refreshState()
+          }
+        })
+
+        window.hl.onDrag(function (event) {
+          if (!event || !event.phase) return
+          if (event.phase === 'end') {
+            clearCrossHover()
+            return
+          }
+          if (event.sourceWidgetId === state.widgetId && drag && drag.ghost && event.local) {
+            drag.ghost.style.left = event.local.x + 'px'
+            drag.ghost.style.top = event.local.y + 'px'
+          }
+          if (
+            event.targetWidgetId === state.widgetId &&
+            event.sourceWidgetId !== state.widgetId &&
+            event.local
+          ) {
+            var element = document.elementFromPoint(event.local.x, event.local.y)
+            var tile = element ? element.closest('.tile') : null
+            if (tile !== crossHover) {
+              clearCrossHover()
+              crossHover = tile
+              if (tile) {
+                tile.classList.add('drop-target')
+              }
+            }
+          } else {
+            clearCrossHover()
           }
         })
 

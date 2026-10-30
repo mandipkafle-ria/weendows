@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Light Studio</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+  }
+  body {
+    position: fixed;
+    inset: 0;
+    background: #0d0d1a;
+    overflow: hidden;
+  }
+
+  /* Ambient background glow */
+  .bg-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(180, 140, 80, 0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 60% at 30% 100%, rgba(80, 60, 120, 0.15) 0%, transparent 70%);
+  }
+
+  /* Spotlight rays */
+  .ray-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .ray {
+    position: absolute;
+    top: -10%;
+    left: 50%;
+    width: 400%;
+    height: 130%;
+    transform-origin: 50% 0%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .ray-1 {
+    background: conic-gradient(
+      from -2deg at 50% 0%,
+      transparent 0deg,
+      rgba(255, 230, 160, 0.12) 3deg,
+      rgba(255, 230, 160, 0.18) 5deg,
+      rgba(255, 230, 160, 0.12) 7deg,
+      transparent 10deg
+    );
+    animation: sweep1 12s ease-in-out infinite alternate;
+    -webkit-mask-image: radial-gradient(ellipse 60% 80% at 50% 0%, black 30%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 80% at 50% 0%, black 30%, transparent 100%);
+  }
+  .ray-2 {
+    background: conic-gradient(
+      from -2deg at 50% 0%,
+      transparent 0deg,
+      rgba(255, 210, 120, 0.09) 4deg,
+      rgba(255, 210, 120, 0.14) 7deg,
+      rgba(255, 210, 120, 0.09) 10deg,
+      transparent 14deg
+    );
+    animation: sweep2 9s ease-in-out infinite alternate;
+    -webkit-mask-image: radial-gradient(ellipse 50% 75% at 50% 0%, black 20%, transparent 100%);
+    mask-image: radial-gradient(ellipse 50% 75% at 50% 0%, black 20%, transparent 100%);
+  }
+  .ray-3 {
+    background: conic-gradient(
+      from -2deg at 50% 0%,
+      transparent 0deg,
+      rgba(200, 170, 255, 0.07) 3deg,
+      rgba(200, 170, 255, 0.12) 6deg,
+      rgba(200, 170, 255, 0.07) 9deg,
+      transparent 12deg
+    );
+    animation: sweep3 15s ease-in-out infinite alternate;
+    -webkit-mask-image: radial-gradient(ellipse 55% 70% at 50% 0%, black 25%, transparent 100%);
+    mask-image: radial-gradient(ellipse 55% 70% at 50% 0%, black 25%, transparent 100%);
+  }
+
+  @keyframes sweep1 {
+    0%   { transform: translateX(-50%) rotate(-38deg); }
+    100% { transform: translateX(-50%) rotate(32deg); }
+  }
+  @keyframes sweep2 {
+    0%   { transform: translateX(-50%) rotate(-22deg); }
+    100% { transform: translateX(-50%) rotate(48deg); }
+  }
+  @keyframes sweep3 {
+    0%   { transform: translateX(-50%) rotate(10deg); }
+    100% { transform: translateX(-50%) rotate(-50deg); }
+  }
+
+  /* Dust motes */
+  .mote-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .mote {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: drift linear infinite;
+    opacity: 0;
+  }
+  @keyframes drift {
+    0%   { transform: translateY(108vh) translateX(0px) scale(1);   opacity: 0; }
+    5%   { opacity: 0.6; }
+    92%  { opacity: 0.5; }
+    100% { transform: translateY(-8vh) translateX(var(--dx)) scale(0.5); opacity: 0; }
+  }
+
+  /* Floor reflection */
+  .floor {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 38%;
+    background: linear-gradient(to top, rgba(255, 200, 100, 0.06) 0%, transparent 100%);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="ray-container">
+  <div class="ray ray-1"></div>
+  <div class="ray ray-2"></div>
+  <div class="ray ray-3"></div>
+</div>
+<div class="mote-layer" id="motes"></div>
+<div class="floor"></div>
+
+<script>
+  const layer = document.getElementById('motes');
+  for (let i = 0; i < 65; i++) {
+    const m = document.createElement('div');
+    m.className = 'mote';
+    const size = Math.random() * 2.5 + 0.8;
+    const dx = (Math.random() - 0.5) * 160;
+    m.style.cssText = [
+      `width:${size}px`,
+      `height:${size}px`,
+      `left:${Math.random() * 100}vw`,
+      `--dx:${dx}px`,
+      `animation-duration:${Math.random() * 9 + 8}s`,
+      `animation-delay:${Math.random() * -18}s`,
+      `box-shadow:0 0 ${size * 4}px rgba(255,220,140,0.8)`
+    ].join(';');
+    layer.appendChild(m);
+  }
+</script>
+</body>
+</html>
+

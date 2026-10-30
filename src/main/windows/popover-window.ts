@@ -28,6 +28,7 @@ export interface OpenPopoverOptions {
   bundleId: string
   rect: PopoverAnchor
   sender: WebContents
+  placement?: 'center' | 'above' | 'below'
 }
 
 interface PopoverSession {
@@ -89,7 +90,7 @@ export class BundlePopoverService {
         this.current.bundleId === options.bundleId &&
         !this.current.win.isDestroyed()
       ) {
-        this.position(this.current.win, widgetWindow, options.rect, state)
+        this.position(this.current.win, widgetWindow, options.rect, state, options.placement)
         this.current.openedAt = Date.now()
         this.current.win.show()
         this.current.win.focus()
@@ -167,7 +168,7 @@ export class BundlePopoverService {
       }
     })
 
-    this.position(win, widgetWindow, options.rect, state)
+    this.position(win, widgetWindow, options.rect, state, options.placement)
     win.once('ready-to-show', () => {
       if (this.current !== session) {
         return
@@ -289,7 +290,8 @@ export class BundlePopoverService {
     win: BrowserWindow,
     widgetWindow: BrowserWindow,
     rect: PopoverAnchor,
-    state: BundlePopoverState
+    state: BundlePopoverState,
+    placement: 'center' | 'above' | 'below' = 'center'
   ): void {
     const widgetBounds = widgetWindow.getContentBounds()
     const anchor = {
@@ -299,9 +301,16 @@ export class BundlePopoverService {
       height: rect.height
     }
     const height = popoverHeight(state.bundle.apps.length)
+    const x = anchor.x + anchor.width / 2 - BUNDLE_POPOVER_WIDTH / 2
+    const y =
+      placement === 'above'
+        ? anchor.y - height - 8
+        : placement === 'below'
+          ? anchor.y + anchor.height + 8
+          : anchor.y + anchor.height / 2 - height / 2
     const size = {
-      x: anchor.x + anchor.width / 2 - BUNDLE_POPOVER_WIDTH / 2,
-      y: anchor.y + anchor.height / 2 - height / 2,
+      x,
+      y,
       width: BUNDLE_POPOVER_WIDTH,
       height
     }

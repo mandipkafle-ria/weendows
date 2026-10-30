@@ -1,0 +1,245 @@
+:root {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  user-select: none;
+}
+
+button {
+  font: inherit;
+}
+
+.taskbar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-top: 1px solid var(--tb-border);
+  background: var(--tb-bg);
+  color: var(--tb-text);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.16);
+  -webkit-app-region: no-drag;
+}
+
+.taskbar[data-position='top'] {
+  border-top: 0;
+  border-bottom: 1px solid var(--tb-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+
+.taskbar[data-theme='dark'] {
+  --tb-bg: rgba(11, 13, 18, var(--tb-opacity));
+  --tb-text: #f0ede4;
+  --tb-muted: #96a0b2;
+  --tb-border: rgba(255, 255, 255, 0.1);
+  --tb-hover: rgba(255, 255, 255, 0.1);
+  --tb-active: rgba(255, 122, 69, 0.2);
+}
+
+.taskbar[data-theme='light'] {
+  --tb-bg: rgba(246, 247, 250, var(--tb-opacity));
+  --tb-text: #171a20;
+  --tb-muted: #687181;
+  --tb-border: rgba(0, 0, 0, 0.1);
+  --tb-hover: rgba(0, 0, 0, 0.07);
+  --tb-active: rgba(255, 122, 69, 0.18);
+  color-scheme: light;
+}
+
+.taskbar[data-theme='accent'] {
+  --tb-bg: linear-gradient(
+    180deg,
+    rgba(255, 122, 69, calc(var(--tb-opacity) * 0.42)),
+    rgba(13, 15, 20, var(--tb-opacity))
+  );
+  --tb-text: #fff4ee;
+  --tb-muted: rgba(255, 240, 232, 0.72);
+  --tb-border: rgba(255, 190, 160, 0.28);
+  --tb-hover: rgba(255, 255, 255, 0.14);
+  --tb-active: rgba(255, 122, 69, 0.3);
+}
+
+.taskbar[data-theme='glass'] {
+  --tb-bg: rgba(18, 22, 30, calc(var(--tb-opacity) * 0.72));
+  --tb-text: #f4f5f7;
+  --tb-muted: #a5aebc;
+  --tb-border: rgba(255, 255, 255, 0.16);
+  --tb-hover: rgba(255, 255, 255, 0.12);
+  --tb-active: rgba(255, 122, 69, 0.22);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.tb-start,
+.tb-item {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: calc(100% - 10px);
+  max-height: 44px;
+  min-height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tb-start:hover,
+.tb-item:hover:not(:disabled) {
+  background: var(--tb-hover);
+}
+
+.tb-start:active,
+.tb-item:active:not(:disabled) {
+  background: var(--tb-active);
+}
+
+.tb-item:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.tb-start {
+  width: 42px;
+  margin-right: 2px;
+}
+
+.tb-mark {
+  width: 20px;
+  height: 20px;
+  background-image: radial-gradient(circle, currentColor 1.6px, transparent 1.8px);
+  background-position: 2px 2px;
+  background-size: 7px 7px;
+  opacity: 0.95;
+}
+
+.tb-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.tb-icon {
+  width: 23px;
+  height: 23px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.tb-fallback {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--tb-hover);
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tb-badge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border: 1px solid var(--tb-border);
+  border-radius: 999px;
+  background: #ff7a45;
+  color: #1b0d06;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 11px;
+  text-align: center;
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+.tb-empty {
+  overflow: hidden;
+  padding-left: 6px;
+  color: var(--tb-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-clock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 56px;
+  padding: 0 6px 0 10px;
+  line-height: 1.15;
+}
+
+.tb-time {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.tb-date {
+  color: var(--tb-muted);
+  font-size: 9px;
+}
+
+.tb-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 70%;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(160, 32, 32, 0.94);
+  color: #fff;
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+.taskbar-empty-window {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tb-item,
+  .tb-start {
+    transition:
+      background 120ms ease,
+      opacity 120ms ease;
+  }
+}

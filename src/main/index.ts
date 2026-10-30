@@ -48,6 +48,7 @@ import { NoticeService } from './services/notices'
 import { StartupService } from './services/startup'
 import { JsonStore } from './services/store'
 import { SystemStatsSampler } from './services/system-stats'
+import { TaskbarService } from './services/taskbar'
 import { defaultWallpaperFile, WallpaperService } from './services/wallpaper-service'
 import { WallpaperLiveService } from './services/wallpaper-live'
 import { WallpaperThumbnails } from './services/wallpaper-thumbnails'
@@ -81,6 +82,7 @@ let popover: BundlePopoverService | null = null
 let wallpaper: WallpaperService | null = null
 let wallpaperLive: WallpaperLiveService | null = null
 let appSettings: AppSettingsService | null = null
+let taskbar: TaskbarService | null = null
 let systemCursor: SystemCursorService | null = null
 let startup: StartupService | null = null
 let hotkeys: HotkeyService | null = null
@@ -130,6 +132,9 @@ if (!hasLock) {
     popover?.close()
     void aiService?.cancel()
     layout?.stop()
+    const taskbarService = taskbar
+    taskbar = null
+    taskbarService?.destroy()
     wallpaperLive?.stop()
     wallpaperLive = null
     wallpaper?.stop()
@@ -143,7 +148,8 @@ if (!hasLock) {
       widgetService ? widgetService.flush() : Promise.resolve(),
       appGrid ? appGrid.flush() : Promise.resolve(),
       wallpaper ? wallpaper.flush() : Promise.resolve(),
-      appSettings ? appSettings.flush() : Promise.resolve()
+      appSettings ? appSettings.flush() : Promise.resolve(),
+      taskbarService ? taskbarService.flush() : Promise.resolve()
     ])
     void flush
       .catch((error: unknown) => {
@@ -286,7 +292,8 @@ if (!hasLock) {
         },
         thumbnails: new WallpaperThumbnails(join(wallpapersDir, 'thumbs')),
         notices,
-        safe: effectiveSafe
+        safe: effectiveSafe,
+        builtinsDir: join(app.getAppPath(), 'resources', 'builtin-wallpapers')
       })
       wallpaper = wallpaperService
       await wallpaperService.load()
@@ -359,6 +366,7 @@ if (!hasLock) {
           }))
         )
         layoutService.broadcastWidgetEvent('apps', apps)
+        taskbar?.notifyChanged()
       }
       scanner.onChange(syncApps)
       void scanner.refresh().catch((error: unknown) => log.error('Initial app scan failed', error))
@@ -367,9 +375,28 @@ if (!hasLock) {
       const bundlePopover = new BundlePopoverService({
         appGrid: grid,
         launcher,
-        onChanged: () => layoutService.broadcastWidgetEvent('apps', scanner.list())
+        onChanged: () => {
+          layoutService.broadcastWidgetEvent('apps', scanner.list())
+          taskbar?.notifyChanged()
+        }
       })
       popover = bundlePopover
+
+      const taskbarService = new TaskbarService({
+        file: join(userDataDir, 'taskbar.json'),
+        scanner,
+        appGrid: grid,
+        launcher,
+        popover: bundlePopover,
+        onChanged: (state) => {
+          const settingsWindow = getSettingsWindow()
+          if (settingsWindow && !settingsWindow.isDestroyed()) {
+            settingsWindow.webContents.send(IPC.taskbarChanged, state)
+          }
+        }
+      })
+      taskbar = taskbarService
+      await taskbarService.load()
 
       const stats = new SystemStatsSampler()
       systemStats = stats
@@ -417,6 +444,7 @@ if (!hasLock) {
         hotkeys: hotkeyService,
         scanner,
         appGrid: grid,
+        taskbar: taskbarService,
         safeMode: effectiveSafe,
         safeModeReason
       })
@@ -478,6 +506,7 @@ if (!hasLock) {
       )
       registerIconProtocol({ iconsDir: join(userDataDir, 'cache', 'icons') })
       registerWallpaperProtocol({ wallpapersDir })
+      taskbarService.start()
 
       const strategy = resolveWallpaperStrategy()
       const live = new WallpaperLiveService({

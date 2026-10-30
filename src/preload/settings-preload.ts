@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IPC, type SettingsApi } from '../shared/ipc'
 import type {
   Notice,
+  TaskbarState,
   ThemeChangedEvent,
   WallpaperState,
   WidgetDisabledEvent
@@ -37,8 +38,7 @@ const api: SettingsApi = {
   getWidgets: () => ipcRenderer.invoke(IPC.getWidgets),
   getWidgetRuntime: () => ipcRenderer.invoke(IPC.getWidgetRuntime),
   getDisplays: () => ipcRenderer.invoke(IPC.getDisplays),
-  setWidgetBounds: (widgetId, bounds) =>
-    ipcRenderer.invoke(IPC.setWidgetBounds, widgetId, bounds),
+  setWidgetBounds: (widgetId, bounds) => ipcRenderer.invoke(IPC.setWidgetBounds, widgetId, bounds),
   getSavedAiWidgets: () => ipcRenderer.invoke(IPC.getSavedAiWidgets),
   getWallpaperState: () => ipcRenderer.invoke(IPC.wallpaperGetState),
   addWallpapers: () => ipcRenderer.invoke(IPC.wallpaperAddFiles),
@@ -56,8 +56,9 @@ const api: SettingsApi = {
     ipcRenderer.invoke(IPC.addWidget, builtinType, variant, appearance),
   addAiWidgetCopy: (widgetId) => ipcRenderer.invoke(IPC.addAiWidgetCopy, widgetId),
   duplicateWidget: (widgetId) => ipcRenderer.invoke(IPC.duplicateWidget, widgetId),
-  removeWidget: (widgetId) => ipcRenderer.invoke(IPC.removeWidget, widgetId),
-  deleteAiWidget: (widgetId) => ipcRenderer.invoke(IPC.deleteAiWidget, widgetId),
+  removeWidget: (widgetId, confirmed) => ipcRenderer.invoke(IPC.removeWidget, widgetId, confirmed),
+  deleteAiWidget: (widgetId, confirmed) =>
+    ipcRenderer.invoke(IPC.deleteAiWidget, widgetId, confirmed),
   setWidgetEnabled: (widgetId, enabled) =>
     ipcRenderer.invoke(IPC.setWidgetEnabled, widgetId, enabled),
   setWidgetLocked: (widgetId, locked) => ipcRenderer.invoke(IPC.setWidgetLocked, widgetId, locked),
@@ -66,6 +67,13 @@ const api: SettingsApi = {
   setWidgetVariant: (widgetId, variant) =>
     ipcRenderer.invoke(IPC.setWidgetVariant, widgetId, variant),
   reloadWidget: (widgetId) => ipcRenderer.invoke(IPC.reloadWidget, widgetId),
+  getTaskbarState: () => ipcRenderer.invoke(IPC.taskbarGetState),
+  updateTaskbar: (patch) => ipcRenderer.invoke(IPC.taskbarUpdate, patch),
+  onTaskbarChanged: (callback) => {
+    const listener = (_event: IpcRendererEvent, state: TaskbarState): void => callback(state)
+    ipcRenderer.on(IPC.taskbarChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.taskbarChanged, listener)
+  },
   getAppsAndBundles: () => ipcRenderer.invoke(IPC.appsGetState),
   refreshApps: () => ipcRenderer.invoke(IPC.appsRefresh),
   addAppToHomescreen: (appId, targetWidgetId) =>

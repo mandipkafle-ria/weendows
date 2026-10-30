@@ -4,6 +4,7 @@ import {
   dialog,
   nativeTheme,
   powerMonitor,
+  screen,
   shell,
   type WebContents
 } from 'electron'
@@ -17,6 +18,8 @@ import {
   appIdsSchema,
   appIdSchema,
   gridCreateBundleSchema,
+  gridDragEndSchema,
+  gridDragStartSchema,
   gridMergeSchema,
   gridMoveSchema,
   gridOpenBundleSchema,
@@ -24,6 +27,7 @@ import {
   gridRenameTitleSchema
 } from '../../shared/schemas'
 import type {
+  AppGridItemRef,
   ShellBatterySnapshot,
   WidgetApiError,
   WidgetApiErrorCode,
@@ -111,6 +115,12 @@ export class WidgetApiService {
   private readonly rateLimits = new WidgetRateLimitRegistry()
   private readonly linkApprovals = new Map<string, boolean>()
   private readonly lastLinkAt = new Map<string, number>()
+  private gridDrag: {
+    sourceWidgetId: string
+    item: AppGridItemRef
+    startedAt: number
+  } | null = null
+  private gridDragTimer: ReturnType<typeof setInterval> | null = null
 
   constructor(options: WidgetApiOptions) {
     this.layout = options.layout
@@ -306,6 +316,22 @@ export class WidgetApiService {
         return this.appGrid.move(widgetId, from, to)
       }
 
+      case 'grid.dragStart': {
+        this.requireAppGrid(manifest)
+        const params = objectParams(request)
+        const { item } = gridDragStartSchema.parse(params)
+        this.startGridDrag(widgetId, item)
+        return { ok: true }
+      }
+
+      case 'grid.dragEnd': {
+        this.requireAppGrid(manifest)
+        const params = objectParams(request)
+        const { cancel } = gridDragEndSchema.parse(params)
+        this.endGridDrag(Boolean(cancel))
+        return { ok: true }
+      }
+
       case 'grid.merge': {
         this.requireAppGrid(manifest)
         const params = objectParams(request)
@@ -348,6 +374,70 @@ export class WidgetApiService {
       default:
         throw new ApiError('invalid_args', 'unknown method')
     }
+  }
+
+  private startGridDrag(widgetId: string, item: AppGridItemRef): void {
+    if (!this.appGrid.hasItem(widgetId, item)) {
+      throw new ApiError('invalid_args', 'item is not on this grid')
+    }
+    this.endGridDrag(true)
+    this.gridDrag = { sourceWidgetId: widgetId, item, startedAt: Date.now() }
+    this.emitGridDrag()
+    this.gridDragTimer = setInterval(() => this.emitGridDrag(), 16)
+  }
+
+  private emitGridDrag(): void {
+    const drag = this.gridDrag
+    if (!drag) {
+      return
+    }
+    if (Date.now() - drag.startedAt > 30_000) {
+      this.endGridDrag(true)
+      return
+    }
+    const point = screen.getCursorScreenPoint()
+    const target = this.layout.appGridAtPoint(point)
+    this.layout.broadcastWidgetEventAtPoint(
+      'drag',
+      {
+        phase: 'move',
+        sourceWidgetId: drag.sourceWidgetId,
+        item: drag.item,
+        targetWidgetId: target?.widgetId ?? null,
+        point
+      },
+      point
+    )
+  }
+
+  private endGridDrag(cancel: boolean): void {
+    const drag = this.gridDrag
+    if (this.gridDragTimer) {
+      clearInterval(this.gridDragTimer)
+      this.gridDragTimer = null
+    }
+    this.gridDrag = null
+    if (!drag) {
+      return
+    }
+
+    const point = screen.getCursorScreenPoint()
+    const target = this.layout.appGridAtPoint(point)
+    this.layout.broadcastWidgetEvent('drag', {
+      phase: 'end',
+      sourceWidgetId: drag.sourceWidgetId,
+      targetWidgetId: target?.widgetId ?? null
+    })
+
+    if (
+      cancel ||
+      !target ||
+      target.widgetId === drag.sourceWidgetId ||
+      !this.appGrid.moveItemBetweenGrids(drag.sourceWidgetId, target.widgetId, drag.item)
+    ) {
+      return
+    }
+    this.layout.broadcastWidgetEvent('apps', this.appScanner.list())
   }
 
   private getContext(sender: WebContents): WidgetContext {

@@ -41,27 +41,94 @@
     html[data-variant='paper'] .note--paper { display: flex; }
     html[data-variant='slate'] .note--slate { display: flex; }
 
-    /* Warm — yellow post-it */
+    /* Warm Note Variant */
     .note--warm {
-      padding: 26px 20px 24px; overflow: visible; border: 0; border-radius: 4px;
-      background: linear-gradient(172deg, #fff4a3, #ffe45e 65%, #ffd93d);
-      color: #4b3a00; font-family: var(--font-hand);
-      box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 24px 30px -14px rgba(0,0,0,.55);
+      padding: 26px 20px 24px;
+      overflow: visible;
+      border: 0;
+      border-radius: 4px;
+      background: linear-gradient(172deg, #fff59d, #ffe45e 65%, #ffd438);
+      color: #140d00;
+      font-family: var(--font-hand);
+      box-shadow: 0 1px 2px rgba(0,0,0,.25), 0 20px 30px -12px rgba(0,0,0,.6);
       flex-direction: column;
     }
+    .note--warm h4 {
+      font: 700 28px/1 var(--font-hand);
+      margin-bottom: 8px;
+      color: #140d00;
+    }
+    .note--warm textarea {
+      flex: 1;
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      resize: none;
+      font: 600 22px/1.3 var(--font-hand);
+      color: #140d00;
+    }
+    .note--warm textarea::placeholder {
+      color: rgba(20, 13, 0, 0.52);
+    }
     .note--warm::after {
-      inset: auto 0 0 auto; width: 32px; height: 32px; z-index: 1; border-radius: 0;
-      background: linear-gradient(315deg, var(--page) 50%, #e6c23a 50%);
+      content: "";
+      position: absolute;
+      inset: auto 0 0 auto;
+      width: 32px;
+      height: 32px;
+      z-index: 1;
+      border-radius: 0;
+      background: linear-gradient(315deg, var(--page, transparent) 50%, #e6c23a 50%);
       box-shadow: -4px -4px 8px -3px rgba(0,0,0,.22);
     }
     .note__tape {
-      position: absolute; top: -9px; left: 50%; width: 88px; height: 24px; translate: -50% 0;
-      background: rgba(255,255,255,.5); box-shadow: 0 1px 3px rgba(0,0,0,.15);
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      width: 88px;
+      height: 24px;
+      translate: -50% 0;
+      background: rgba(255,255,255,.5);
+      box-shadow: 0 1px 3px rgba(0,0,0,.15);
     }
-    .note--warm h4 { font: 700 28px/1 var(--font-hand); margin-bottom: 8px; color: #4b3a00; }
-    .note--warm textarea {
-      flex: 1; width: 100%; border: 0; outline: 0; background: transparent; resize: none;
-      font: 600 22px/1.3 var(--font-hand); color: #4b3a00;
+
+    /* Dark theme: adopt the active theme's surface background with soft light-yellow font (#fef3c7) */
+    html[data-theme='dark'] .note--warm,
+    html[data-mode='dark'] .note--warm,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      color: #fef3c7;
+    }
+    html[data-theme='dark'] .note--warm h4,
+    html[data-mode='dark'] .note--warm h4,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm h4 {
+      color: #fef3c7;
+    }
+    html[data-theme='dark'] .note--warm textarea,
+    html[data-mode='dark'] .note--warm textarea,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm textarea {
+      color: #fef3c7;
+    }
+    html[data-theme='dark'] .note--warm textarea::placeholder,
+    html[data-mode='dark'] .note--warm textarea::placeholder,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm textarea::placeholder {
+      color: rgba(254, 243, 199, 0.45);
+    }
+    html[data-theme='dark'] .note--warm::after,
+    html[data-mode='dark'] .note--warm::after,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm::after {
+      display: none;
+    }
+    html[data-theme='dark'] .note--warm .note__tape,
+    html[data-mode='dark'] .note--warm .note__tape,
+    html:not([data-theme='light']):not([data-mode='light']) .note--warm .note__tape {
+      background: rgba(254, 243, 199, 0.1);
+      border: 1px solid rgba(254, 243, 199, 0.14);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
 
     /* Paper — lined notebook sheet */

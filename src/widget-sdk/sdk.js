@@ -6,7 +6,7 @@
   var seq = 0
   var pending = new Map()
   var queue = []
-  var listeners = { theme: [], resize: [], editmode: [], apps: [] }
+  var listeners = { theme: [], resize: [], editmode: [], apps: [], drag: [] }
 
   window.addEventListener('message', function (event) {
     if (port || event.source !== window.parent || !event.data || event.data.type !== 'hl-init') {
@@ -127,6 +127,7 @@
     onResize: on('resize'),
     onEditMode: on('editmode'),
     onApps: on('apps'),
+    onDrag: on('drag'),
     log: function (level, message) {
       return call('log', { level: level, message: String(message).slice(0, 500) })
     },
@@ -191,6 +192,12 @@
       },
       move: function (from, to) {
         return call('grid.move', { from: from, to: to })
+      },
+      dragStart: function (item) {
+        return call('grid.dragStart', { item: item })
+      },
+      dragEnd: function (options) {
+        return call('grid.dragEnd', options || {})
       },
       merge: function (appId, targetKey) {
         return call('grid.merge', { appId: appId, targetKey: targetKey })

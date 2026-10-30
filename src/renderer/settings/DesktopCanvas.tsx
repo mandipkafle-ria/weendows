@@ -128,6 +128,9 @@ export default function DesktopCanvas({
   const [draft, setDraft] = useState<Record<string, WidgetBoundsPatch>>({})
   const [scale, setScale] = useState(0.5)
   const [dragId, setDragId] = useState<string | null>(null)
+  const [overDelete, setOverDelete] = useState(false)
+  const deleteZoneRef = useRef<HTMLDivElement | null>(null)
+  const overDeleteRef = useRef(false)
   const stageRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const draftRef = useRef<Record<string, WidgetBoundsPatch>>({})
@@ -354,6 +357,18 @@ export default function DesktopCanvas({
       }
       drag.moved = true
 
+      // Check if pointer is hovering the delete zone (move drags only)
+      if (drag.mode === 'move' && deleteZoneRef.current) {
+        const zoneRect = deleteZoneRef.current.getBoundingClientRect()
+        const hovering =
+          event.clientX >= zoneRect.left &&
+          event.clientX <= zoneRect.right &&
+          event.clientY >= zoneRect.top &&
+          event.clientY <= zoneRect.bottom
+        overDeleteRef.current = hovering
+        setOverDelete(hovering)
+      }
+
       if (drag.mode === 'move') {
         const width = drag.startBounds.width
         const height = drag.startBounds.height
@@ -390,7 +405,16 @@ export default function DesktopCanvas({
       const drag = dragRef.current
       dragRef.current = null
       setDragId(null)
+      const wasOverDelete = overDeleteRef.current
+      overDeleteRef.current = false
+      setOverDelete(false)
       if (!drag || !drag.moved) {
+        return
+      }
+      // Drop on delete zone → remove widget without saving the draft position
+      if (drag.mode === 'move' && wasOverDelete) {
+        clearDraft(drag.widgetId)
+        onRemove(drag.widgetId)
         return
       }
       const next = draftRef.current[drag.widgetId]
@@ -409,7 +433,7 @@ export default function DesktopCanvas({
       window.removeEventListener('pointercancel', onEnd)
       window.removeEventListener('blur', onEnd)
     }
-  }, [applyDraft, commit, dragId])
+  }, [applyDraft, clearDraft, commit, dragId, onRemove])
 
   const nudge = useCallback(
     (event: ReactKeyboardEvent<HTMLElement>, widget: WidgetSummary): void => {
@@ -638,6 +662,35 @@ export default function DesktopCanvas({
               })}
             </div>
           )}
+
+          <div
+            ref={deleteZoneRef}
+            className="desk-delete-zone"
+            data-visible={dragId ? 'true' : 'false'}
+            data-over={overDelete ? 'true' : 'false'}
+            role="img"
+            aria-label={t('widgets.canvas.dropToDelete')}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <g className="trash-lid">
+                <polyline points="3 6 5 6 21 6" />
+              </g>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+            <span className="sr-only">{t('widgets.canvas.dropToDelete')}</span>
+          </div>
         </div>
 
         <p className="desk-hint">{t('widgets.canvas.hint')}</p>

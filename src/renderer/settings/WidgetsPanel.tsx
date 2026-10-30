@@ -12,7 +12,9 @@ import type {
 } from '../../shared/types'
 import { t } from '../i18n'
 import type { ToastLevel } from './useToasts'
+import ConfirmDialog from './ConfirmDialog'
 import DesktopCanvas from './DesktopCanvas'
+import ExpandableSearch from './ExpandableSearch'
 import ThemeScene from './ThemeScene'
 import { THEME_OPTIONS, type ThemeEnvId } from './themeEnvironments'
 import WidgetCatalog from './WidgetCatalog'
@@ -94,6 +96,11 @@ export default function WidgetsPanel({
   const [categoryPage, setCategoryPage] = useState<WidgetCategory | null>(null)
   const [savedQuery, setSavedQuery] = useState('')
   const [savedSort, setSavedSort] = useState<'newest' | 'name'>('newest')
+  const [removalTarget, setRemovalTarget] = useState<{
+    kind: 'remove' | 'delete'
+    widgetId: string
+    name: string
+  } | null>(null)
   const [customize, setCustomize] = useState<{
     builtin: BuiltinWidget
     variant: string
@@ -218,26 +225,12 @@ export default function WidgetsPanel({
     })
   }
 
-  const removeWidget = async (widgetId: string): Promise<void> => {
-    const isAi = widgets.some(
-      (widget) => widget.placement.widgetId === widgetId && widget.manifest.kind === 'ai'
-    )
-    setPending(`remove:${widgetId}`)
-    try {
-      const removed = await window.api.removeWidget(widgetId)
-      await onRefresh()
-      toast(
-        removed
-          ? isAi
-            ? t('widgets.removedSaved')
-            : t('widgets.removed')
-          : t('widgets.removeCancelled')
-      )
-    } catch (error) {
-      toast(errorMessage(error), 'error')
-    } finally {
-      setPending(null)
+  const removeWidget = (widgetId: string): void => {
+    const widget = widgets.find((entry) => entry.placement.widgetId === widgetId)
+    if (!widget) {
+      return
     }
+    setRemovalTarget({ kind: 'remove', widgetId, name: widget.manifest.name })
   }
 
   const addAiWidgetCopy = async (widgetId: string): Promise<void> => {
@@ -249,12 +242,40 @@ export default function WidgetsPanel({
     )
   }
 
-  const deleteAiWidget = async (widgetId: string): Promise<void> => {
-    setPending(`delete-ai:${widgetId}`)
+  const deleteAiWidget = (widgetId: string): void => {
+    const manifest = savedAiWidgets.find((item) => item.id === widgetId)
+    setRemovalTarget({ kind: 'delete', widgetId, name: manifest?.name ?? '' })
+  }
+
+  const confirmRemoval = async (): Promise<void> => {
+    const target = removalTarget
+    if (!target) {
+      return
+    }
+    setRemovalTarget(null)
+    const isAi =
+      target.kind === 'delete' ||
+      widgets.some(
+        (widget) => widget.placement.widgetId === target.widgetId && widget.manifest.kind === 'ai'
+      )
+    setPending(`${target.kind === 'delete' ? 'delete-ai' : 'remove'}:${target.widgetId}`)
     try {
-      const deleted = await window.api.deleteAiWidget(widgetId)
+      const done =
+        target.kind === 'delete'
+          ? await window.api.deleteAiWidget(target.widgetId, true)
+          : await window.api.removeWidget(target.widgetId, true)
       await onRefresh()
-      toast(deleted ? t('widgets.deletedSaved') : t('widgets.deleteCancelled'))
+      if (target.kind === 'delete') {
+        toast(done ? t('widgets.deletedSaved') : t('widgets.deleteCancelled'))
+      } else {
+        toast(
+          done
+            ? isAi
+              ? t('widgets.removedSaved')
+              : t('widgets.removed')
+            : t('widgets.removeCancelled')
+        )
+      }
     } catch (error) {
       toast(errorMessage(error), 'error')
     } finally {
@@ -430,7 +451,17 @@ export default function WidgetsPanel({
               className={themeMode === 'light' ? 'mode-chip mode-chip-active' : 'mode-chip'}
               onClick={() => setThemeMode('light')}
             >
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
               </svg>
@@ -445,7 +476,17 @@ export default function WidgetsPanel({
               className={themeMode === 'dark' ? 'mode-chip mode-chip-active' : 'mode-chip'}
               onClick={() => setThemeMode('dark')}
             >
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
               <span>Dark</span>
@@ -515,26 +556,14 @@ export default function WidgetsPanel({
                 </span>
               </div>
 
-              <label className="catalog-search">
-                <SearchIcon />
-                <span className="sr-only">{t('widgets.searchLabel')}</span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={t('widgets.searchPlaceholder')}
-                  spellCheck={false}
-                />
-                {query && (
-                  <button
-                    type="button"
-                    className="search-clear"
-                    onClick={() => setQuery('')}
-                    aria-label={t('widgets.clearSearch')}
-                  >
-                    &#10005;
-                  </button>
-                )}
-              </label>
+              <ExpandableSearch
+                className="catalog-search"
+                value={query}
+                onChange={setQuery}
+                label={t('widgets.searchLabel')}
+                placeholder={t('widgets.searchPlaceholder')}
+                clearLabel={t('widgets.clearSearch')}
+              />
 
               <button type="button" className="catalog-ai-button" onClick={onOpenAiStudio}>
                 {t('widgets.createWithAi')}
@@ -786,6 +815,36 @@ export default function WidgetsPanel({
             </div>
           )}
         </section>
+      )}
+
+      {removalTarget && (
+        <ConfirmDialog
+          title={t(removalTarget.kind === 'delete' ? 'dialog.deleteTitle' : 'dialog.removeTitle', {
+            name: removalTarget.name
+          })}
+          message={t(
+            removalTarget.kind === 'delete' ? 'dialog.deleteMessage' : 'dialog.removeMessage',
+            { name: removalTarget.name }
+          )}
+          detail={
+            removalTarget.kind === 'delete'
+              ? t('dialog.deleteDetail')
+              : widgets.some(
+                    (widget) =>
+                      widget.placement.widgetId === removalTarget.widgetId &&
+                      widget.manifest.kind === 'ai'
+                  )
+                ? t('dialog.removeAiDetail')
+                : t('dialog.removeBuiltinDetail')
+          }
+          confirmLabel={t(
+            removalTarget.kind === 'delete' ? 'dialog.deleteButton' : 'common.remove'
+          )}
+          cancelLabel={t('common.cancel')}
+          pending={pending !== null}
+          onConfirm={() => void confirmRemoval()}
+          onCancel={() => setRemovalTarget(null)}
+        />
       )}
 
       {customize && (

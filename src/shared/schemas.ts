@@ -4,6 +4,9 @@ import {
   ACCENT_COLORS,
   CURSOR_CLICK_ANIMATIONS,
   CURSOR_STYLES,
+  TASKBAR_MODES,
+  TASKBAR_POSITIONS,
+  TASKBAR_THEMES,
   WALLPAPER_FITS,
   WALLPAPER_INTERVAL_MINUTES,
   WIDGET_BG_IMAGE_FITS,
@@ -118,8 +121,47 @@ export const appGroupsFileSchema = z.object({
     .max(1000)
 })
 export const appIdsSchema = z.array(appIdSchema).min(1).max(200)
+export const taskbarItemSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('app'), appId: appIdSchema }),
+  z.object({ type: z.literal('bundle'), bundleId: bundleIdSchema })
+])
+export const taskbarSettingsFileSchema = z
+  .object({
+    schema: z.literal(1),
+    enabled: z.boolean().default(false),
+    mode: z.enum(TASKBAR_MODES).default('overlay'),
+    position: z.enum(TASKBAR_POSITIONS).default('bottom'),
+    theme: z.enum(TASKBAR_THEMES).default('dark'),
+    opacity: z.number().min(0.35).max(1).default(0.86),
+    height: z.number().int().min(36).max(72).default(48),
+    showClock: z.boolean().default(true),
+    showSettingsButton: z.boolean().default(true),
+    items: z.array(taskbarItemSchema).max(32).default([])
+  })
+  .passthrough()
+export const taskbarSettingsPatchSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    mode: z.enum(TASKBAR_MODES).optional(),
+    position: z.enum(TASKBAR_POSITIONS).optional(),
+    theme: z.enum(TASKBAR_THEMES).optional(),
+    opacity: z.number().min(0.35).max(1).optional(),
+    height: z.number().int().min(36).max(72).optional(),
+    showClock: z.boolean().optional(),
+    showSettingsButton: z.boolean().optional(),
+    items: z.array(taskbarItemSchema).max(32).optional()
+  })
+  .strict()
+export const taskbarAnchorSchema = z.object({
+  x: z.number().min(-10000).max(10000),
+  y: z.number().min(-10000).max(10000),
+  width: z.number().min(1).max(10000),
+  height: z.number().min(1).max(10000)
+})
 export const gridRenameTitleSchema = z.object({ title: gridTitleSchema })
 export const gridMoveSchema = z.object({ from: gridIndexSchema, to: gridIndexSchema })
+export const gridDragStartSchema = z.object({ item: appGridItemRefSchema })
+export const gridDragEndSchema = z.object({ cancel: z.boolean().optional() })
 export const gridMergeSchema = z.object({
   appId: appIdSchema,
   targetKey: z.string().min(1).max(160)

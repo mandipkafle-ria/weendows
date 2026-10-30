@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { copyFile, mkdir, readdir, rm, stat } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { basename, extname, isAbsolute, join } from 'node:path'
 import { promisify } from 'node:util'
 import { powerMonitor } from 'electron'
 import {
@@ -57,6 +57,7 @@ export interface WallpaperServiceOptions {
   now?: () => number
   random?: () => number
   createId?: () => string
+  builtinsDir?: string  // resources/builtin-wallpapers/ for built-in wallpaper seed
 }
 
 function messageOf(error: unknown): string {
@@ -126,6 +127,7 @@ export class WallpaperService {
   private readonly now: () => number
   private readonly random: () => number
   private readonly createId: () => string
+  private readonly builtinsDir?: string
   private readonly listeners = new Set<(state: WallpaperState) => void>()
   private readonly slideshow: WallpaperSlideshow
   private readonly handleResume = (): void => this.slideshow.recompute()
@@ -142,6 +144,7 @@ export class WallpaperService {
     this.now = options.now ?? (() => Date.now())
     this.random = options.random ?? Math.random
     this.createId = options.createId ?? (() => randomUUID())
+    this.builtinsDir = options.builtinsDir
     this.slideshow = new WallpaperSlideshow({
       intervalMinutes: WALLPAPER_DEFAULT_INTERVAL_MINUTES,
       now: this.now,
@@ -156,10 +159,99 @@ export class WallpaperService {
     })
   }
 
+  private async seedBuiltins(data: WallpaperFile): Promise<boolean> {
+    let changed = false
+    if (!this.builtinsDir) {
+      return changed
+    }
+    const builtinsDir = this.builtinsDir
+    try {
+      const entries = await readdir(builtinsDir, { withFileTypes: true })
+
+      // Build the set of IDs that currently exist in builtinsDir
+      const liveBuiltinIds = new Set<string>()
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const folder = join(builtinsDir, entry.name)
+        const indexFile = join(folder, 'index.html')
+        try {
+          await stat(indexFile)
+        } catch {
+          continue
+        }
+        liveBuiltinIds.add(entry.name.toLowerCase().replace(/\s+/g, '-'))
+      }
+
+      // Remove stale builtin items that no longer exist in builtinsDir
+      const stale = data.items.filter((item) => item.builtin && !liveBuiltinIds.has(item.id))
+      if (stale.length > 0) {
+        data.items = data.items.filter((item) => !item.builtin || liveBuiltinIds.has(item.id))
+        // Also clean up config references to removed IDs
+        const removedIds = new Set(stale.map((item) => item.id))
+        if (data.config.currentId && removedIds.has(data.config.currentId)) {
+          data.config.currentId = null
+          data.config.mode = 'static'
+        }
+        data.config.slideshowIds = data.config.slideshowIds.filter((id) => !removedIds.has(id))
+        changed = true
+      }
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue
+        const folder = join(builtinsDir, entry.name)
+        const indexFile = join(folder, 'index.html')
+        try {
+          await stat(indexFile)
+        } catch {
+          continue
+        }
+        const id = entry.name.toLowerCase().replace(/\s+/g, '-')
+        const targetDir = join(this.wallpapersDir, id)
+        const existing = data.items.find((item) => item.id === id)
+        if (existing) {
+          if (!isAbsolute(existing.file) || existing.file !== targetDir) {
+            existing.file = targetDir
+            changed = true
+          }
+          if (!existing.builtin) {
+            existing.builtin = true
+            changed = true
+          }
+          if (!(await findHtmlIndex(targetDir))) {
+            await copyDirectory(folder, targetDir)
+            changed = true
+          }
+          continue
+        }
+        await copyDirectory(folder, targetDir)
+        data.items.push({
+          id,
+          name: entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+          type: 'html',
+          file: targetDir,
+          fit: 'fill',
+          builtin: true
+        })
+        changed = true
+      }
+    } catch {
+      // If builtins dir is missing or unreadable, skip quietly.
+    }
+    return changed
+  }
+
   async load(): Promise<void> {
     await this.store.load()
     const data = this.store.get()
     let changed = false
+
+    // Normalize and repair any wallpaper items with relative or legacy paths
+    for (const item of data.items) {
+      if (item.type === 'html' && !isAbsolute(item.file)) {
+        item.file = join(this.wallpapersDir, item.file)
+        changed = true
+      }
+    }
 
     if (!this.store.hadFile || this.store.recovered) {
       try {
@@ -212,8 +304,14 @@ export class WallpaperService {
     }
 
     this.slideshow.setIntervalMinutes(data.config.intervalMinutes)
-    if (changed) {
-      this.store.update(() => undefined)
+
+    let seedChanged = false
+    if (this.builtinsDir) {
+      seedChanged = await this.seedBuiltins(data)
+    }
+
+    if (changed || seedChanged) {
+      await this.store.flush()
     }
   }
 

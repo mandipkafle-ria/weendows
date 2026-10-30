@@ -34,6 +34,55 @@ function typeLabel(item: WallpaperItem): string {
   return item.type === 'video' ? t('wallpaper.typeVideo') : t('wallpaper.typeHtml')
 }
 
+interface WallpaperCardProps {
+  item: WallpaperItem
+  selected: WallpaperItem | null
+  currentId: string | null
+  imageErrors: Record<string, boolean>
+  onSelect: (item: WallpaperItem) => void
+  onImageError: (id: string) => void
+}
+
+function WallpaperCard({
+  item,
+  selected,
+  currentId,
+  imageErrors,
+  onSelect,
+  onImageError,
+}: WallpaperCardProps): JSX.Element {
+  const selectedCard = item.id === selected?.id
+  const current = item.id === currentId
+  return (
+    <button
+      type="button"
+      className={selectedCard ? 'wallpaper-card wallpaper-selected' : 'wallpaper-card'}
+      onClick={() => onSelect(item)}
+    >
+      <span className="wallpaper-thumb">
+        {item.type === 'html' || imageErrors[item.id] ? (
+          <span className="wallpaper-generic">
+            {item.type === 'html'
+              ? t('wallpaper.typeHtml')
+              : t('wallpaper.previewUnavailable')}
+          </span>
+        ) : (
+          <img
+            src={`hl-wallpaper://thumb/${item.id}`}
+            alt=""
+            onError={() => onImageError(item.id)}
+          />
+        )}
+        <span className="wallpaper-type">{typeLabel(item)}</span>
+        {current && <span className="wallpaper-current">{t('wallpaper.current')}</span>}
+      </span>
+      <span className="wallpaper-name" title={item.name}>
+        {item.name}
+      </span>
+    </button>
+  )
+}
+
 function WallpaperPanel(): JSX.Element {
   const [state, setState] = useState<WallpaperState | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -261,46 +310,52 @@ function WallpaperPanel(): JSX.Element {
       ) : state.items.length === 0 ? (
         <p className="empty">{t('wallpaper.empty')}</p>
       ) : (
-        <div className="wallpaper-grid">
-          {state.items.map((item) => {
-            const selectedCard = item.id === selected?.id
-            const current = item.id === state.config.currentId
-            return (
-              <button
-                type="button"
-                className={selectedCard ? 'wallpaper-card wallpaper-selected' : 'wallpaper-card'}
-                key={item.id}
-                onClick={() => selectItem(item)}
-              >
-                <span className="wallpaper-thumb">
-                  {item.type === 'html' || imageErrors[item.id] ? (
-                    <span className="wallpaper-generic">
-                      {item.type === 'html'
-                        ? t('wallpaper.typeHtml')
-                        : t('wallpaper.previewUnavailable')}
-                    </span>
-                  ) : (
-                    <img
-                      src={`hl-wallpaper://thumb/${item.id}`}
-                      alt=""
-                      onError={() =>
-                        setImageErrors((currentErrors) => ({
-                          ...currentErrors,
-                          [item.id]: true
-                        }))
+        <>
+          {state.items.some((item) => item.builtin && item.type === 'html') && (
+            <div className="wallpaper-section">
+              <h3 className="wallpaper-section-title">✦ Live Wallpapers</h3>
+              <div className="wallpaper-grid">
+                {state.items
+                  .filter((item) => item.builtin && item.type === 'html')
+                  .map((item) => (
+                    <WallpaperCard
+                      key={item.id}
+                      item={item}
+                      selected={selected}
+                      currentId={state.config.currentId}
+                      imageErrors={imageErrors}
+                      onSelect={selectItem}
+                      onImageError={(id) =>
+                        setImageErrors((e) => ({ ...e, [id]: true }))
                       }
                     />
-                  )}
-                  <span className="wallpaper-type">{typeLabel(item)}</span>
-                  {current && <span className="wallpaper-current">{t('wallpaper.current')}</span>}
-                </span>
-                <span className="wallpaper-name" title={item.name}>
-                  {item.name}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+                  ))}
+              </div>
+            </div>
+          )}
+          {state.items.some((item) => !item.builtin) && (
+            <div className="wallpaper-section">
+              <h3 className="wallpaper-section-title">Your Library</h3>
+              <div className="wallpaper-grid">
+                {state.items
+                  .filter((item) => !item.builtin)
+                  .map((item) => (
+                    <WallpaperCard
+                      key={item.id}
+                      item={item}
+                      selected={selected}
+                      currentId={state.config.currentId}
+                      imageErrors={imageErrors}
+                      onSelect={selectItem}
+                      onImageError={(id) =>
+                        setImageErrors((e) => ({ ...e, [id]: true }))
+                      }
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div className="wallpaper-controls">

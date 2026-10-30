@@ -13,6 +13,7 @@ import type {
 import type { AppScanner } from './app-scanner'
 import {
   addApps,
+  appsOnGrid,
   itemKey,
   mergeApp,
   moveItem,
@@ -264,6 +265,67 @@ export class AppGridService {
       currentItems.filter((item) => !(item.type === 'bundle' && item.bundleId === bundleId))
     )
     return this.state(widgetId)
+  }
+
+  hasItem(widgetId: string, item: AppGridItemRef): boolean {
+    const key = itemKey(item)
+    return this.items(widgetId).some((candidate) => itemKey(candidate) === key)
+  }
+
+  moveItemBetweenGrids(
+    sourceWidgetId: string,
+    targetWidgetId: string,
+    item: AppGridItemRef
+  ): boolean {
+    if (sourceWidgetId === targetWidgetId) {
+      return false
+    }
+    const sourceItems = this.items(sourceWidgetId)
+    const sourceKey = itemKey(item)
+    if (!sourceItems.some((candidate) => itemKey(candidate) === sourceKey)) {
+      return false
+    }
+
+    if (item.type === 'app') {
+      if (!appsOnGrid(this.items(targetWidgetId), this.bundles()).has(item.appId)) {
+        this.setItems(targetWidgetId, [
+          ...this.items(targetWidgetId),
+          { type: 'app', appId: item.appId }
+        ])
+      }
+      this.setItems(
+        sourceWidgetId,
+        sourceItems.filter((candidate) => itemKey(candidate) !== sourceKey)
+      )
+      return true
+    }
+
+    const bundle = this.bundles().find(
+      (candidate) => candidate.id === item.bundleId && candidate.gridId === sourceWidgetId
+    )
+    if (!bundle) {
+      return false
+    }
+    this.setItems(
+      sourceWidgetId,
+      sourceItems.filter((candidate) => itemKey(candidate) !== sourceKey)
+    )
+    this.setBundles(
+      this.bundles().map((candidate) =>
+        candidate.id === item.bundleId ? { ...candidate, gridId: targetWidgetId } : candidate
+      )
+    )
+    if (
+      !this.items(targetWidgetId).some(
+        (candidate) => candidate.type === 'bundle' && candidate.bundleId === item.bundleId
+      )
+    ) {
+      this.setItems(targetWidgetId, [
+        ...this.items(targetWidgetId),
+        { type: 'bundle', bundleId: item.bundleId }
+      ])
+    }
+    return true
   }
 
   appIdsInBundle(widgetId: string, bundleId: string): string[] {
