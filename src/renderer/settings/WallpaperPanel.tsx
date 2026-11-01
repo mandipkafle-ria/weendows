@@ -34,6 +34,64 @@ function typeLabel(item: WallpaperItem): string {
   return item.type === 'video' ? t('wallpaper.typeVideo') : t('wallpaper.typeHtml')
 }
 
+function artTone(item: WallpaperItem): 'autumn' | 'light' | 'live' | 'html' {
+  const key = `${item.id} ${item.name}`.toLowerCase()
+  if (key.includes('autumn') || key.includes('leaf')) {
+    return 'autumn'
+  }
+  if (key.includes('light') || key.includes('studio')) {
+    return 'light'
+  }
+  return item.builtin ? 'live' : 'html'
+}
+
+function WallpaperArt({ item }: { item: WallpaperItem }): JSX.Element {
+  const tone = artTone(item)
+  return (
+    <span className={`wallpaper-art wallpaper-art-${tone}`} aria-hidden="true">
+      {tone === 'autumn' ? (
+        <svg viewBox="0 0 64 64" fill="none">
+          <path
+            d="M50 10C34 11 20 21 16 35c-2 7 1 13 8 15 13 3 25-9 27-25 1-5 0-10-1-15Z"
+            fill="currentColor"
+            opacity=".92"
+          />
+          <path
+            d="M16 52c6-13 15-22 28-29"
+            stroke="#5b2418"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : tone === 'light' ? (
+        <svg viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="25" r="10" fill="currentColor" />
+          <path
+            d="M32 5v7M32 38v7M12 25H5M59 25h-7M18 11l5 5M46 11l-5 5"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <path d="M24 46h16l4 13H20l4-13Z" fill="currentColor" opacity=".72" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 64 64" fill="none">
+          <rect x="9" y="14" width="46" height="36" rx="5" stroke="currentColor" strokeWidth="3" />
+          <path d="M9 24h46" stroke="currentColor" strokeWidth="3" />
+          <circle cx="17" cy="19" r="1.8" fill="currentColor" />
+          <path
+            d="M25 33l-5 5 5 5M39 33l5 5-5 5M35 31l-6 15"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </span>
+  )
+}
+
 interface WallpaperCardProps {
   item: WallpaperItem
   selected: WallpaperItem | null
@@ -49,7 +107,7 @@ function WallpaperCard({
   currentId,
   imageErrors,
   onSelect,
-  onImageError,
+  onImageError
 }: WallpaperCardProps): JSX.Element {
   const selectedCard = item.id === selected?.id
   const current = item.id === currentId
@@ -60,18 +118,22 @@ function WallpaperCard({
       onClick={() => onSelect(item)}
     >
       <span className="wallpaper-thumb">
-        {item.type === 'html' || imageErrors[item.id] ? (
-          <span className="wallpaper-generic">
-            {item.type === 'html'
-              ? t('wallpaper.typeHtml')
-              : t('wallpaper.previewUnavailable')}
-          </span>
+        {item.type === 'html' ? (
+          <WallpaperArt item={item} />
+        ) : imageErrors[item.id] ? (
+          <span className="wallpaper-generic">{t('wallpaper.previewUnavailable')}</span>
         ) : (
           <img
             src={`hl-wallpaper://thumb/${item.id}`}
             alt=""
             onError={() => onImageError(item.id)}
           />
+        )}
+        {item.builtin && item.type === 'html' && (
+          <span className="wallpaper-live-badge">
+            <span className="wallpaper-live-dot" />
+            {t('wallpaper.liveBadge')}
+          </span>
         )}
         <span className="wallpaper-type">{typeLabel(item)}</span>
         {current && <span className="wallpaper-current">{t('wallpaper.current')}</span>}
@@ -325,9 +387,7 @@ function WallpaperPanel(): JSX.Element {
                       currentId={state.config.currentId}
                       imageErrors={imageErrors}
                       onSelect={selectItem}
-                      onImageError={(id) =>
-                        setImageErrors((e) => ({ ...e, [id]: true }))
-                      }
+                      onImageError={(id) => setImageErrors((e) => ({ ...e, [id]: true }))}
                     />
                   ))}
               </div>
@@ -347,9 +407,7 @@ function WallpaperPanel(): JSX.Element {
                       currentId={state.config.currentId}
                       imageErrors={imageErrors}
                       onSelect={selectItem}
-                      onImageError={(id) =>
-                        setImageErrors((e) => ({ ...e, [id]: true }))
-                      }
+                      onImageError={(id) => setImageErrors((e) => ({ ...e, [id]: true }))}
                     />
                   ))}
               </div>

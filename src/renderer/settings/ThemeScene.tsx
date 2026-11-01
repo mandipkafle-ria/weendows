@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, type CSSProperties, type JSX } from 'react'
 import { findBuiltinVariant } from '../../shared/builtins'
+import { APP_GRID_TYPE } from '../../shared/constants'
 import type { BuiltinWidget, GeneralState, WidgetCategory, WidgetVariant } from '../../shared/types'
 import { t } from '../i18n'
 import type { ThemeEnvId } from './themeEnvironments'
@@ -26,7 +27,6 @@ interface ThemeSceneProps {
   onQueryChange: (query: string) => void
   onCategoryFilterChange: (category: WidgetCategory | 'all') => void
   onCustomize: (builtin: BuiltinWidget, variant: string) => void
-  onSwitchToCatalog: () => void
 }
 
 interface ScenePiece {
@@ -55,8 +55,7 @@ export default function ThemeScene({
   categoryFilter,
   onQueryChange,
   onCategoryFilterChange,
-  onCustomize,
-  onSwitchToCatalog
+  onCustomize
 }: ThemeSceneProps): JSX.Element {
   const canvasRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -73,6 +72,9 @@ export default function ThemeScene({
     const matches: ScenePiece[] = []
 
     for (const builtin of builtins) {
+      if (builtin.type === APP_GRID_TYPE) {
+        continue
+      }
       if (categoryFilter !== 'all' && builtin.category !== categoryFilter) {
         continue
       }
@@ -122,14 +124,21 @@ export default function ThemeScene({
     })
   }, [themeEnv])
 
-  const categories: Array<{ id: WidgetCategory | 'all'; label: string }> = [
-    { id: 'all', label: t('widgets.categoryAll') },
-    { id: 'time', label: t('widgets.categories.time') },
-    { id: 'system', label: t('widgets.categories.system') },
-    { id: 'ambient', label: t('widgets.categories.ambient') },
-    { id: 'focus', label: t('widgets.categories.focus') },
-    { id: 'apps', label: t('widgets.categories.apps') }
-  ]
+  const categories = useMemo(() => {
+    const base: Array<{ id: WidgetCategory | 'all'; label: string }> = [
+      { id: 'all', label: t('widgets.categoryAll') },
+      { id: 'time', label: t('widgets.categories.time') },
+      { id: 'system', label: t('widgets.categories.system') },
+      { id: 'ambient', label: t('widgets.categories.ambient') },
+      { id: 'focus', label: t('widgets.categories.focus') },
+      { id: 'apps', label: t('widgets.categories.apps') }
+    ]
+    return base.filter(
+      (cat) =>
+        cat.id === 'all' ||
+        builtins.some((builtin) => builtin.type !== APP_GRID_TYPE && builtin.category === cat.id)
+    )
+  }, [builtins])
 
   return (
     <div
@@ -220,11 +229,6 @@ export default function ThemeScene({
           placeholder={t('widgets.searchPlaceholder')}
           clearLabel={t('widgets.clearSearch')}
         />
-
-        <button type="button" className="scene-catalog-btn" onClick={onSwitchToCatalog}>
-          {t('widgets.galleryTitle')}
-          <span aria-hidden="true">&rarr;</span>
-        </button>
       </div>
     </div>
   )

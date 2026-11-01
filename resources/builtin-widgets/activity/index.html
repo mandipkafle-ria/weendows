@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activity rings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .act--rings {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+    .act__svg {
+      width: 134px;
+      height: 134px;
+      flex: none;
+      transform: rotate(-90deg);
+    }
+    .act__svg circle {
+      fill: none;
+      stroke-width: 11;
+      stroke-linecap: round;
+    }
+    .act__svg .t { stroke: var(--track); }
+    .act__svg .v {
+      stroke: var(--c);
+      stroke-dasharray: var(--vn) 1;
+      animation: ringIn 1.5s cubic-bezier(.2, .8, .2, 1);
+      filter: drop-shadow(0 0 5px var(--glow));
+    }
+    .act__leg { display: grid; gap: 15px; }
+    .act__leg li {
+      display: grid;
+      gap: 5px;
+      padding-left: 12px;
+      border-left: 3px solid var(--c);
+    }
+    .act__leg span {
+      font: 600 10px/1 var(--font-mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .act__leg b {
+      font: 700 17px/1 var(--font-sans);
+      letter-spacing: -.02em;
+      white-space: nowrap;
+    }
+    .act__leg b small {
+      font: 500 11px/1 var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w act act--rings">
+    <svg class="act__svg" viewBox="0 0 134 134" aria-hidden="true">
+      <circle class="t" cx="67" cy="67" r="56"/>
+      <circle class="v" pathLength="1" cx="67" cy="67" r="56" style="--vn:.8;--c:var(--accent)"/>
+      <circle class="t" cx="67" cy="67" r="42"/>
+      <circle class="v" pathLength="1" cx="67" cy="67" r="42" style="--vn:.73;--c:var(--accent-2)"/>
+      <circle class="t" cx="67" cy="67" r="28"/>
+      <circle class="v" pathLength="1" cx="67" cy="67" r="28" style="--vn:.92;--c:color-mix(in srgb,var(--accent) 55%,var(--text))"/>
+    </svg>
+    <ul class="act__leg">
+      <li style="--c:var(--accent)"><span>Move</span><b>480 <small>/ 600 kcal</small></b></li>
+      <li style="--c:var(--accent-2)"><span>Exercise</span><b>22 <small>/ 30 min</small></b></li>
+      <li style="--c:color-mix(in srgb,var(--accent) 55%,var(--text))"><span>Stand</span><b>11 <small>/ 12 hrs</small></b></li>
+    </ul>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      const { initEnv, initTheme } = window.HLW;
+      initEnv('rings');
+      initTheme();
+    })();
+  </script>
+</body>
+</html>

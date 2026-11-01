@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flip clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .flip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .flip__grp { display: flex; gap: 6px; }
+    .fd {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 66px;
+      height: 94px;
+      perspective: 320px;
+      border-radius: 13px;
+      background: linear-gradient(180deg, var(--surface-2) 0 50%, var(--surface) 50%);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .fd b {
+      font: 800 68px/1 var(--font-sans);
+      letter-spacing: -.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .fd::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 2px;
+      margin-top: -1px;
+      background: var(--page);
+      z-index: 2;
+    }
+    .fd.is-flip b { animation: flipDown .55s cubic-bezier(.3, .7, .3, 1); }
+    .flip__colon { display: grid; gap: 14px; }
+    .flip__colon::before,
+    .flip__colon::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--glow);
+    }
+    .flip__ap {
+      align-self: flex-end;
+      margin-bottom: 8px;
+      font: 700 12px/1 var(--font-mono);
+      letter-spacing: .2em;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w w--bare flip">
+    <div class="flip__grp" data-flip="h"><span class="fd"><b>0</b></span><span class="fd"><b>0</b></span></div>
+    <span class="flip__colon"></span>
+    <div class="flip__grp" data-flip="m"><span class="fd"><b>0</b></span><span class="fd"><b>0</b></span></div>
+    <span class="flip__ap" data-flip-ap>AM</span>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, pad, every, initEnv, initTheme } = window.HLW;
+      initEnv('flip');
+      initTheme();
+
+      function flip() {
+        const now = new Date();
+        const values = { h: pad(now.getHours() % 12 || 12), m: pad(now.getMinutes()) };
+
+        $$('[data-flip]').forEach((group) => {
+          Array.from(group.children).forEach((card, index) => {
+            const digit = card.querySelector('b');
+            const value = values[group.dataset.flip][index];
+            if (digit.textContent !== value) {
+              digit.textContent = value;
+              card.classList.remove('is-flip');
+              void card.offsetWidth;
+              card.classList.add('is-flip');
+            }
+          });
+        });
+
+        $$('[data-flip-ap]').forEach((element) => {
+          const value = now.getHours() < 12 ? 'AM' : 'PM';
+          if (element.textContent !== value) element.textContent = value;
+        });
+      }
+
+      flip();
+      every(flip, 1000);
+    })();
+  </script>
+</body>
+</html>

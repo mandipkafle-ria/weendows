@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World clocks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='list'] .world--list,
+    html:not([data-variant]) .world--list { display: grid; }
+    html[data-variant='tiles'] .world--tiles { display: grid; }
+
+    .tz__ico {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffc24a;
+      box-shadow: 0 0 10px rgba(255, 194, 74, .75);
+    }
+    [data-night='1'] .tz__ico {
+      background: transparent;
+      box-shadow: inset -4px -2px 0 0 #8d99d6;
+    }
+    .tz__city { display: grid; gap: 6px; }
+    .tz__city b { font: 600 15px/1 var(--font-sans); }
+    .tz__city small {
+      font: 500 11px/1 var(--font-mono);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .tz__time {
+      font: 600 24px/1 var(--font-sans);
+      letter-spacing: -.03em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .tz__time small {
+      margin-left: 5px;
+      font: 600 10.5px/1 var(--font-mono);
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .world--list { width: 100%; padding: 6px 22px; align-content: center; }
+    .world--list .tz {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 15px 0;
+      border-top: 1px solid var(--border);
+    }
+    .world--list .tz:first-child { border-top: 0; }
+
+    .world--tiles {
+      width: 100%;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px;
+      align-content: center;
+    }
+    .world--tiles .tz {
+      position: relative;
+      display: grid;
+      gap: 14px;
+      padding: 16px 14px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 20%, var(--surface-2)), var(--surface-2));
+    }
+    .world--tiles .tz[data-night='1'] {
+      background: linear-gradient(160deg, #1d2542, #11172c);
+      border-color: rgba(255, 255, 255, .08);
+      color: #eef1ff;
+    }
+    .world--tiles .tz[data-night='1'] .tz__city small,
+    .world--tiles .tz[data-night='1'] .tz__time small { color: #a3aed4; }
+    .world--tiles .tz[data-night='1'] .tz__ico { box-shadow: inset -4px -2px 0 0 #cfd8ff; }
+    .world--tiles .tz__ico {
+      position: absolute;
+      bottom: 18px;
+      right: 14px;
+    }
+    .world--tiles .tz__time { order: 2; font-size: 28px; }
+    .world--tiles .tz__city { order: 1; }
+  </style>
+</head>
+<body>
+
+  <main class="card w world world--list">
+    <div class="tz" data-tz="Asia/Kathmandu">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>Kathmandu</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="Europe/London">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>London</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="America/New_York">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>New York</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="Asia/Tokyo">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>Tokyo</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+  </main>
+
+  <main class="card w world world--tiles">
+    <div class="tz" data-tz="Asia/Dubai">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>Dubai</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="Europe/Berlin">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>Berlin</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="America/Los_Angeles">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>San Francisco</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+    <div class="tz" data-tz="Australia/Sydney">
+      <span class="tz__ico"></span>
+      <div class="tz__city"><b>Sydney</b><small><span data-tz-day></span> · <span data-tz-diff></span></small></div>
+      <div class="tz__time"><span data-tz-time></span><small data-tz-ap></small></div>
+    </div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { pad, every, initEnv, initTheme } = window.HLW;
+      initEnv('list');
+      initTheme();
+
+      function world() {
+        const now = new Date();
+        const localOffset = -now.getTimezoneOffset();
+        const localKey = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+
+        document.querySelectorAll('[data-tz]').forEach((element) => {
+          let parts;
+          try {
+            const format = new Intl.DateTimeFormat('en-US', {
+              timeZone: element.dataset.tz,
+              hourCycle: 'h23',
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: 'numeric',
+              second: 'numeric'
+            });
+            parts = Object.fromEntries(
+              format.formatToParts(now)
+                .filter((part) => part.type !== 'literal')
+                .map((part) => [part.type, Number(part.value)])
+            );
+          } catch {
+            return;
+          }
+
+          const offset = Math.round(
+            (Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - Math.floor(now / 1000) * 1000) / 6e4
+          );
+          const diff = offset - localOffset;
+          const absolute = Math.abs(diff);
+          const timeKey = parts.year * 10000 + parts.month * 100 + parts.day;
+
+          const set = (key, value) => {
+            element.querySelectorAll(`[data-tz-${key}]`).forEach((node) => {
+              node.textContent = value;
+            });
+          };
+
+          set('time', `${parts.hour % 12 || 12}:${pad(parts.minute)}`);
+          set('ap', parts.hour < 12 ? 'AM' : 'PM');
+          set('day', timeKey === localKey ? 'Today' : timeKey > localKey ? 'Tomorrow' : 'Yesterday');
+          set('diff', diff === 0 ? 'Local time' : `${diff > 0 ? '+' : '−'}${Math.floor(absolute / 60)}${absolute % 60 ? ':' + pad(absolute % 60) : ''}h`);
+          element.dataset.night = parts.hour < 6 || parts.hour >= 19 ? '1' : '0';
+        });
+      }
+
+      world();
+      every(world, 1000);
+    })();
+  </script>
+</body>
+</html>

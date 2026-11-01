@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agenda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='timeline'] .agenda--timeline,
+    html:not([data-variant]) .agenda--timeline { display: grid; }
+    html[data-variant='next'] .agenda--next { display: grid; }
+
+    .agenda--timeline {
+      width: 100%;
+      display: grid;
+      gap: 12px;
+      align-content: center;
+    }
+    .agenda--next {
+      width: 100%;
+      display: grid;
+      gap: 12px;
+      align-content: center;
+    }
+    .agenda--next [data-view='next'] {
+      display: grid;
+      gap: 12px;
+    }
+
+    .ag {
+      display: grid;
+      grid-template-columns: 66px 12px 1fr;
+      gap: 12px;
+      padding-bottom: 12px;
+    }
+    .ag:last-child { padding-bottom: 0; }
+    .ag__t {
+      padding-top: 1px;
+      text-align: right;
+      font: 500 11.5px/1.3 var(--font-mono);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .ag__dot {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .ag__dot::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      bottom: -14px;
+      width: 2px;
+      background: var(--track);
+    }
+    .ag:last-child .ag__dot::before { display: none; }
+    .ag__dot i {
+      position: relative;
+      width: 10px;
+      height: 10px;
+      margin-top: 2px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .ag__b { display: grid; gap: 4px; }
+    .ag__b b { font: 600 14px/1.2 var(--font-sans); }
+    .ag__b small { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+    .ag.is-past { opacity: .4; }
+    .ag.is-now .ag__dot i {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 26%, transparent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .ag.is-now .ag__b b,
+    .ag.is-next .ag__b b { color: var(--accent); }
+    .ag.is-next .ag__dot i { background: var(--accent-2); }
+
+    .agn__title {
+      font: 700 26px/1.12 var(--font-sans);
+      letter-spacing: -.03em;
+    }
+    .agn__when {
+      font: 600 13px/1 var(--font-mono);
+      color: var(--accent);
+      letter-spacing: .04em;
+    }
+    .agn__range { font: 500 12px/1 var(--font-mono); color: var(--muted); }
+    .agn__then {
+      display: flex;
+      gap: 10px;
+      padding-top: 14px;
+      margin-top: 4px;
+      border-top: 1px solid var(--border);
+      font: 500 12px/1.3 var(--font-sans);
+      color: var(--muted);
+    }
+    .agn__then b { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <main class="card w agenda agenda--timeline">
+    <span class="w__label">Today</span>
+    <div data-view="timeline" data-agenda="08:30+30 Standup|10:00+90 Design review|12:30+45 Lunch with Mira|15:00+120 Deep work|18:00+60 Gym"></div>
+  </main>
+
+  <main class="card w agenda agenda--next">
+    <div data-view="next" data-agenda="08:30+30 Standup|10:00+90 Design review|12:30+45 Lunch with Mira|15:00+120 Deep work|18:00+60 Gym"></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, fmt12, dur, every, initEnv, initTheme, content } = window.HLW;
+      initEnv('timeline');
+      initTheme();
+
+      const cfg = content();
+      if (Array.isArray(cfg.items)) {
+        const agendaText = cfg.items
+          .map((item) => {
+            const time = item && typeof item.time === 'string' ? item.time.trim() : '';
+            const title =
+              item && typeof item.title === 'string' ? item.title.trim().replace(/\|/g, '/') : '';
+            const minutes = item && Number(item.minutes);
+            if (!/^\d{1,2}:\d{2}$/.test(time) || !title) return '';
+            return `${time}+${Number.isFinite(minutes) ? Math.max(1, Math.round(minutes)) : 60} ${title}`;
+          })
+          .filter(Boolean)
+          .join('|');
+        $$('[data-agenda]').forEach((root) => {
+          root.dataset.agenda = agendaText;
+        });
+      }
+
+      function agenda() {
+        const now = new Date();
+        const mins = now.getHours() * 60 + now.getMinutes();
+
+        $$('[data-agenda]').forEach((root) => {
+          const key = `${root.dataset.agenda}|${mins}|${root.dataset.view}`;
+          if (root.dataset.k === key) return;
+          root.dataset.k = key;
+
+          const events = root.dataset.agenda.split('|').map((entry) => {
+            const match = entry.trim().match(/^(\d{1,2}):(\d{2})(?:\+(\d+))?\s+(.+)$/);
+            if (!match) return null;
+            const start = Number(match[1]) * 60 + Number(match[2]);
+            return { start, end: start + (match[3] ? Number(match[3]) : 60), title: match[4] };
+          }).filter(Boolean).sort((a, b) => a.start - b.start);
+
+          const nowIndex = events.findIndex((event) => event.start <= mins && mins < event.end);
+          const nextIndex = events.findIndex((event) => event.start > mins);
+          const range = (event) => `${fmt12(Math.floor(event.start / 60), event.start % 60)} – ${fmt12(Math.floor(event.end / 60) % 24, event.end % 60)}`;
+
+          if (root.dataset.view === 'next') {
+            const current = nowIndex >= 0 ? events[nowIndex] : nextIndex >= 0 ? events[nextIndex] : null;
+            if (!current) {
+              root.innerHTML = '<p class="agn__title">All clear</p><p class="agn__range">Nothing left on today\'s list.</p>';
+              return;
+            }
+            const after = nowIndex >= 0 ? events[nowIndex + 1] : events[nextIndex + 1];
+            root.innerHTML = `<span class="w__label">${nowIndex >= 0 ? 'Happening now' : 'Next up'}</span><p class="agn__title">${current.title}</p>` +
+              `<p class="agn__when">${nowIndex >= 0 ? 'ends in ' + dur(current.end - mins) : 'in ' + dur(current.start - mins)}</p><p class="agn__range">${range(current)}</p>` +
+              (after ? `<div class="agn__then"><span>Then</span><b>${after.title}</b></div>` : '');
+          } else {
+            root.innerHTML = events.map((event, index) => {
+              const classes = `ag${event.end <= mins ? ' is-past' : ''}${index === nowIndex ? ' is-now' : ''}${nowIndex < 0 && index === nextIndex ? ' is-next' : ''}`;
+              return `<div class="${classes}"><span class="ag__t">${fmt12(Math.floor(event.start / 60), event.start % 60)}</span><span class="ag__dot"><i></i></span><div class="ag__b"><b>${event.title}</b><small>${dur(event.end - event.start)}</small></div></div>`;
+            }).join('');
+          }
+        });
+      }
+
+      agenda();
+      every(agenda, 30000);
+    })();
+  </script>
+</body>
+</html>

@@ -6,6 +6,12 @@ asarUnpack:
   - node_modules/koffi/**
   - node_modules/@koromix/koffi-*/**
   - resources/cursors/**
+# The media backend is spawned from disk, so ship it as a plain resource.
+extraResources:
+  - from: node_modules/windows-media-sessions/bin/win-x64/windows-media-sessions-backend.exe
+    to: media/windows-media-sessions-backend.exe
+files:
+  - '!node_modules/windows-media-sessions/bin/**'
 win:
   target: [nsis, portable]
   icon: resources/icon.ico

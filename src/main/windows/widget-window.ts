@@ -38,7 +38,8 @@ export function createWidgetWindow(options: WidgetWindowOptions): BrowserWindow 
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: false,
-      spellcheck: false
+      spellcheck: false,
+      backgroundThrottling: false
     }
   })
 
@@ -68,11 +69,15 @@ export function createWidgetWindow(options: WidgetWindowOptions): BrowserWindow 
 export async function loadWidgetShell(
   win: BrowserWindow,
   widgetId: string,
-  variant: string | null
+  variant: string | null,
+  content?: Record<string, unknown> | null
 ): Promise<void> {
   const query: Record<string, string> = { id: widgetId }
   if (variant) {
     query['variant'] = variant
+  }
+  if (content && Object.keys(content).length > 0) {
+    query['content'] = JSON.stringify(content)
   }
   await win.loadFile(join(__dirname, '../renderer/widget-shell/index.html'), { query })
 }

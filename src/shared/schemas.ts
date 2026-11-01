@@ -79,6 +79,29 @@ export const startupFileSchema = z
   .passthrough()
 
 export const widgetIdSchema = z.string().regex(WIDGET_ID_RE, 'Invalid widget id')
+
+type WidgetContentValue =
+  string | number | boolean | null | WidgetContentValue[] | { [key: string]: WidgetContentValue }
+
+const widgetContentValueSchema: z.ZodType<WidgetContentValue> = z.lazy(() =>
+  z.union([
+    z.string().max(2000),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(widgetContentValueSchema).max(300),
+    z.record(z.string().max(120), widgetContentValueSchema)
+  ])
+)
+export const widgetContentSchema = z
+  .record(z.string().max(120), widgetContentValueSchema)
+  .refine((value) => JSON.stringify(value).length <= 16_384, 'Widget content is too large')
+export const widgetContentUpdateSchema = z
+  .object({
+    widgetId: widgetIdSchema,
+    content: widgetContentSchema
+  })
+  .strict()
 export const builtinTypeSchema = z.string().min(1).max(64)
 export const widgetVariantSchema = z
   .string()
@@ -261,6 +284,7 @@ export const widgetPlacementSchema = z
     locked: z.boolean(),
     enabled: z.boolean(),
     opacity: opacitySchema,
+    content: widgetContentSchema.nullable().optional(),
     themeOverride: widgetThemeOverrideSchema.default(null),
     bgColor: hexColorSchema.nullable().default(null),
     bgOpacity: z.number().min(0).max(1).default(1),

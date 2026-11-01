@@ -1,4 +1,4 @@
-import type { BuiltinWidget, WidgetManifest, WidgetVariant } from './types'
+import type { BuiltinWidget, WidgetContentField, WidgetManifest, WidgetVariant } from './types'
 
 function variant(
   id: string,
@@ -9,6 +9,24 @@ function variant(
   tags: string[] = []
 ): WidgetVariant {
   return { id, width, height, minWidth, minHeight, tags }
+}
+
+function text(key: string, labelKey: string, multiline = false): WidgetContentField {
+  return { key, labelKey, type: 'text', multiline }
+}
+
+function number(
+  key: string,
+  labelKey: string,
+  min: number,
+  max: number,
+  step = 1
+): WidgetContentField {
+  return { key, labelKey, type: 'number', min, max, step }
+}
+
+function list(key: string, labelKey: string, itemFields: WidgetContentField[]): WidgetContentField {
+  return { key, labelKey, type: 'list', itemFields }
 }
 
 export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
@@ -147,6 +165,302 @@ export const BUILTIN_WIDGETS: readonly BuiltinWidget[] = [
     focusable: true,
     editPassthrough: true,
     permissions: ['launch']
+  },
+  {
+    type: 'weekday',
+    name: 'Weekday',
+    description: 'The name of the day in six typographic moods.',
+    category: 'time',
+    width: 520,
+    height: 240,
+    minWidth: 340,
+    minHeight: 160,
+    variants: [
+      variant('giant', 520, 240, 340, 160, ['large', 'bold', 'type']),
+      variant('outline', 480, 240, 340, 160, ['outline', 'bold', 'type']),
+      variant('serif', 460, 260, 320, 180, ['serif', 'editorial']),
+      variant('vertical', 300, 330, 220, 240, ['vertical', 'minimal']),
+      variant('thin', 500, 260, 340, 180, ['thin', 'minimal']),
+      variant('marker', 320, 160, 240, 120, ['handwritten', 'warm'])
+    ]
+  },
+  {
+    type: 'week-strip',
+    name: 'Week strip',
+    description: 'A compact week with today held in focus.',
+    category: 'time',
+    width: 360,
+    height: 120,
+    minWidth: 280,
+    minHeight: 90,
+    variants: [
+      variant('pills', 360, 120, 280, 90, ['week', 'calendar']),
+      variant('dots', 360, 120, 280, 90, ['dots', 'minimal']),
+      variant('underline', 340, 100, 280, 80, ['underline', 'minimal'])
+    ]
+  },
+  {
+    type: 'greeting',
+    name: 'Greeting',
+    description: 'A friendly hello that follows the time of day.',
+    category: 'time',
+    width: 420,
+    height: 150,
+    minWidth: 280,
+    minHeight: 100,
+    variants: [
+      variant('bare', 420, 150, 280, 100, ['greeting', 'large']),
+      variant('card', 420, 160, 300, 120, ['greeting', 'card'])
+    ]
+  },
+  {
+    type: 'countdown',
+    name: 'Countdown',
+    description: 'Days, hours and minutes until the next big moment.',
+    category: 'time',
+    width: 420,
+    height: 220,
+    minWidth: 320,
+    minHeight: 180,
+    variants: [
+      variant('big', 420, 220, 320, 180, ['countdown', 'large']),
+      variant('segments', 400, 200, 300, 160, ['countdown', 'segments']),
+      variant('ring', 340, 300, 280, 260, ['countdown', 'ring'])
+    ]
+  },
+  {
+    type: 'time-progress',
+    name: 'Time progress',
+    description: 'How much of today, this month and this year has passed.',
+    category: 'time',
+    width: 380,
+    height: 230,
+    minWidth: 300,
+    minHeight: 180,
+    variants: [
+      variant('bars', 380, 230, 300, 180, ['progress', 'bars']),
+      variant('rings', 360, 220, 300, 190, ['progress', 'rings']),
+      variant('dots', 360, 230, 300, 190, ['progress', 'dots'])
+    ]
+  },
+  {
+    type: 'moon',
+    name: 'Moon phase',
+    description: 'Tonight’s moon, computed from the date.',
+    category: 'ambient',
+    width: 280,
+    height: 320,
+    minWidth: 220,
+    minHeight: 260,
+    variants: [
+      variant('disc', 280, 320, 220, 260, ['moon', 'astronomy']),
+      variant('mini', 340, 140, 260, 110, ['moon', 'compact'])
+    ]
+  },
+  {
+    type: 'sun-arc',
+    name: 'Sun arc',
+    description: 'Sunrise, sunset and the sun’s place in the sky.',
+    category: 'ambient',
+    width: 360,
+    height: 220,
+    minWidth: 280,
+    minHeight: 180,
+    variants: [variant('arc', 360, 220, 280, 180, ['sun', 'daylight'])]
+  },
+  {
+    type: 'world-clock',
+    name: 'World clocks',
+    description: 'The time in the cities that matter to you.',
+    category: 'time',
+    width: 360,
+    height: 300,
+    minWidth: 300,
+    minHeight: 240,
+    variants: [
+      variant('list', 360, 300, 300, 240, ['world', 'clocks']),
+      variant('tiles', 380, 300, 320, 260, ['world', 'tiles'])
+    ]
+  },
+  {
+    type: 'timer',
+    name: 'Focus timer',
+    description: 'A working pomodoro with focus and break rounds.',
+    category: 'focus',
+    width: 280,
+    height: 330,
+    minWidth: 240,
+    minHeight: 280,
+    variants: [
+      variant('ring', 280, 330, 240, 280, ['timer', 'pomodoro']),
+      variant('pill', 380, 110, 300, 90, ['timer', 'compact'])
+    ],
+    focusable: true
+  },
+  {
+    type: 'word-clock',
+    name: 'Word clock',
+    description: 'The time written out in a grid of letters.',
+    category: 'time',
+    width: 360,
+    height: 300,
+    minWidth: 300,
+    minHeight: 260,
+    variants: [variant('word', 360, 300, 300, 260, ['word', 'clock'])]
+  },
+  {
+    type: 'flip-clock',
+    name: 'Flip clock',
+    description: 'Split-flap digits that flip when the minute changes.',
+    category: 'time',
+    width: 360,
+    height: 140,
+    minWidth: 300,
+    minHeight: 110,
+    variants: [variant('flip', 360, 140, 300, 110, ['flip', 'clock'])]
+  },
+  {
+    type: 'binary-clock',
+    name: 'Binary clock',
+    description: 'BCD time as six columns of binary dots.',
+    category: 'time',
+    width: 330,
+    height: 220,
+    minWidth: 280,
+    minHeight: 180,
+    variants: [variant('dots', 330, 220, 280, 180, ['binary', 'clock'])]
+  },
+  {
+    type: 'activity',
+    name: 'Activity rings',
+    description: 'Move, exercise and stand goals as three rings.',
+    category: 'focus',
+    width: 360,
+    height: 180,
+    minWidth: 300,
+    minHeight: 150,
+    variants: [variant('rings', 360, 180, 300, 150, ['activity', 'rings'])]
+  },
+  {
+    type: 'habits',
+    name: 'Habits',
+    description: 'A week of habits you tick off as you go.',
+    category: 'focus',
+    width: 360,
+    height: 250,
+    minWidth: 320,
+    minHeight: 220,
+    variants: [variant('week', 360, 250, 320, 220, ['habits', 'week'])],
+    contentSchema: {
+      fields: [list('habits', 'content.habits.habits', [text('name', 'content.habits.name')])]
+    },
+    contentDefaults: {
+      habits: [{ name: 'Read' }, { name: 'Walk' }, { name: 'Write' }, { name: 'No sugar' }]
+    },
+    focusable: true,
+    permissions: ['storage']
+  },
+  {
+    type: 'water',
+    name: 'Water',
+    description: 'Eight glasses, one tap each, remembered for today.',
+    category: 'focus',
+    width: 340,
+    height: 180,
+    minWidth: 280,
+    minHeight: 150,
+    variants: [variant('cups', 340, 180, 280, 150, ['water', 'hydration'])],
+    contentSchema: {
+      fields: [
+        number('cups', 'content.water.cups', 1, 16),
+        number('ml', 'content.water.ml', 50, 1500, 50)
+      ]
+    },
+    contentDefaults: { cups: 8, ml: 250 },
+    focusable: true,
+    permissions: ['storage']
+  },
+  {
+    type: 'music',
+    name: 'Now playing',
+    description: 'A visual player with play, skip and a progress bar.',
+    category: 'ambient',
+    width: 340,
+    height: 260,
+    minWidth: 280,
+    minHeight: 220,
+    variants: [
+      variant('card', 340, 260, 280, 220, ['music', 'player']),
+      variant('mini', 360, 100, 300, 80, ['music', 'compact'])
+    ],
+    contentSchema: {
+      fields: [
+        number('length', 'content.music.length', 10, 7200, 1),
+        list('tracks', 'content.music.tracks', [
+          text('title', 'content.music.title'),
+          text('artist', 'content.music.artist')
+        ])
+      ]
+    },
+    contentDefaults: {
+      length: 213,
+      tracks: [
+        { title: 'Slow Orbit', artist: 'Halden' },
+        { title: 'Paper Lanterns', artist: 'Mio Aoki' },
+        { title: 'Low Tide Signals', artist: 'Kestrel' }
+      ]
+    },
+    focusable: true
+  },
+  {
+    type: 'agenda',
+    name: 'Agenda',
+    description: 'The day’s events as a timeline or the next one up.',
+    category: 'time',
+    width: 340,
+    height: 280,
+    minWidth: 300,
+    minHeight: 240,
+    variants: [
+      variant('timeline', 340, 280, 300, 240, ['agenda', 'timeline']),
+      variant('next', 320, 200, 280, 160, ['agenda', 'next'])
+    ],
+    contentSchema: {
+      fields: [
+        list('items', 'content.agenda.items', [
+          text('time', 'content.agenda.time'),
+          number('minutes', 'content.agenda.minutes', 5, 720, 5),
+          text('title', 'content.agenda.title')
+        ])
+      ]
+    },
+    contentDefaults: {
+      items: [
+        { time: '08:30', minutes: 30, title: 'Standup' },
+        { time: '10:00', minutes: 90, title: 'Design review' },
+        { time: '12:30', minutes: 45, title: 'Lunch with Mira' },
+        { time: '15:00', minutes: 120, title: 'Deep work' },
+        { time: '18:00', minutes: 60, title: 'Gym' }
+      ]
+    }
+  },
+  {
+    type: 'quote',
+    name: 'Daily line',
+    description: 'One original line, chosen by the day of the year.',
+    category: 'ambient',
+    width: 360,
+    height: 220,
+    minWidth: 280,
+    minHeight: 160,
+    variants: [
+      variant('serif', 360, 220, 280, 160, ['quote', 'serif']),
+      variant('bare', 480, 240, 320, 180, ['quote', 'large'])
+    ],
+    contentSchema: {
+      fields: [text('text', 'content.quote.text', true), text('label', 'content.quote.label')]
+    },
+    contentDefaults: { text: 'Start before you feel ready.', label: 'Line of the day' }
   }
 ]
 

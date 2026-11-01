@@ -42,6 +42,7 @@ import { getEditMode, onEditModeChanged, setEditMode, toggleEditMode } from './s
 import { SecretsService } from './services/secrets'
 import { discoverSteamRoots } from './services/steam-scanner'
 import log, { initLogger, logStartup } from './services/logger'
+import { MediaService } from './services/media-service'
 import { MetricsLogger } from './services/metrics-logger'
 import { NetProxy } from './services/net-proxy'
 import { NoticeService } from './services/notices'
@@ -75,6 +76,7 @@ let tray: TrayController | null = null
 let layout: LayoutService | null = null
 let widgetService: WidgetService | null = null
 let systemStats: SystemStatsSampler | null = null
+let mediaService: MediaService | null = null
 let aiService: AiService | null = null
 let appScanner: AppScanner | null = null
 let appGrid: AppGridService | null = null
@@ -128,6 +130,8 @@ if (!hasLock) {
     metricsLogger?.stop()
     startup?.stop()
     systemStats?.stop()
+    mediaService?.dispose()
+    mediaService = null
     appScanner?.stop()
     popover?.close()
     void aiService?.cancel()
@@ -258,7 +262,6 @@ if (!hasLock) {
         notices,
         safe: effectiveSafe,
         cursor: () => cursorConfigFromSettings(settingsService.get()),
-        widgetDefaultTheme: () => settingsService.get().widgetDefaultTheme,
         systemDark: () => nativeTheme.shouldUseDarkColors
       })
       layout = layoutService
@@ -400,11 +403,18 @@ if (!hasLock) {
 
       const stats = new SystemStatsSampler()
       systemStats = stats
+      const media = new MediaService()
+      mediaService = media
+      media.onChange((snapshot) => {
+        layoutService.broadcastWidgetEventToType('music', 'media', snapshot)
+      })
+      media.start()
       const widgetApi = new WidgetApiService({
         layout: layoutService,
         widgetService: service,
         storage: new WidgetStorageService(widgetsDir),
         stats,
+        media,
         net: new NetProxy(`HomeLayer/${app.getVersion()}`),
         launcher,
         appScanner: scanner,
@@ -484,10 +494,7 @@ if (!hasLock) {
             const fallbackTheme: 'dark' | 'light' =
               queryTheme === 'light' || queryTheme === 'dark'
                 ? queryTheme
-                : resolveTheme(
-                    settingsService.get().widgetDefaultTheme,
-                    nativeTheme.shouldUseDarkColors
-                  )
+                : resolveTheme('system', nativeTheme.shouldUseDarkColors)
             const placement = service.getPlacement(host)
             if (!placement) {
               return { appearance: resolveWidgetAppearance(null), theme: fallbackTheme }
@@ -497,7 +504,7 @@ if (!hasLock) {
               appearance,
               theme: resolveWidgetTheme(
                 appearance.themeOverride,
-                settingsService.get().widgetDefaultTheme,
+                'system',
                 nativeTheme.shouldUseDarkColors
               )
             }

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Countdown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='big'] .cd--big,
+    html:not([data-variant]) .cd--big { display: grid; }
+    html[data-variant='segments'] .cd--seg { display: grid; }
+    html[data-variant='ring'] .cd--ring { display: grid; }
+
+    .cd { gap: 14px; align-content: center; }
+
+    .cd--big { padding: 24px; gap: 16px; }
+    .cd__row {
+      display: flex;
+      gap: 14px;
+      align-items: flex-end;
+    }
+    .cd__unit { display: grid; gap: 6px; }
+    .cd__unit b {
+      font: 800 clamp(40px, 15vw, 84px)/.9 var(--font-sans);
+      letter-spacing: -.05em;
+      font-variant-numeric: tabular-nums;
+    }
+    .cd__unit span {
+      font: 600 9px/1 var(--font-mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cd__foot {
+      font: 500 11px/1.4 var(--font-mono);
+      color: var(--muted);
+    }
+
+    .cd--seg { padding: 20px; gap: 12px; }
+    .cd__segs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .cd__seg {
+      display: grid;
+      gap: 4px;
+      place-items: center;
+      padding: 10px 4px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .cd__seg b {
+      font: 700 22px/1 var(--font-sans);
+      font-variant-numeric: tabular-nums;
+    }
+    .cd__seg span {
+      font: 600 8px/1 var(--font-mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cd--ring {
+      justify-items: center;
+      gap: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+    .cd__ring { --s: 150px; --t: 12px; }
+    .cd__ring-num {
+      font: 800 38px/1 var(--font-sans);
+      letter-spacing: -.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .cd__ring-lab {
+      font: 600 9px/1 var(--font-mono);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .cd__title { font: 700 12px/1.2 var(--font-sans); margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <main class="card w cd cd--big" data-countdown data-span="big">
+    <span class="w__label" data-cd-label>New Year 2027</span>
+    <div class="cd__row">
+      <div class="cd__unit"><b data-cd="d">63</b><span>days</span></div>
+      <div class="cd__unit"><b data-cd="h">04</b><span>hours</span></div>
+      <div class="cd__unit"><b data-cd="m">12</b><span>min</span></div>
+      <div class="cd__unit"><b data-cd="s">30</b><span>sec</span></div>
+    </div>
+    <div class="bar" data-cd-vn><i></i></div>
+    <p class="cd__foot" data-cd-foot>Thursday · January 1, 2027</p>
+  </main>
+
+  <main class="card w cd cd--seg" data-countdown data-span="segments">
+    <span class="w__label" data-cd-label>Christmas Day</span>
+    <div class="cd__segs">
+      <div class="cd__seg"><b data-cd="d">57</b><span>days</span></div>
+      <div class="cd__seg"><b data-cd="h">04</b><span>hours</span></div>
+      <div class="cd__seg"><b data-cd="m">12</b><span>min</span></div>
+      <div class="cd__seg"><b data-cd="s">30</b><span>sec</span></div>
+    </div>
+    <p class="cd__foot" data-cd-foot>Friday · December 25</p>
+  </main>
+
+  <main class="card w cd cd--ring" data-countdown data-span="ring">
+    <span class="w__label">Next up</span>
+    <div class="ring cd__ring" data-cd-vn>
+      <div class="ring__in">
+        <b class="cd__ring-num" data-cd="d">3</b>
+        <span class="cd__ring-lab">days</span>
+        <span class="cd__title" data-cd-label>Weekend getaway</span>
+      </div>
+    </div>
+    <p class="cd__foot" data-cd-foot>Saturday · 6:00 PM</p>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, dateInfo, fmt12, setVn, every, initEnv, initTheme } = window.HLW;
+      initEnv('big');
+      initTheme();
+
+      function nextWeekend(now) {
+        const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const delta = (6 - date.getDay() + 7) % 7;
+        if (delta === 0 && now.getHours() >= 18) date.setDate(date.getDate() + 7);
+        else date.setDate(date.getDate() + delta);
+        date.setHours(18, 0, 0, 0);
+        return date;
+      }
+
+      function targetFor(span, now) {
+        if (span === 'big') {
+          let target = new Date(now.getFullYear(), 0, 1);
+          if (target <= now) target = new Date(now.getFullYear() + 1, 0, 1);
+          return { target, label: `New Year ${target.getFullYear()}`, total: 365 * 864e5 };
+        }
+        if (span === 'segments') {
+          let target = new Date(now.getFullYear(), 11, 25);
+          if (target <= now) target = new Date(now.getFullYear() + 1, 11, 25);
+          return { target, label: 'Christmas Day', total: 365 * 864e5 };
+        }
+        return { target: nextWeekend(now), label: 'Weekend getaway', total: 7 * 864e5 };
+      }
+
+      function init(root) {
+        const now = new Date();
+        root._countdown = targetFor(root.dataset.span, now);
+        const { target, label } = root._countdown;
+        const info = dateInfo(target);
+        const labelNode = root.querySelector('[data-cd-label]');
+        if (labelNode) labelNode.textContent = label;
+        const foot = root.querySelector('[data-cd-foot]');
+        if (foot) {
+          foot.textContent = root.dataset.span === 'ring'
+            ? `${info.weekday} · ${fmt12(18, 0)}`
+            : `${info.weekday} · ${info.monthLong} ${info.day}, ${info.year}`;
+        }
+      }
+
+      function tick() {
+        const now = new Date();
+        $$('[data-countdown]').forEach((root) => {
+          if (!root._countdown || root._countdown.target <= now) init(root);
+          const { target, total } = root._countdown;
+          const diff = Math.max(0, target - now);
+          const values = {
+            d: Math.floor(diff / 864e5),
+            h: Math.floor((diff % 864e5) / 36e5),
+            m: Math.floor((diff % 36e5) / 6e4),
+            s: Math.floor((diff % 6e4) / 1000)
+          };
+          root.querySelectorAll('[data-cd]').forEach((node) => {
+            const value = String(values[node.dataset.cd] ?? 0).padStart(2, '0');
+            if (node.textContent !== value) node.textContent = value;
+          });
+          const progress = 1 - diff / total;
+          root.querySelectorAll('[data-cd-vn]').forEach((node) => setVn(node, progress));
+        });
+      }
+
+      $$('[data-countdown]').forEach(init);
+      tick();
+      every(tick, 1000);
+    })();
+  </script>
+</body>
+</html>

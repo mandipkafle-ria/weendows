@@ -5,12 +5,15 @@ import type {
   AiProvider,
   AiWidgetSource,
   WidgetLogEntry,
-  WidgetPermission
+  WidgetPermission,
+  WidgetSummary
 } from '../../shared/types'
 import { t } from '../i18n'
 
 interface AiPanelProps {
   editWidgetId: string | null
+  widgets: WidgetSummary[]
+  onSelectWidget: (widgetId: string | null) => void
   onChanged: () => void
 }
 
@@ -84,7 +87,13 @@ function policyFor(baseUrl: string): string | null {
   }
 }
 
-function AppAiPanel({ editWidgetId, onChanged }: AiPanelProps): JSX.Element {
+function AppAiPanel({
+  editWidgetId,
+  widgets,
+  onSelectWidget,
+  onChanged
+}: AiPanelProps): JSX.Element {
+  const [mode, setMode] = useState<'create' | 'edit'>(editWidgetId ? 'edit' : 'create')
   const [config, setConfig] = useState<AiConfig | null>(null)
   const [provider, setProvider] = useState<AiProvider>('gemini')
   const [preset, setPreset] = useState('gemini')
@@ -465,6 +474,65 @@ function AppAiPanel({ editWidgetId, onChanged }: AiPanelProps): JSX.Element {
       <section className="panel panel-wide">
         <div className="section-head">
           <div className="panel-copy">
+            <h2>{t('ai.modeTitle')}</h2>
+            <p>{t('ai.modeBody')}</p>
+          </div>
+        </div>
+        <div className="ai-mode-switch" role="tablist" aria-label={t('ai.modeLabel')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'create'}
+            className={mode === 'create' ? 'ai-mode-chip ai-mode-chip-active' : 'ai-mode-chip'}
+            disabled={busy !== null}
+            onClick={() => {
+              setMode('create')
+              if (editWidgetId) {
+                onSelectWidget(null)
+              }
+            }}
+          >
+            {t('ai.modeCreate')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'edit'}
+            className={mode === 'edit' ? 'ai-mode-chip ai-mode-chip-active' : 'ai-mode-chip'}
+            disabled={busy !== null || widgets.length === 0}
+            title={widgets.length === 0 ? t('ai.noWidgetsToEdit') : undefined}
+            onClick={() => setMode('edit')}
+          >
+            {t('ai.modeEdit')}
+          </button>
+        </div>
+        {mode === 'edit' && (
+          <div className="ai-form ai-mode-form">
+            <label className="ai-field-wide">
+              {t('ai.chooseWidget')}
+              <select
+                value={editWidgetId ?? ''}
+                disabled={busy !== null}
+                onChange={(event) => onSelectWidget(event.target.value || null)}
+              >
+                <option value="" disabled>
+                  {t('ai.chooseWidgetPlaceholder')}
+                </option>
+                {widgets.map((widget) => (
+                  <option value={widget.placement.widgetId} key={widget.placement.widgetId}>
+                    {widget.manifest.name} ·{' '}
+                    {t(widget.manifest.kind === 'ai' ? 'widgets.kindAi' : 'widgets.kindBuiltin')}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+      </section>
+
+      <section className="panel panel-wide">
+        <div className="section-head">
+          <div className="panel-copy">
             <h2>{t('ai.providerTitle')}</h2>
             <p>{t('ai.providerBody')}</p>
           </div>
@@ -629,7 +697,13 @@ function AppAiPanel({ editWidgetId, onChanged }: AiPanelProps): JSX.Element {
         </div>
       </section>
 
-      {editWidgetId ? (
+      {mode === 'edit' && !editWidgetId && (
+        <section className="panel panel-wide">
+          <p className="empty">{t('ai.pickWidgetHint')}</p>
+        </section>
+      )}
+
+      {mode === 'edit' && editWidgetId && (
         <section className="panel panel-wide">
           <div className="section-head">
             <div className="panel-copy">
@@ -676,7 +750,9 @@ function AppAiPanel({ editWidgetId, onChanged }: AiPanelProps): JSX.Element {
             </button>
           </div>
         </section>
-      ) : (
+      )}
+
+      {mode === 'create' && (
         <section className="panel panel-wide">
           <div className="section-head">
             <div className="panel-copy">

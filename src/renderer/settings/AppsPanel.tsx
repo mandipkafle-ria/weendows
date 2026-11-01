@@ -1,14 +1,36 @@
 import { useEffect, useId, useMemo, useState, type JSX } from 'react'
-import type { AppsAndBundlesState } from '../../shared/types'
+import { findBuiltinVariant } from '../../shared/builtins'
+import { APP_GRID_TYPE } from '../../shared/constants'
+import type {
+  AppsAndBundlesState,
+  BuiltinWidget,
+  GeneralState,
+  WidgetSummary
+} from '../../shared/types'
 import { t } from '../i18n'
+import { THEME_OPTIONS } from './themeEnvironments'
+import WidgetCustomizeSheet from './WidgetCustomizeSheet'
 import type { ToastLevel } from './useToasts'
 
 interface AppsPanelProps {
   toast: (message: string, level?: ToastLevel) => void
+  builtins: BuiltinWidget[]
+  widgets: WidgetSummary[]
+  general: GeneralState
+  onRefresh: () => Promise<void>
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function variantName(variantId: string | null | undefined): string {
+  if (!variantId) {
+    return 'classic'
+  }
+  const key = `widgets.variantNames.${variantId}`
+  const value = t(key)
+  return value === key ? variantId : value
 }
 
 function formatDate(value: string | null): string {
@@ -28,7 +50,13 @@ function formatDate(value: string | null): string {
   })
 }
 
-export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
+export default function AppsPanel({
+  toast,
+  builtins,
+  widgets,
+  general,
+  onRefresh
+}: AppsPanelProps): JSX.Element {
   const [state, setState] = useState<AppsAndBundlesState | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -36,7 +64,17 @@ export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
   const [addingAppId, setAddingAppId] = useState<string | null>(null)
   const [addingBundleId, setAddingBundleId] = useState<string | null>(null)
-  const [isAddingWidget, setIsAddingWidget] = useState(false)
+  const [customize, setCustomize] = useState<{ existing: WidgetSummary | null } | null>(null)
+
+  const appGridBuiltin = useMemo(
+    () => builtins.find((builtin) => builtin.type === APP_GRID_TYPE),
+    [builtins]
+  )
+  const gridWidgets = useMemo(
+    () => widgets.filter((widget) => widget.manifest.builtinType === APP_GRID_TYPE),
+    [widgets]
+  )
+  const gridTheme = THEME_OPTIONS.find((theme) => theme.id === 'sky')
 
   // Bundle creation modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -168,17 +206,40 @@ export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
     }
   }
 
-  const handleAddAppsWidget = async (): Promise<void> => {
-    setIsAddingWidget(true)
+  const openAddGridWidget = (): void => {
+    if (!appGridBuiltin) {
+      toast(t('apps.gridWidgetUnavailable'), 'error')
+      return
+    }
+    setCustomize({ existing: null })
+  }
+
+  const openCustomizeGrid = (widget: WidgetSummary): void => {
+    if (!appGridBuiltin) {
+      toast(t('apps.gridWidgetUnavailable'), 'error')
+      return
+    }
+    setCustomize({ existing: widget })
+  }
+
+  const handleGridSaved = async (): Promise<void> => {
+    await onRefresh()
+    const next = await window.api.getAppsAndBundles()
+    setState(next)
+  }
+
+  const handleRemoveGrid = async (widget: WidgetSummary): Promise<void> => {
     try {
-      await window.api.addWidget('app-grid')
-      toast(t('widgets.added', { name: 'Apps' }), 'success')
+      const removed = await window.api.removeWidget(widget.placement.widgetId)
+      if (!removed) {
+        return
+      }
+      await onRefresh()
       const next = await window.api.getAppsAndBundles()
       setState(next)
+      toast(t('apps.gridWidgetRemoved', { name: widget.manifest.name }), 'success')
     } catch (err) {
       toast(errorMessage(err), 'error')
-    } finally {
-      setIsAddingWidget(false)
     }
   }
 
@@ -260,13 +321,8 @@ export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
             <p>{t('apps.intro')}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="button-primary"
-              onClick={() => void handleAddAppsWidget()}
-              disabled={isAddingWidget}
-            >
-              {isAddingWidget ? t('common.loading') : `+ ${t('apps.addGridWidget')}`}
+            <button type="button" className="button-primary" onClick={openAddGridWidget}>
+              + {t('apps.addGridWidget')}
             </button>
             <button
               type="button"
@@ -302,6 +358,56 @@ export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
               : t('apps.lastScan', { date: formatDate(state?.lastScanAt ?? null) })}
           </span>
         </div>
+      </section>
+
+      {/* Apps widgets on the desktop */}
+      <section className="panel panel-wide">
+        <div className="section-head">
+          <div className="panel-copy">
+            <h2>{t('apps.gridWidgetsTitle')}</h2>
+            <p>{t('apps.gridWidgetsBody')}</p>
+          </div>
+          <button type="button" className="button-secondary" onClick={openAddGridWidget}>
+            + {t('apps.addGridWidget')}
+          </button>
+        </div>
+
+        {gridWidgets.length === 0 ? (
+          <p className="empty">{t('apps.noGridWidgets')}</p>
+        ) : (
+          <ul className="app-list">
+            {gridWidgets.map((widget) => (
+              <li className="app-row" key={widget.placement.widgetId}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <span className="app-name">{widget.manifest.name}</span>
+                  <span className="app-kind">
+                    {t('apps.gridWidgetMeta', {
+                      design: variantName(widget.manifest.variant),
+                      width: widget.placement.width,
+                      height: widget.placement.height
+                    })}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="button-compact button-secondary"
+                    onClick={() => openCustomizeGrid(widget)}
+                  >
+                    {t('widgets.customize.action')}
+                  </button>
+                  <button
+                    type="button"
+                    className="button-compact button-danger"
+                    onClick={() => void handleRemoveGrid(widget)}
+                  >
+                    {t('common.remove')}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* Discovered Apps List */}
@@ -773,6 +879,23 @@ export default function AppsPanel({ toast }: AppsPanelProps): JSX.Element {
             </div>
           </div>
         </div>
+      )}
+
+      {customize && appGridBuiltin && (
+        <WidgetCustomizeSheet
+          builtin={appGridBuiltin}
+          defaultVariant={
+            findBuiltinVariant(appGridBuiltin, customize.existing?.manifest.variant).id
+          }
+          general={general}
+          themeEnv="sky"
+          themeMode={general.resolvedWidgetTheme}
+          themeLabel={gridTheme?.label ?? 'Sky'}
+          existing={customize.existing}
+          onClose={() => setCustomize(null)}
+          onSaved={handleGridSaved}
+          toast={toast}
+        />
       )}
     </div>
   )

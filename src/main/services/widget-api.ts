@@ -46,6 +46,7 @@ import type { AppGridService } from './app-grid-service'
 import type { AppLauncher } from './app-launcher'
 import type { AppScanner } from './app-scanner'
 import log from './logger'
+import type { MediaService } from './media-service'
 import { NetProxy, NetProxyError } from './net-proxy'
 import { WidgetRateLimitRegistry } from './rate-limiter'
 import type { SystemStatsSampler } from './system-stats'
@@ -66,6 +67,7 @@ export interface WidgetApiOptions {
   appGrid: AppGridService
   popover: BundlePopoverService
   logs?: WidgetLogService
+  media?: MediaService
   darkFor?: (widgetId: string) => boolean
   now?: () => number
 }
@@ -110,6 +112,7 @@ export class WidgetApiService {
   private readonly appGrid: AppGridService
   private readonly popover: BundlePopoverService
   private readonly logs: WidgetLogService
+  private readonly media: MediaService | null
   private readonly darkFor: (widgetId: string) => boolean
   private readonly now: () => number
   private readonly rateLimits = new WidgetRateLimitRegistry()
@@ -133,6 +136,7 @@ export class WidgetApiService {
     this.appGrid = options.appGrid
     this.popover = options.popover
     this.logs = options.logs ?? new WidgetLogService()
+    this.media = options.media ?? null
     this.darkFor = options.darkFor ?? (() => nativeTheme.shouldUseDarkColors)
     this.now = options.now ?? Date.now
   }
@@ -236,6 +240,9 @@ export class WidgetApiService {
       case 'system.getBattery':
         this.requirePermission(manifest, 'system.battery')
         return this.getBattery(request)
+
+      case 'media.get':
+        return this.media?.get() ?? null
 
       case 'storage.get': {
         this.requirePermission(manifest, 'storage')

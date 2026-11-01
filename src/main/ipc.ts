@@ -40,6 +40,7 @@ import {
   wallpaperSlideshowSchema,
   widgetAppearancePatchSchema,
   widgetBoundsPatchSchema,
+  widgetContentUpdateSchema,
   widgetIdSchema,
   widgetVariantSchema
 } from '../shared/schemas'
@@ -101,8 +102,8 @@ function generalState(services: IpcServices): GeneralState {
     arch: process.arch,
     theme: settings.theme,
     resolvedTheme: resolveTheme(settings.theme, nativeTheme.shouldUseDarkColors),
-    widgetDefaultTheme: settings.widgetDefaultTheme,
-    resolvedWidgetTheme: resolveTheme(settings.widgetDefaultTheme, nativeTheme.shouldUseDarkColors),
+    widgetDefaultTheme: 'system',
+    resolvedWidgetTheme: resolveTheme('system', nativeTheme.shouldUseDarkColors),
     accent: settings.accent,
     cursor: cursorConfigFromSettings(settings),
     hotkey: settings.hotkey,
@@ -212,14 +213,6 @@ export function registerIpcHandlers(services: IpcServices): void {
     assertSettingsSender(event)
     const theme = themeSourceSchema.parse(args[0])
     await services.appSettings.setTheme(theme)
-    return generalState(services)
-  })
-
-  ipcMain.handle(IPC.settingsSetWidgetDefaultTheme, async (event, ...args) => {
-    assertSettingsSender(event)
-    const theme = themeSourceSchema.parse(args[0])
-    await services.appSettings.setWidgetDefaultTheme(theme)
-    services.layout.broadcastState()
     return generalState(services)
   })
 
@@ -363,6 +356,15 @@ export function registerIpcHandlers(services: IpcServices): void {
     const widgetId = widgetIdSchema.parse(args[0])
     const appearance = widgetAppearancePatchSchema.parse(args[1]) as Partial<WidgetAppearance>
     return services.layout.setWidgetAppearance(widgetId, appearance)
+  })
+
+  ipcMain.handle(IPC.settingsSetWidgetContent, async (event, ...args) => {
+    assertSettingsSender(event)
+    const { widgetId, content } = widgetContentUpdateSchema.parse({
+      widgetId: args[0],
+      content: args[1]
+    })
+    return services.layout.setWidgetContent(widgetId, content)
   })
 
   ipcMain.handle(IPC.settingsGetPreviewStats, (event, ...args) => {

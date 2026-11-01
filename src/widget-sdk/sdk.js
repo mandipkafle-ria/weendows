@@ -6,7 +6,7 @@
   var seq = 0
   var pending = new Map()
   var queue = []
-  var listeners = { theme: [], resize: [], editmode: [], apps: [], drag: [] }
+  var listeners = { theme: [], resize: [], editmode: [], apps: [], drag: [], media: [] }
 
   window.addEventListener('message', function (event) {
     if (port || event.source !== window.parent || !event.data || event.data.type !== 'hl-init') {
@@ -128,6 +128,7 @@
     onEditMode: on('editmode'),
     onApps: on('apps'),
     onDrag: on('drag'),
+    onMedia: on('media'),
     log: function (level, message) {
       return call('log', { level: level, message: String(message).slice(0, 500) })
     },
@@ -137,6 +138,11 @@
       },
       getBattery: function () {
         return call('system.getBattery')
+      }
+    },
+    media: {
+      get: function () {
+        return call('media.get')
       }
     },
     storage: {

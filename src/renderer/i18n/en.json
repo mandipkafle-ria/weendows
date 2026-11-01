@@ -86,12 +86,52 @@
   },
   "menu": {
     "editLayout": "Edit layout",
+    "editContent": "Edit {name} items…",
     "editWithAi": "Edit with AI…",
     "lockWidget": "Lock widget",
     "unlockWidget": "Unlock widget",
     "opacity": "Opacity",
     "reloadWidget": "Reload widget",
     "removeWidget": "Remove widget"
+  },
+  "content": {
+    "title": "Edit {name}",
+    "eyebrow": "Widget content",
+    "intro": "This is what your widget shows now. Edit the fields below and the preview updates as you go.",
+    "previewNote": "Live preview",
+    "add": "Add item",
+    "remove": "Remove item",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "reset": "Reset to demo",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "{name} updated.",
+    "emptyList": "No items yet. Add one to get started.",
+    "agenda": {
+      "items": "Timeline items",
+      "time": "Start",
+      "minutes": "Minutes",
+      "title": "Title"
+    },
+    "habits": {
+      "habits": "Habits",
+      "name": "Habit name"
+    },
+    "water": {
+      "cups": "Glasses per day",
+      "ml": "Millilitres per glass"
+    },
+    "music": {
+      "length": "Demo track length (seconds)",
+      "tracks": "Demo tracks",
+      "title": "Track title",
+      "artist": "Artist"
+    },
+    "quote": {
+      "text": "Quote",
+      "label": "Caption"
+    }
   },
   "dialog": {
     "removeTitle": "Remove {name}",
@@ -171,8 +211,6 @@
     "themeHint": "Settings and widget chrome follow this choice.",
     "settingsTheme": "Settings theme",
     "settingsThemeHint": "Controls the appearance of this settings window only.",
-    "widgetDefaultTheme": "Widget default theme",
-    "widgetDefaultThemeHint": "Default look for new widgets. Each widget can override it.",
     "accentTitle": "Accent colour",
     "accentBody": "Used for focus, controls and selected designs.",
     "accentEmber": "Ember",
@@ -272,12 +310,7 @@
     "viewBrowse": "Browse",
     "viewDesktop": "On desktop",
     "viewSaved": "Saved",
-    "seeAll": "See all {count}",
-    "backToWidgets": "Back to widgets",
     "categoryCount": "{count} designs",
-    "styleFilters": "Style filters",
-    "createWithAi": "Create with AI",
-    "createWithAiBody": "Describe a widget and let the studio design it.",
     "tags": {
       "digital": "Digital",
       "data": "Data",
@@ -348,7 +381,7 @@
       "contentOpacity": "Content opacity",
       "window": "Window",
       "save": "Save changes",
-      "saved": "{name} updated.",
+    "saved": "{name} updated.",
       "added": "{design} {name} added to your desktop."
     },
     "shortcutLabel": "for edit layout",
@@ -395,8 +428,6 @@
     "designChanged": "{name} now uses the {design} design.",
     "addedDesign": "{name} added with the {design} design.",
     "openAiStudio": "Open AI studio",
-    "galleryTitle": "Widget gallery",
-    "galleryBody": "Add a built-in widget to the desktop. New widgets appear in the centre of the primary display.",
     "onDesktop": "{count} on desktop",
     "notAdded": "Not added",
     "kindBuiltin": "Built-in",
@@ -416,7 +447,6 @@
     "sortName": "Name",
     "searchSaved": "Search saved widgets",
     "themeLabel": "Theme",
-    "backToTheme": "Back to theme scene",
     "statusRunning": "Running",
     "statusDisabled": "Disabled",
     "moreActions": "More actions",
@@ -495,6 +525,78 @@
       "app-grid": {
         "name": "Apps",
         "body": "Installed apps arranged in groups that open like folders."
+      },
+      "weekday": {
+        "name": "Weekday",
+        "body": "The name of the day, set in six different moods."
+      },
+      "week-strip": {
+        "name": "Week strip",
+        "body": "A small week planner with today marked."
+      },
+      "greeting": {
+        "name": "Greeting",
+        "body": "A warm hello that changes with the time of day."
+      },
+      "countdown": {
+        "name": "Countdown",
+        "body": "The days and hours until the next big moment."
+      },
+      "time-progress": {
+        "name": "Time progress",
+        "body": "How much of today, this month and this year is gone."
+      },
+      "moon": {
+        "name": "Moon phase",
+        "body": "The current moon, calculated without an API."
+      },
+      "sun-arc": {
+        "name": "Sun arc",
+        "body": "Sunrise, sunset and the sun's path across the day."
+      },
+      "world-clock": {
+        "name": "World clocks",
+        "body": "The time in four cities, as a list or tiles."
+      },
+      "timer": {
+        "name": "Focus timer",
+        "body": "A pomodoro that alternates focus and break rounds."
+      },
+      "word-clock": {
+        "name": "Word clock",
+        "body": "The time spelled out in a grid of letters."
+      },
+      "flip-clock": {
+        "name": "Flip clock",
+        "body": "Split-flap digits that flip as the minute changes."
+      },
+      "binary-clock": {
+        "name": "Binary clock",
+        "body": "BCD time as six columns of glowing dots."
+      },
+      "activity": {
+        "name": "Activity rings",
+        "body": "Move, exercise and stand goals in three rings."
+      },
+      "habits": {
+        "name": "Habits",
+        "body": "Tick off a week of habits; it remembers today."
+      },
+      "water": {
+        "name": "Water",
+        "body": "Tap a glass to track hydration, remembered daily."
+      },
+      "music": {
+        "name": "Now playing",
+        "body": "A visual player with play, skip and progress."
+      },
+      "agenda": {
+        "name": "Agenda",
+        "body": "Today's schedule as a timeline or a next-up card."
+      },
+      "quote": {
+        "name": "Daily line",
+        "body": "One original line for each day of the year."
       }
     },
     "variantNames": {
@@ -518,7 +620,28 @@
       "monochrome": "Monochrome B&W",
       "glass": "Frosted Glass",
       "cyberpunk": "Cyberpunk Neon",
-      "retro": "Retro Paper"
+      "retro": "Retro Paper",
+      "giant": "Giant",
+      "outline": "Outline",
+      "serif": "Serif",
+      "vertical": "Vertical",
+      "thin": "Thin",
+      "marker": "Marker",
+      "pills": "Pills",
+      "underline": "Underline",
+      "bare": "Bare",
+      "card": "Card",
+      "big": "Big",
+      "segments": "Segments",
+      "arc": "Arc",
+      "list": "List",
+      "tiles": "Tiles",
+      "word": "Word",
+      "flip": "Flip",
+      "week": "Week",
+      "cups": "Cups",
+      "timeline": "Timeline",
+      "next": "Next up"
     }
   },
   "wallpaper": {
@@ -537,6 +660,7 @@
     "typeImage": "Image",
     "typeVideo": "Video",
     "typeHtml": "HTML",
+    "liveBadge": "Live",
     "fit": "Fit",
     "fitFill": "Fill",
     "fitFit": "Fit",
@@ -603,6 +727,12 @@
     "deleteBundle": "Delete bundle",
     "deleteBundleConfirm": "Delete bundle \"{name}\"? The apps will remain on your system.",
     "addGridWidget": "Add Apps widget to desktop",
+    "gridWidgetsTitle": "Apps widgets",
+    "gridWidgetsBody": "Widgets that hold your apps and bundles. Customize their design, background and shape here.",
+    "noGridWidgets": "No apps widgets yet. Add one to place apps on your desktop.",
+    "gridWidgetMeta": "{design} · {width} x {height}",
+    "gridWidgetUnavailable": "The apps widget is unavailable.",
+    "gridWidgetRemoved": "{name} removed from your desktop.",
     "appAddedToGrid": "{name} added to desktop apps widget.",
     "targetWidget": "Destination widget on desktop",
     "targetWidgetSelect": "Choose which widget to place this in:",
@@ -622,6 +752,15 @@
     "resizeWidget": "Resize widget"
   },
   "ai": {
+    "modeTitle": "Create or edit",
+    "modeBody": "Start a new widget from a prompt, or revise one that is already on your desktop.",
+    "modeLabel": "AI action",
+    "modeCreate": "Create new widget",
+    "modeEdit": "Edit existing widget",
+    "chooseWidget": "Widget to edit",
+    "chooseWidgetPlaceholder": "Choose a widget...",
+    "pickWidgetHint": "Choose a widget above to edit it with AI.",
+    "noWidgetsToEdit": "Add a widget to the desktop first.",
     "providerTitle": "AI provider",
     "providerBody": "The key is encrypted with Windows protection and only leaves this PC in requests to the base URL below.",
     "keySaved": "Key saved",

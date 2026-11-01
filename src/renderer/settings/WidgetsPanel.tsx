@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { findBuiltinVariant } from '../../shared/builtins'
-import { WIDGET_CATEGORIES } from '../../shared/types'
 import type {
   BuiltinWidget,
   GeneralState,
@@ -14,12 +13,10 @@ import { t } from '../i18n'
 import type { ToastLevel } from './useToasts'
 import ConfirmDialog from './ConfirmDialog'
 import DesktopCanvas from './DesktopCanvas'
-import ExpandableSearch from './ExpandableSearch'
 import ThemeScene from './ThemeScene'
 import { THEME_OPTIONS, type ThemeEnvId } from './themeEnvironments'
-import WidgetCatalog from './WidgetCatalog'
-import WidgetCategoryPage from './WidgetCategoryPage'
 import WidgetCustomizeSheet from './WidgetCustomizeSheet'
+import WidgetContentSheet from './WidgetContentSheet'
 import WidgetPreview from './WidgetPreview'
 
 interface WidgetsPanelProps {
@@ -28,6 +25,8 @@ interface WidgetsPanelProps {
   savedAiWidgets: WidgetManifest[]
   runtime: WidgetRuntimeInfo[]
   general: GeneralState
+  contentEditor?: { builtin: BuiltinWidget; existing: WidgetSummary } | null
+  onContentEditorClose?: () => void
   onRefresh: () => Promise<void>
   onEditWithAi: (widgetId: string) => void
   onOpenAiStudio: () => void
@@ -45,18 +44,6 @@ function formatDate(value: string): string {
   return Number.isNaN(date.valueOf())
     ? value
     : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-function catalogName(type: string, fallback: string): string {
-  const key = `widgets.catalog.${type}.name`
-  const value = t(key)
-  return value === key ? fallback : value
-}
-
-function catalogBody(type: string, fallback: string): string {
-  const key = `widgets.catalog.${type}.body`
-  const value = t(key)
-  return value === key ? fallback : value
 }
 
 function variantName(variantId: string): string {
@@ -80,6 +67,8 @@ export default function WidgetsPanel({
   savedAiWidgets,
   runtime,
   general,
+  contentEditor,
+  onContentEditorClose,
   onRefresh,
   onEditWithAi,
   onOpenAiStudio,
@@ -88,12 +77,10 @@ export default function WidgetsPanel({
   const [pending, setPending] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [view, setView] = useState<StudioView>('browse')
-  const [browseSubView, setBrowseSubView] = useState<'scene' | 'catalog'>('scene')
   const [themeEnv, setThemeEnv] = useState<ThemeEnvId>('sky')
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark')
   const [categoryFilter, setCategoryFilter] = useState<WidgetCategory | 'all'>('all')
   const [query, setQuery] = useState('')
-  const [categoryPage, setCategoryPage] = useState<WidgetCategory | null>(null)
   const [savedQuery, setSavedQuery] = useState('')
   const [savedSort, setSavedSort] = useState<'newest' | 'name'>('newest')
   const [removalTarget, setRemovalTarget] = useState<{
@@ -106,7 +93,6 @@ export default function WidgetsPanel({
     variant: string
     existing?: WidgetSummary
   } | null>(null)
-
   useEffect(() => {
     void window.api
       .getEditMode()
@@ -117,28 +103,6 @@ export default function WidgetsPanel({
   const runtimeById = useMemo(
     () => new Map(runtime.map((entry) => [entry.widgetId, entry])),
     [runtime]
-  )
-
-  const filteredBuiltins = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return builtins.filter((builtin) => {
-      if (!needle) {
-        return true
-      }
-      return (
-        catalogName(builtin.type, builtin.name).toLowerCase().includes(needle) ||
-        catalogBody(builtin.type, builtin.description).toLowerCase().includes(needle) ||
-        builtin.type.includes(needle)
-      )
-    })
-  }, [builtins, query])
-
-  const catalogBuiltins = useMemo(
-    () =>
-      categoryFilter === 'all'
-        ? filteredBuiltins
-        : filteredBuiltins.filter((builtin) => builtin.category === categoryFilter),
-    [categoryFilter, filteredBuiltins]
   )
 
   const visibleSaved = useMemo(() => {
@@ -164,8 +128,6 @@ export default function WidgetsPanel({
 
   const permissionText = (permission: WidgetPermission): string => t(`permissions.${permission}`)
 
-  const variantFor = (builtin: BuiltinWidget): string => builtin.variants[0]?.id ?? 'classic'
-
   const run = async (
     key: string,
     action: () => Promise<unknown>,
@@ -183,22 +145,6 @@ export default function WidgetsPanel({
     } finally {
       setPending(null)
     }
-  }
-
-  const addWidget = async (builtin: BuiltinWidget, variantId?: string): Promise<void> => {
-    const variant = variantId ?? variantFor(builtin)
-    await run(
-      `add:${builtin.type}`,
-      () => window.api.addWidget(builtin.type, variant),
-      t('widgets.addedDesign', {
-        name: catalogName(builtin.type, builtin.name),
-        design: variantName(variant)
-      })
-    )
-  }
-
-  const openCustomize = (builtin: BuiltinWidget, variant: string): void => {
-    setCustomize({ builtin, variant })
   }
 
   const openSceneCustomize = (builtin: BuiltinWidget, variant: string): void => {
@@ -386,11 +332,7 @@ export default function WidgetsPanel({
             role="tab"
             aria-selected={view === 'browse'}
             className={view === 'browse' ? 'view-tab view-tab-active' : 'view-tab'}
-            onClick={() => {
-              setView('browse')
-              setCategoryPage(null)
-              setBrowseSubView('scene')
-            }}
+            onClick={() => setView('browse')}
           >
             {t('widgets.viewBrowse')}
           </button>
@@ -504,119 +446,19 @@ export default function WidgetsPanel({
         </button>
       </div>
 
-      {view === 'browse' &&
-        (categoryPage ? (
-          <div className="catalog-page" data-theme-env={themeEnv}>
-            <div className="catalog-scroll" key={`page-${categoryPage}-${themeEnv}`}>
-              <WidgetCategoryPage
-                category={categoryPage}
-                builtins={builtins}
-                widgets={widgets}
-                general={general}
-                themeEnv={themeEnv}
-                themeMode={themeMode}
-                pending={pending}
-                onBack={() => setCategoryPage(null)}
-                onAdd={(builtin, variant) => void addWidget(builtin, variant)}
-                onCustomize={openCustomize}
-                onOpenAiStudio={onOpenAiStudio}
-              />
-            </div>
-          </div>
-        ) : browseSubView === 'scene' ? (
-          <ThemeScene
-            themeEnv={themeEnv}
-            themeMode={themeMode}
-            builtins={builtins}
-            general={general}
-            query={query}
-            categoryFilter={categoryFilter}
-            onQueryChange={setQuery}
-            onCategoryFilterChange={setCategoryFilter}
-            onCustomize={openSceneCustomize}
-            onSwitchToCatalog={() => setBrowseSubView('catalog')}
-          />
-        ) : (
-          <div className="catalog-page" data-theme-env={themeEnv}>
-            <header className="catalog-head">
-              <button
-                type="button"
-                className="catalog-back"
-                onClick={() => setBrowseSubView('scene')}
-              >
-                <span aria-hidden="true">&larr;</span>
-                {t('widgets.backToTheme')}
-              </button>
-
-              <div className="catalog-heading">
-                <span className="catalog-eyebrow">{t('widgets.themeLabel')}</span>
-                <h2>{activeTheme.label}</h2>
-                <span className="catalog-designs">
-                  {t('widgets.categoryCount', { count: catalogBuiltins.length })}
-                </span>
-              </div>
-
-              <ExpandableSearch
-                className="catalog-search"
-                value={query}
-                onChange={setQuery}
-                label={t('widgets.searchLabel')}
-                placeholder={t('widgets.searchPlaceholder')}
-                clearLabel={t('widgets.clearSearch')}
-              />
-
-              <button type="button" className="catalog-ai-button" onClick={onOpenAiStudio}>
-                {t('widgets.createWithAi')}
-              </button>
-            </header>
-
-            <div
-              className="catalog-filter-row"
-              role="group"
-              aria-label={t('widgets.categoriesLabel')}
-            >
-              <button
-                type="button"
-                className={
-                  categoryFilter === 'all'
-                    ? 'catalog-filter catalog-filter-active'
-                    : 'catalog-filter'
-                }
-                onClick={() => setCategoryFilter('all')}
-              >
-                {t('widgets.categoryAll')}
-              </button>
-              {WIDGET_CATEGORIES.map((category) => (
-                <button
-                  type="button"
-                  key={category}
-                  className={
-                    categoryFilter === category
-                      ? 'catalog-filter catalog-filter-active'
-                      : 'catalog-filter'
-                  }
-                  onClick={() => setCategoryFilter(category)}
-                >
-                  {t(`widgets.categories.${category}`)}
-                </button>
-              ))}
-            </div>
-
-            <div className="catalog-scroll" key={`catalog-${categoryFilter}-${themeEnv}`}>
-              <WidgetCatalog
-                builtins={catalogBuiltins}
-                widgets={widgets}
-                general={general}
-                themeEnv={themeEnv}
-                themeMode={themeMode}
-                pending={pending}
-                onAdd={(builtin, variant) => void addWidget(builtin, variant)}
-                onCustomize={openCustomize}
-                onSeeAll={setCategoryPage}
-              />
-            </div>
-          </div>
-        ))}
+      {view === 'browse' && (
+        <ThemeScene
+          themeEnv={themeEnv}
+          themeMode={themeMode}
+          builtins={builtins}
+          general={general}
+          query={query}
+          categoryFilter={categoryFilter}
+          onQueryChange={setQuery}
+          onCategoryFilterChange={setCategoryFilter}
+          onCustomize={openSceneCustomize}
+        />
+      )}
 
       {view === 'desktop' && (
         <section className="desktop-panel">
@@ -631,7 +473,6 @@ export default function WidgetsPanel({
                 className="button-primary"
                 onClick={() => {
                   setView('browse')
-                  setBrowseSubView('scene')
                 }}
               >
                 {t('widgets.addWidget')}
@@ -653,7 +494,6 @@ export default function WidgetsPanel({
                 className="button-primary"
                 onClick={() => {
                   setView('browse')
-                  setBrowseSubView('scene')
                 }}
               >
                 {t('widgets.browseWidgets')}
@@ -857,6 +697,22 @@ export default function WidgetsPanel({
           themeLabel={activeTheme.label}
           existing={customize.existing}
           onClose={() => setCustomize(null)}
+          onSaved={onRefresh}
+          toast={toast}
+        />
+      )}
+
+      {contentEditor && (
+        <WidgetContentSheet
+          builtin={contentEditor.builtin}
+          existing={contentEditor.existing}
+          dark={
+            contentEditor.existing.placement.themeOverride
+              ? contentEditor.existing.placement.themeOverride === 'dark'
+              : general.resolvedWidgetTheme === 'dark'
+          }
+          cursorStyle={general.cursor.style}
+          onClose={() => onContentEditorClose?.()}
           onSaved={onRefresh}
           toast={toast}
         />

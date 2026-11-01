@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Habit tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .habit--week {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+    }
+    .habit__head,
+    .habit__row {
+      display: grid;
+      grid-template-columns: 68px repeat(7, minmax(0, 1fr)) 26px;
+      gap: 4px;
+      align-items: center;
+    }
+    .habit__head span {
+      font: 600 10px/1 var(--font-mono);
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: .1em;
+    }
+    .habit__body { display: grid; gap: 12px; }
+    .habit__row b {
+      font: 600 12.5px/1 var(--font-sans);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .habit__n {
+      font: 600 11px/1 var(--font-mono);
+      color: var(--muted);
+      text-align: right;
+    }
+    .hb {
+      appearance: none;
+      cursor: pointer;
+      position: relative;
+      justify-self: center;
+      width: 100%;
+      max-width: 24px;
+      aspect-ratio: 1;
+      padding: 0;
+      border-radius: 50%;
+      background: var(--track);
+      border: 1.5px solid var(--border);
+      transition: transform .15s, background .2s;
+    }
+    .hb:hover { transform: scale(1.1); }
+    .hb.is-on {
+      background: var(--grad);
+      border-color: transparent;
+      box-shadow: 0 4px 10px -3px var(--glow);
+    }
+    .hb.is-on::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 5px;
+      height: 10px;
+      border: solid var(--accent-ink);
+      border-width: 0 2.2px 2.2px 0;
+      transform: rotate(45deg);
+    }
+    .hb.is-today {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .hb.is-future { opacity: .3; cursor: default; }
+    .hb.is-future:hover { transform: none; }
+  </style>
+</head>
+<body>
+
+  <main class="card w habit habit--week">
+    <span class="w__label">Habits · this week</span>
+    <div class="habit__body" data-habits="Read|Walk|Write|No sugar"></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { DAYS, $$, dayKey, store, every, initEnv, initTheme, content } = window.HLW;
+      initEnv('week');
+      initTheme();
+
+      const cfg = content();
+      if (Array.isArray(cfg.habits)) {
+        const names = cfg.habits
+          .map((item) => (item && typeof item.name === 'string' ? item.name.trim().replace(/\|/g, '/') : ''))
+          .filter(Boolean);
+        if (names.length) {
+          $$('[data-habits]').forEach((root) => {
+            root.dataset.habits = names.join('|');
+          });
+        }
+      }
+
+      const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+      async function initHabits(root) {
+        const names = (root.dataset.habits || 'Read|Walk|Write').split('|');
+        const now = new Date();
+        const index = (now.getDay() + 6) % 7;
+        const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - index);
+        const key = `habits-${dayKey(monday)}`;
+        let state = await store.get(key);
+
+        if (!Array.isArray(state) || state.length !== names.length) {
+          state = names.map((_, habitIndex) =>
+            Array.from({ length: 7 }, (_, dayIndex) => dayIndex < index && (dayIndex * 3 + habitIndex * 5) % 4 !== 0)
+          );
+        }
+
+        const paint = () => {
+          root.innerHTML = `<div class="habit__head"><span></span>${LETTERS.map((letter, dayIndex) => `<span${dayIndex === index ? ' style="color:var(--accent)"' : ''}>${letter}</span>`).join('')}<span></span></div>` +
+            names.map((name, habitIndex) => `<div class="habit__row"><b>${name}</b>${state[habitIndex].map((on, dayIndex) => `<button type="button" class="hb${on ? ' is-on' : ''}${dayIndex === index ? ' is-today' : ''}${dayIndex > index ? ' is-future' : ''}" data-h="${habitIndex}" data-d="${dayIndex}" aria-pressed="${on}" aria-label="${name}, ${DAYS[(dayIndex + 1) % 7]}"></button>`).join('')}<span class="habit__n">${state[habitIndex].filter(Boolean).length}/7</span></div>`).join('');
+        };
+
+        root._habit = { state, index, key, paint };
+        paint();
+      }
+
+      $$('[data-habits]').forEach(initHabits);
+
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('.hb');
+        if (!button) return;
+        const root = button.closest('[data-habits]');
+        if (!root || !root._habit) return;
+        const habit = root._habit;
+        const habitIndex = Number(button.dataset.h);
+        const dayIndex = Number(button.dataset.d);
+        if (dayIndex > habit.index) return;
+        habit.state[habitIndex][dayIndex] = !habit.state[habitIndex][dayIndex];
+        store.set(habit.key, habit.state);
+        habit.paint();
+      });
+
+      every(() => {
+        const index = (new Date().getDay() + 6) % 7;
+        $$('[data-habits]').forEach((root) => {
+          if (root._habit && root._habit.index !== index) initHabits(root);
+        });
+      }, 60000);
+    })();
+  </script>
+</body>
+</html>

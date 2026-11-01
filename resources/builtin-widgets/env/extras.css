@@ -1,0 +1,154 @@
+/* ==========================================================================
+   HomeLayer extras kit — shared styles for the extras widget pack.
+   Loaded after theme.css, so the tokens below are fallbacks only.
+   ========================================================================== */
+
+:root {
+  --font-hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --font-pixel: "VT323", "DotGothic16", "Courier New", monospace;
+  --font-display: "Orbitron", "Segoe UI Variable Display", "Eurostile", "Segoe UI", sans-serif;
+}
+
+/* Bare variant: no card chrome, just type on the desktop. */
+html[data-theme],
+html[data-env] {
+  color-scheme: normal !important;
+}
+
+[data-theme] .w.w--bare,
+[data-theme] .card.w--bare {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: visible;
+}
+[data-theme] .w.w--bare::after,
+[data-theme] .card.w--bare::after { display: none; }
+
+/* Smooth progress animation for anything driven by --vn. */
+[data-prog],
+[data-cd-vn],
+[data-timer-vn],
+[data-music-vn] {
+  transition: --vn .9s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Shared progress bar. */
+.bar {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  width: calc(var(--vn) * 100%);
+  border-radius: inherit;
+  background: var(--grad);
+  box-shadow: 0 0 14px -2px var(--glow);
+  transition: width .6s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Shared progress ring. */
+.ring {
+  --s: 76px;
+  --t: 8px;
+  position: relative;
+  width: var(--s);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font: 700 15px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--vn) * 360deg), var(--track) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) - .5px), #000 calc(100% - var(--t)));
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+.ring__in {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+/* Inline icons. */
+.ico {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  flex: none;
+}
+.ico--stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Round icon buttons. */
+.mbtn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transition: transform .15s, background .2s;
+}
+.mbtn:hover { transform: scale(1.08); background: var(--track); }
+.mbtn--play {
+  width: 48px;
+  height: 48px;
+  background: var(--grad);
+  color: var(--on-grad);
+  box-shadow: 0 10px 20px -8px var(--glow);
+}
+.mbtn--play:hover { background: var(--grad); }
+.mbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes ringIn { from { --vn: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes eq { from { height: 22%; } to { height: 100%; } }
+@keyframes flipDown {
+  0% { transform: rotateX(0); opacity: 1; }
+  45% { transform: rotateX(-90deg); opacity: .35; }
+  55% { transform: rotateX(90deg); opacity: .35; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar i,
+  [data-prog],
+  [data-cd-vn],
+  [data-timer-vn],
+  [data-music-vn] { transition: none; }
+  .ring,
+  .music__art,
+  .eq i,
+  .flip__digit,
+  .bd.on { animation: none !important; }
+}

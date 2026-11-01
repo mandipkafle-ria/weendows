@@ -122,9 +122,13 @@ describe('widget focus metadata', () => {
     expect(isFocusableWidget(manifest as WidgetManifest)).toBe(false)
   })
 
-  it('marks only Notes and Weather as focusable built-ins', () => {
+  it('marks interactive built-ins as focusable', () => {
     expect(findBuiltin('notes')?.focusable).toBe(true)
     expect(findBuiltin('weather')?.focusable).toBe(true)
+    expect(findBuiltin('timer')?.focusable).toBe(true)
+    expect(findBuiltin('habits')?.focusable).toBe(true)
+    expect(findBuiltin('water')?.focusable).toBe(true)
+    expect(findBuiltin('music')?.focusable).toBe(true)
     expect(findBuiltin('clock')?.focusable).toBeUndefined()
     expect(findBuiltin('system')?.focusable).toBeUndefined()
     expect(findBuiltin('battery')?.focusable).toBeUndefined()

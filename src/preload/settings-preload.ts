@@ -13,7 +13,6 @@ const api: SettingsApi = {
   nativeCheck: () => ipcRenderer.invoke(IPC.nativeCheck),
   getGeneralState: () => ipcRenderer.invoke(IPC.settingsGetGeneral),
   setTheme: (theme) => ipcRenderer.invoke(IPC.settingsSetTheme, theme),
-  setWidgetDefaultTheme: (theme) => ipcRenderer.invoke(IPC.settingsSetWidgetDefaultTheme, theme),
   setAccent: (accent) => ipcRenderer.invoke(IPC.settingsSetAccent, accent),
   setCursorStyle: (cursorStyle) => ipcRenderer.invoke(IPC.settingsSetCursorStyle, cursorStyle),
   setCursorSystemWide: (enabled) => ipcRenderer.invoke(IPC.settingsSetCursorSystemWide, enabled),
@@ -25,6 +24,8 @@ const api: SettingsApi = {
   getWidgetBackground: (widgetId) => ipcRenderer.invoke(IPC.settingsGetWidgetBackground, widgetId),
   setWidgetAppearance: (widgetId, appearance) =>
     ipcRenderer.invoke(IPC.settingsSetWidgetAppearance, widgetId, appearance),
+  setWidgetContent: (widgetId, content) =>
+    ipcRenderer.invoke(IPC.settingsSetWidgetContent, widgetId, content),
   getPreviewStats: () => ipcRenderer.invoke(IPC.settingsGetPreviewStats),
   setHotkey: (accelerator) => ipcRenderer.invoke(IPC.settingsSetHotkey, accelerator),
   setStartWithWindows: (enabled) => ipcRenderer.invoke(IPC.settingsSetLoginItem, enabled),

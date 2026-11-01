@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Focus timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='ring'] .timer--ring,
+    html:not([data-variant]) .timer--ring { display: grid; }
+    html[data-variant='pill'] .timer--pill { display: flex; }
+
+    .timer__time {
+      font: 700 40px/1 var(--font-sans);
+      letter-spacing: -.045em;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer__mode {
+      font: 600 10.5px/1 var(--font-mono);
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .tbtn {
+      appearance: none;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 11px 20px;
+      border-radius: var(--pill);
+      font: 600 12px/1 var(--font-sans);
+      transition: transform .15s;
+    }
+    .tbtn:hover { transform: translateY(-1px); }
+    .tbtn--main {
+      background: var(--grad);
+      color: var(--on-grad);
+      border-color: transparent;
+      min-width: 92px;
+    }
+    .timer[data-mode='break'] { --accent: var(--ok); --accent-2: var(--ok); }
+
+    .timer--ring {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      padding: 24px 22px 20px;
+      align-content: center;
+    }
+    .timer--ring .ring { --s: 178px; --t: 12px; }
+    .timer--ring .timer__in {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+    }
+    .timer--ring .timer__time { font-size: 42px; }
+    .timer__btns { display: flex; gap: 10px; }
+
+    .timer--pill {
+      width: 100%;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 10px 18px 10px 10px;
+      border-radius: var(--pill);
+    }
+    .timer--pill .timer__col {
+      display: grid;
+      gap: 6px;
+      min-width: 62px;
+    }
+    .timer--pill .timer__time { font-size: 24px; }
+    .timer--pill .bar { width: 100px; height: 6px; }
+    .timer--pill .mbtn:not(.mbtn--play) {
+      width: 30px;
+      height: 30px;
+      color: var(--muted);
+    }
+    .timer--pill .mbtn svg { width: 18px; height: 18px; }
+
+    .timer:not([data-state='running']) .ico-pause,
+    .timer[data-state='running'] .ico-play { display: none; }
+  </style>
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+  </svg>
+
+  <main class="card w timer timer--ring" data-timer data-focus="25" data-break="5">
+    <div class="ring" data-timer-vn>
+      <div class="timer__in">
+        <b class="timer__time" data-timer-time>25:00</b>
+        <span class="timer__mode" data-timer-mode>Focus</span>
+      </div>
+    </div>
+    <div class="timer__btns">
+      <button class="tbtn tbtn--main" type="button" data-timer-btn><span data-timer-label>Start</span></button>
+      <button class="tbtn" type="button" data-timer-reset>Reset</button>
+    </div>
+  </main>
+
+  <main class="card w timer timer--pill" data-timer data-focus="25" data-break="5">
+    <button class="mbtn mbtn--play" type="button" data-timer-btn aria-label="Start or pause">
+      <svg class="ico ico-play"><use href="#i-play"/></svg>
+      <svg class="ico ico-pause"><use href="#i-pause"/></svg>
+    </button>
+    <div class="timer__col">
+      <b class="timer__time" data-timer-time>25:00</b>
+      <span class="timer__mode" data-timer-mode>Focus</span>
+    </div>
+    <div class="bar" data-timer-vn><i></i></div>
+    <button class="mbtn" type="button" data-timer-reset aria-label="Reset">
+      <svg class="ico ico--stroke"><use href="#i-reset"/></svg>
+    </button>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, pad, setVn, initEnv, initTheme } = window.HLW;
+      initEnv('ring');
+      initTheme();
+
+      function paintTimer(root) {
+        const state = root._t;
+        const left = Math.ceil(state.left);
+        root.dataset.mode = state.mode;
+        root.dataset.state = state.running ? 'running' : 'paused';
+        root.querySelectorAll('[data-timer-time]').forEach((element) => {
+          element.textContent = `${pad(Math.floor(left / 60))}:${pad(left % 60)}`;
+        });
+        root.querySelectorAll('[data-timer-mode]').forEach((element) => {
+          element.textContent = state.mode === 'focus' ? 'Focus' : 'Break';
+        });
+        root.querySelectorAll('[data-timer-vn]').forEach((element) => {
+          setVn(element, state.left / state.total);
+        });
+        root.querySelectorAll('[data-timer-label]').forEach((element) => {
+          element.textContent = state.running ? 'Pause' : state.left < state.total ? 'Resume' : 'Start';
+        });
+      }
+
+      function initTimer(root) {
+        const focus = Number(root.dataset.focus || 25) * 60;
+        const brk = Number(root.dataset.break || 5) * 60;
+        root._t = { mode: 'focus', total: focus, left: focus, running: false, last: 0, focus, brk };
+        paintTimer(root);
+      }
+
+      $$('[data-timer]').forEach(initTimer);
+
+      setInterval(() => {
+        const now = performance.now();
+        $$('[data-timer]').forEach((root) => {
+          const state = root._t;
+          if (!state || !state.running) return;
+          state.left -= (now - state.last) / 1000;
+          state.last = now;
+          if (state.left <= 0) {
+            state.mode = state.mode === 'focus' ? 'break' : 'focus';
+            state.total = state.mode === 'focus' ? state.focus : state.brk;
+            state.left = state.total;
+            state.running = false;
+          }
+          paintTimer(root);
+        });
+      }, 250);
+
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-timer-btn]');
+        if (button) {
+          const root = button.closest('[data-timer]');
+          const state = root._t;
+          state.running = !state.running;
+          state.last = performance.now();
+          paintTimer(root);
+          return;
+        }
+        const reset = event.target.closest('[data-timer-reset]');
+        if (reset) {
+          const root = reset.closest('[data-timer]');
+          const state = root._t;
+          state.mode = 'focus';
+          state.total = state.left = state.focus;
+          state.running = false;
+          paintTimer(root);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

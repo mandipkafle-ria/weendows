@@ -6,6 +6,7 @@ import type {
   CursorStyle,
   WidgetApiErrorCode,
   WidgetAppearance,
+  WidgetContent,
   WidgetContext,
   WidgetSystemStats
 } from '../../shared/types'
@@ -24,6 +25,7 @@ interface WidgetPreviewProps {
   appearance?: WidgetAppearance
   assetWidgetId?: string
   title: string
+  content?: WidgetContent | null
   interactive?: boolean
   className?: string
 }
@@ -141,7 +143,8 @@ function previewUrl(
   source: PreviewSource,
   dark: boolean,
   appearanceToken: string | null,
-  env?: string
+  env?: string,
+  content?: WidgetContent | null
 ): string {
   const url =
     source.kind === 'builtin'
@@ -157,6 +160,9 @@ function previewUrl(
   url.searchParams.set('theme', dark ? 'dark' : 'light')
   if (appearanceToken) {
     url.searchParams.set('appearance', appearanceToken)
+  }
+  if (content && Object.keys(content).length > 0) {
+    url.searchParams.set('content', JSON.stringify(content))
   }
   return url.toString()
 }
@@ -188,6 +194,7 @@ export default function WidgetPreview({
   appearance,
   assetWidgetId,
   title,
+  content,
   interactive = false,
   className
 }: WidgetPreviewProps): JSX.Element {
@@ -201,9 +208,10 @@ export default function WidgetPreview({
   const key = previewKey(source)
   const hasAppearance = Boolean(appearance)
   const activeAppearanceToken = appearance ? appearanceToken : null
+  const contentKey = content && Object.keys(content).length > 0 ? JSON.stringify(content) : ''
   const src = useMemo(
-    () => previewUrl(source, dark, activeAppearanceToken, env),
-    [activeAppearanceToken, dark, env, source]
+    () => previewUrl(source, dark, activeAppearanceToken, env, contentKey ? content : null),
+    [activeAppearanceToken, content, contentKey, dark, env, source]
   )
   const liveCss = useMemo(() => {
     if (!appearance) {
@@ -327,6 +335,9 @@ export default function WidgetPreview({
             return
           case 'system.getBattery':
             respond({ level: 0.82, charging: true })
+            return
+          case 'media.get':
+            respond(null)
             return
           case 'storage.get':
             respond(store.get(String(params['key'])) ?? null)

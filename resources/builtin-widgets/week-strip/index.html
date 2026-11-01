@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week strip</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='pills'] .week--pills,
+    html:not([data-variant]) .week--pills { display: grid; }
+    html[data-variant='dots'] .week--dots { display: grid; }
+    html[data-variant='underline'] .week--underline { display: grid; }
+
+    .week__row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .wk {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+    }
+    .wk i {
+      font: 600 10.5px/1 var(--font-sans);
+      font-style: normal;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .wk b {
+      font: 600 17px/1 var(--font-sans);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .week--pills {
+      width: 100%;
+      padding: 14px;
+      align-content: center;
+    }
+    .week--pills .wk {
+      padding: 12px 0 11px;
+      border-radius: calc(var(--radius-sm) + 2px);
+    }
+    .week--pills .wk.is-past { opacity: .5; }
+    .week--pills .wk.is-today {
+      background: var(--grad);
+      color: var(--on-grad);
+      box-shadow: 0 10px 20px -8px var(--glow);
+    }
+    .week--pills .wk.is-today i {
+      color: inherit;
+      opacity: .78;
+    }
+
+    .week--dots {
+      width: 100%;
+      padding: 8px;
+      align-content: center;
+    }
+    .week--dots .week__row {
+      width: 100%;
+      gap: 10px;
+    }
+    .week--dots .wk { gap: 12px; }
+    .week--dots .wk i {
+      font: 700 22px/1 var(--font-sans);
+      letter-spacing: 0;
+      color: var(--muted);
+    }
+    .week--dots .wk b { display: none; }
+    .week--dots .wk::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      opacity: .35;
+    }
+    .week--dots .wk.is-past::after { background: var(--accent); opacity: .7; }
+    .week--dots .wk.is-today i {
+      color: var(--text);
+      font-weight: 900;
+      font-size: 28px;
+    }
+    .week--dots .wk.is-today::after {
+      background: var(--accent);
+      opacity: 1;
+      transform: scale(1.5);
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    .week--underline {
+      width: 100%;
+      padding: 8px;
+      align-content: center;
+      justify-items: center;
+    }
+    .week--underline .week__row {
+      grid-template-columns: repeat(7, auto);
+      gap: 14px;
+    }
+    .week--underline .wk { gap: 10px; }
+    .week--underline .wk i {
+      font: 800 14px/1 var(--font-sans);
+      letter-spacing: .1em;
+      color: var(--muted);
+    }
+    .week--underline .wk b {
+      font: 300 32px/1 var(--font-sans);
+      letter-spacing: -.03em;
+      color: var(--muted);
+    }
+    .week--underline .wk.is-today i { color: var(--accent); }
+    .week--underline .wk.is-today b { color: var(--text); font-weight: 800; }
+    .week--underline .wk.is-today b::after {
+      content: "";
+      display: block;
+      height: 3px;
+      margin-top: 8px;
+      border-radius: 3px;
+      background: var(--accent-2);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w week week--pills">
+    <div class="week__row" data-week data-letters="1" data-week-start="1"></div>
+  </main>
+
+  <main class="card w w--bare week week--dots">
+    <div class="week__row" data-week data-letters="1" data-week-start="1"></div>
+  </main>
+
+  <main class="card w w--bare week week--underline">
+    <div class="week__row" data-week data-letters="3" data-week-start="1"></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { DAYS, $$, dayKey, initEnv, initTheme } = window.HLW;
+      initEnv('pills');
+      initTheme();
+
+      function week() {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        $$('[data-week]').forEach((root) => {
+          const key = dayKey(now) + root.dataset.letters + root.dataset.weekStart;
+          if (root.dataset.k === key) return;
+          root.dataset.k = key;
+          const ws = Number(root.dataset.weekStart || 1);
+          const n = Number(root.dataset.letters || 1);
+          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() - ws + 7) % 7));
+          let html = '';
+          for (let i = 0; i < 7; i += 1) {
+            const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+            const cls = 'wk' + (date.getTime() === today.getTime() ? ' is-today' : date < today ? ' is-past' : '');
+            html += `<span class="${cls}"><i>${DAYS[date.getDay()].slice(0, n)}</i><b>${date.getDate()}</b></span>`;
+          }
+          root.innerHTML = html;
+        });
+      }
+
+      week();
+      setInterval(week, 60000);
+    })();
+  </script>
+</body>
+</html>

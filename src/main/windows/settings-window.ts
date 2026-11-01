@@ -10,6 +10,7 @@ let persistSize: ((width: number, height: number) => void) | null = null
 
 export interface SettingsWindowOptions {
   editWidgetId?: string
+  contentWidgetId?: string
 }
 
 export function configureSettingsWindowSize(
@@ -29,27 +30,45 @@ export function onSettingsWindowClosed(listener: () => void): () => void {
   return () => closeListeners.delete(listener)
 }
 
-function loadSettings(window: BrowserWindow, editWidgetId?: string): Promise<void> {
+function settingsQuery(options: SettingsWindowOptions): string {
+  const params = new URLSearchParams()
+  if (options.editWidgetId) {
+    params.set('editWidget', options.editWidgetId)
+  }
+  if (options.contentWidgetId) {
+    params.set('contentWidget', options.contentWidgetId)
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+function loadSettings(
+  window: BrowserWindow,
+  query: string,
+  fileQuery: Record<string, string> | undefined
+): Promise<void> {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
-    const query = editWidgetId ? `?editWidget=${encodeURIComponent(editWidgetId)}` : ''
     return window.loadURL(`${devUrl.replace(/\/$/, '')}/settings/index.html${query}`)
   }
   return window.loadFile(join(__dirname, '../renderer/settings/index.html'), {
-    query: editWidgetId ? { editWidget: editWidgetId } : undefined
+    query: fileQuery
   })
 }
 
 export function showSettingsWindow(options: SettingsWindowOptions = {}): BrowserWindow {
+  const query = settingsQuery(options)
+  const fileQuery = query ? Object.fromEntries(new URLSearchParams(query)) : undefined
+
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) {
       settingsWindow.restore()
     }
     settingsWindow.show()
     settingsWindow.focus()
-    if (options.editWidgetId) {
-      void loadSettings(settingsWindow, options.editWidgetId).catch((error: unknown) => {
-        log.error('Failed to open AI edit view', error)
+    if (query) {
+      void loadSettings(settingsWindow, query, fileQuery).catch((error: unknown) => {
+        log.error('Failed to refocus settings window', error)
       })
     }
     return settingsWindow
@@ -121,7 +140,7 @@ export function showSettingsWindow(options: SettingsWindowOptions = {}): Browser
     event.preventDefault()
   })
 
-  void loadSettings(window, options.editWidgetId).catch((error: unknown) => {
+  void loadSettings(window, query, fileQuery).catch((error: unknown) => {
     log.error('Failed to load settings window', error)
   })
 

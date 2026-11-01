@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='bars'] .prog--bars,
+    html:not([data-variant]) .prog--bars { display: grid; }
+    html[data-variant='rings'] .prog--rings { display: flex; }
+    html[data-variant='dots'] .prog--dots { display: grid; }
+
+    .prog { gap: 18px; align-content: center; }
+
+    .prog__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font: 600 10px/1 var(--font-mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .prog__pct { color: var(--text); }
+
+    .prog--bars { padding: 22px; gap: 18px; }
+    .prog--bars .prog__row { display: grid; gap: 6px; }
+    .prog--bars .bar { height: 8px; }
+
+    .prog--rings {
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 18px;
+    }
+    .prog__ring {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+    .prog__svg { width: 142px; height: 142px; }
+    .prog__svg .track {
+      fill: none;
+      stroke: var(--track);
+      stroke-width: 11;
+    }
+    .prog__svg .val {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 11;
+      stroke-linecap: round;
+      stroke-dasharray: 389.6;
+      stroke-dashoffset: calc(389.6 * (1 - var(--vn)));
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset .8s cubic-bezier(.2, .8, .2, 1);
+    }
+    .prog__pct2 { font: 700 11px/1 var(--font-mono); color: var(--muted); }
+
+    .prog--dots { padding: 20px; gap: 14px; }
+    .prog__dotrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .prog__dotrow b { font: 700 14px/1 var(--font-sans); }
+    .prog__dotrow span {
+      font: 600 9px/1 var(--font-mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .yr-list {
+      display: grid;
+      gap: 4px;
+    }
+    .yr {
+      display: grid;
+      grid-template-columns: 14px repeat(31, 1fr);
+      gap: 3px;
+      align-items: center;
+    }
+    .yr em {
+      font: 600 8px/1 var(--font-mono);
+      font-style: normal;
+      color: var(--muted);
+    }
+    .yr i {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: var(--track);
+    }
+    .yr i.is-past { background: var(--accent); }
+    .yr i.is-void { background: transparent; }
+    .yr i.is-today {
+      background: var(--accent);
+      outline: 1.5px solid var(--text);
+      outline-offset: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w prog prog--bars" data-progress data-span="bars">
+    <div class="prog__row">
+      <div class="prog__head"><span>Day</span><span class="prog__pct" data-pct="day">82%</span></div>
+      <div class="bar" data-prog="day"><i></i></div>
+    </div>
+    <div class="prog__row">
+      <div class="prog__head"><span>Year</span><span class="prog__pct" data-pct="year">83%</span></div>
+      <div class="bar" data-prog="year"><i></i></div>
+    </div>
+    <div class="prog__row">
+      <div class="prog__head"><span>Month</span><span class="prog__pct" data-pct="month">92%</span></div>
+      <div class="bar" data-prog="month"><i></i></div>
+    </div>
+  </main>
+
+  <main class="card w w--bare prog prog--rings" data-progress data-span="rings">
+    <div class="prog__ring">
+      <svg class="prog__svg" data-prog="day" data-ring viewBox="0 0 142 142" aria-hidden="true">
+        <circle class="track" cx="71" cy="71" r="62"/>
+        <circle class="val" cx="71" cy="71" r="62"/>
+      </svg>
+      <span class="prog__pct2" data-pct="day">82%</span>
+      <span class="w__label">Day</span>
+    </div>
+    <div class="prog__ring">
+      <svg class="prog__svg" data-prog="year" data-ring viewBox="0 0 142 142" aria-hidden="true">
+        <circle class="track" cx="71" cy="71" r="62"/>
+        <circle class="val" cx="71" cy="71" r="62"/>
+      </svg>
+      <span class="prog__pct2" data-pct="year">83%</span>
+      <span class="w__label">Year</span>
+    </div>
+    <div class="prog__ring">
+      <svg class="prog__svg" data-prog="month" data-ring viewBox="0 0 142 142" aria-hidden="true">
+        <circle class="track" cx="71" cy="71" r="62"/>
+        <circle class="val" cx="71" cy="71" r="62"/>
+      </svg>
+      <span class="prog__pct2" data-pct="month">92%</span>
+      <span class="w__label">Month</span>
+    </div>
+  </main>
+
+  <main class="card w prog prog--dots" data-progress data-span="dots">
+    <div class="prog__dotrow"><b data-pct="day">82%</b><span>of today</span></div>
+    <div class="prog__dotrow"><b data-pct="year">83%</b><span>of the year</span></div>
+    <div class="yr-list" data-year-dots></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { MONTH_LETTERS, setVn, every, initEnv, initTheme } = window.HLW;
+      initEnv('bars');
+      initTheme();
+
+      function valuesFor(now) {
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        const day = (hours * 3600 + minutes * 60 + seconds) / 86400;
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+        const year = (now - yearStart) / (yearEnd - yearStart);
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const month = ((now.getDate() - 1) + (hours * 3600 + minutes * 60 + seconds) / 86400) / daysInMonth;
+        return { day, year, month };
+      }
+
+      function paintDots(root, now) {
+        const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+        if (root._yearKey === key) return;
+        root._yearKey = key;
+
+        const container = root.querySelector('[data-year-dots]');
+        if (!container) return;
+
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const day = now.getDate();
+        container.innerHTML = '';
+
+        for (let m = 0; m < 12; m += 1) {
+          const daysInMonth = new Date(year, m + 1, 0).getDate();
+          const row = document.createElement('div');
+          row.className = 'yr';
+          const label = document.createElement('em');
+          label.textContent = MONTH_LETTERS[m];
+          row.append(label);
+          for (let i = 1; i <= 31; i += 1) {
+            const cell = document.createElement('i');
+            if (i > daysInMonth) cell.className = 'is-void';
+            else if (m === month && i === day) cell.className = 'is-today';
+            else if (m < month || (m === month && i < day)) cell.className = 'is-past';
+            row.append(cell);
+          }
+          container.append(row);
+        }
+      }
+
+      function tick() {
+        const now = new Date();
+        const values = valuesFor(now);
+        document.querySelectorAll('[data-progress]').forEach((root) => {
+          root.querySelectorAll('[data-pct]').forEach((node) => {
+            const value = `${Math.round((values[node.dataset.pct] ?? 0) * 100)}%`;
+            if (node.textContent !== value) node.textContent = value;
+          });
+          root.querySelectorAll('[data-prog]').forEach((node) => {
+            setVn(node, values[node.dataset.prog] ?? 0);
+          });
+          if (root.dataset.span === 'dots') paintDots(root, now);
+        });
+      }
+
+      tick();
+      every(tick, 1000);
+    })();
+  </script>
+</body>
+</html>

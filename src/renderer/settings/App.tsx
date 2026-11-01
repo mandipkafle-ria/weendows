@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import type {
   BuiltinWidget,
   GeneralState,
@@ -79,6 +79,10 @@ function initialEditWidgetId(): string | null {
   return new URLSearchParams(window.location.search).get('editWidget')
 }
 
+function initialContentWidgetId(): string | null {
+  return new URLSearchParams(window.location.search).get('contentWidget')
+}
+
 function TabIcon({ id }: { id: TabId }): JSX.Element {
   return (
     <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -95,11 +99,23 @@ function App(): JSX.Element {
   const [runtime, setRuntime] = useState<WidgetRuntimeInfo[]>([])
   const [notices, setNotices] = useState<Notice[]>([])
   const [editWidgetId, setEditWidgetId] = useState<string | null>(initialEditWidgetId)
+  const [contentWidgetId, setContentWidgetId] = useState<string | null>(initialContentWidgetId)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [tab, setTab] = useState<TabId>(() => (initialEditWidgetId() ? 'ai' : 'widgets'))
   const workspaceRef = useRef<HTMLDivElement>(null)
   const { toasts, pushToast, dismissToast } = useToasts()
+
+  const contentEditor = useMemo(() => {
+    if (!contentWidgetId) {
+      return null
+    }
+    const existing = widgets.find((widget) => widget.placement.widgetId === contentWidgetId)
+    const builtin = existing?.manifest.builtinType
+      ? builtins.find((entry) => entry.type === existing.manifest.builtinType)
+      : undefined
+    return existing && builtin?.contentSchema ? { builtin, existing } : null
+  }, [contentWidgetId, widgets, builtins])
 
   const refreshWidgets = useCallback(async (): Promise<void> => {
     const [widgetList, savedList] = await Promise.all([
@@ -392,6 +408,8 @@ function App(): JSX.Element {
               savedAiWidgets={savedAiWidgets}
               runtime={runtime}
               general={general}
+              contentEditor={contentEditor}
+              onContentEditorClose={() => setContentWidgetId(null)}
               onRefresh={refreshWidgets}
               onEditWithAi={openAiEditor}
               onOpenAiStudio={() => {
@@ -401,13 +419,23 @@ function App(): JSX.Element {
               toast={pushToast}
             />
           )}
-          {tab === 'apps' && <AppsPanel toast={pushToast} />}
+          {tab === 'apps' && (
+            <AppsPanel
+              toast={pushToast}
+              builtins={builtins}
+              widgets={widgets}
+              general={general}
+              onRefresh={refreshWidgets}
+            />
+          )}
           {tab === 'wallpapers' && <WallpaperPanel />}
           {tab === 'taskbar' && <TaskbarPanel toast={pushToast} />}
           {tab === 'ai' && (
             <AppAiPanel
               key={editWidgetId ?? 'new'}
               editWidgetId={editWidgetId}
+              widgets={widgets}
+              onSelectWidget={setEditWidgetId}
               onChanged={() => {
                 void refreshWidgets()
                 void refreshRuntime()

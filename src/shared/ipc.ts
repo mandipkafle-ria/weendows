@@ -35,6 +35,7 @@ import type {
   WidgetPermission,
   WidgetAppearance,
   WidgetBoundsPatch,
+  WidgetContent,
   WidgetDisabledEvent,
   WidgetRuntimeInfo,
   WidgetSummary,
@@ -46,13 +47,13 @@ export const IPC = {
   nativeCheck: 'native:check',
   settingsGetGeneral: 'settings:get-general',
   settingsSetTheme: 'settings:set-theme',
-  settingsSetWidgetDefaultTheme: 'settings:set-widget-default-theme',
   settingsSetCursor: 'settings:set-cursor',
   settingsCreateWidgetPreview: 'settings:create-widget-preview',
   settingsReleaseWidgetPreview: 'settings:release-widget-preview',
   settingsPickWidgetBackground: 'settings:pick-widget-background',
   settingsGetWidgetBackground: 'settings:get-widget-background',
   settingsSetWidgetAppearance: 'settings:set-widget-appearance',
+  settingsSetWidgetContent: 'settings:set-widget-content',
   settingsSetAccent: 'settings:set-accent',
   settingsSetCursorStyle: 'settings:set-cursor-style',
   settingsSetCursorSystemWide: 'settings:set-cursor-system-wide',
@@ -207,7 +208,6 @@ export interface SettingsApi {
   nativeCheck: () => Promise<NativeCheckResult>
   getGeneralState: () => Promise<GeneralState>
   setTheme: (theme: ThemeSource) => Promise<GeneralState>
-  setWidgetDefaultTheme: (theme: ThemeSource) => Promise<GeneralState>
   setAccent: (accent: AccentColor) => Promise<GeneralState>
   setCursorStyle: (cursorStyle: CursorStyle) => Promise<GeneralState>
   setCursorSystemWide: (enabled: boolean) => Promise<GeneralState>
@@ -224,6 +224,7 @@ export interface SettingsApi {
     widgetId: string,
     appearance: Partial<WidgetAppearance>
   ) => Promise<WidgetSummary | null>
+  setWidgetContent: (widgetId: string, content: WidgetContent) => Promise<WidgetSummary | null>
   getPreviewStats: () => Promise<WidgetSystemStats>
   setHotkey: (accelerator: string) => Promise<GeneralState>
   setStartWithWindows: (enabled: boolean) => Promise<GeneralState>

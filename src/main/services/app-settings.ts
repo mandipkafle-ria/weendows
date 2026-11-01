@@ -83,13 +83,6 @@ export class AppSettingsService {
     return this.get()
   }
 
-  async setWidgetDefaultTheme(theme: ThemeSource): Promise<AppSettingsFile> {
-    this.store.update((data) => {
-      data.widgetDefaultTheme = theme
-    })
-    return this.get()
-  }
-
   async setAccent(accent: AccentColor): Promise<AppSettingsFile> {
     this.store.update((data) => {
       data.accent = accent

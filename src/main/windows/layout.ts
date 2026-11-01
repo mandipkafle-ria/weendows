@@ -41,7 +41,6 @@ import type {
   CursorConfig,
   DesktopDisplayInfo,
   ShellState,
-  ThemeSource,
   WidgetAppearance,
   WidgetBoundsPatch,
   WidgetDisabledEvent,
@@ -77,7 +76,7 @@ import {
   type Point,
   type Rect
 } from './layout-math'
-import { createWidgetBadge, type WidgetBadge } from './widget-badge-window'
+import type { WidgetBadge } from './widget-badge-window'
 import { createWidgetWindow, loadWidgetShell } from './widget-window'
 import { showSettingsWindow } from './settings-window'
 
@@ -86,7 +85,6 @@ export interface LayoutServiceOptions {
   notices: NoticeService
   safe: boolean
   cursor?: () => CursorConfig
-  widgetDefaultTheme?: () => ThemeSource
   systemDark?: () => boolean
 }
 
@@ -132,12 +130,28 @@ function withoutWidgetId(placement: WidgetPlacement): Omit<WidgetPlacement, 'wid
   return rest
 }
 
+function contentMenuItems(managed: ManagedWidget): MenuItemConstructorOptions[] {
+  const { manifest } = managed
+  if (manifest.kind !== 'builtin') {
+    return []
+  }
+  const builtin = findBuiltin(manifest.builtinType ?? '')
+  if (!builtin?.contentSchema) {
+    return []
+  }
+  return [
+    {
+      label: t('menu.editContent', { name: manifest.name }),
+      click: () => showSettingsWindow({ contentWidgetId: managed.widgetId })
+    }
+  ]
+}
+
 export class LayoutService {
   private readonly widgetService: WidgetService
   private readonly notices: NoticeService
   private readonly safe: boolean
   private readonly cursor: () => CursorConfig
-  private readonly widgetDefaultTheme: () => ThemeSource
   private readonly systemDark: () => boolean
   private readonly managed = new Map<string, ManagedWidget>()
   private readonly previews = new Map<string, WidgetPlacement>()
@@ -175,7 +189,6 @@ export class LayoutService {
         clickAnimation: 'ripple',
         systemWide: false
       }))
-    this.widgetDefaultTheme = options.widgetDefaultTheme ?? (() => 'system')
     this.systemDark = options.systemDark ?? (() => false)
   }
 
@@ -709,6 +722,28 @@ export class LayoutService {
     return this.widgetService.getSummary(widgetId)
   }
 
+  async setWidgetContent(
+    widgetId: string,
+    content: Record<string, unknown>
+  ): Promise<WidgetSummary | null> {
+    const manifest = this.widgetService.getManifest(widgetId)
+    const editable =
+      manifest && manifest.kind === 'builtin'
+        ? Boolean(findBuiltin(manifest.builtinType ?? '')?.contentSchema)
+        : false
+    if (!manifest || !editable) {
+      return null
+    }
+
+    const placement = this.widgetService.updatePlacement(widgetId, { content })
+    if (!placement) {
+      return this.widgetService.getSummary(widgetId)
+    }
+    this.reloadWidget(widgetId)
+    this.emitChanged()
+    return this.widgetService.getSummary(widgetId)
+  }
+
   reloadWidget(widgetId: string): void {
     const managed = this.managed.get(widgetId)
     const placement = this.previews.get(widgetId) ?? this.widgetService.getPlacement(widgetId)
@@ -733,10 +768,7 @@ export class LayoutService {
       return null
     }
     const appearance = resolveWidgetAppearance(placement)
-    return (
-      resolveWidgetTheme(appearance.themeOverride, this.widgetDefaultTheme(), this.systemDark()) ===
-      'dark'
-    )
+    return resolveWidgetTheme(appearance.themeOverride, 'system', this.systemDark()) === 'dark'
   }
 
   widgetIdForSender(sender: WebContents): string | null {
@@ -768,6 +800,14 @@ export class LayoutService {
   broadcastWidgetEvent(event: WidgetEventName, data: unknown): void {
     for (const managed of this.managed.values()) {
       if (!managed.win.isDestroyed()) {
+        managed.win.webContents.send(IPC.widgetEvent, { event, data })
+      }
+    }
+  }
+
+  broadcastWidgetEventToType(builtinType: string, event: WidgetEventName, data: unknown): void {
+    for (const managed of this.managed.values()) {
+      if (!managed.win.isDestroyed() && managed.manifest.builtinType === builtinType) {
         managed.win.webContents.send(IPC.widgetEvent, { event, data })
       }
     }
@@ -981,7 +1021,7 @@ export class LayoutService {
     win.webContents.on('did-finish-load', () => this.destroyBadge(manifest.id))
 
     try {
-      await loadWidgetShell(win, manifest.id, this.variantFor(manifest))
+      await loadWidgetShell(win, manifest.id, this.variantFor(manifest), placement.content ?? null)
       this.sendState(managed)
     } catch (error) {
       log.error('Could not load widget shell', { widget: manifest.id, error })
@@ -1044,11 +1084,7 @@ export class LayoutService {
       editMode: getEditMode(),
       locked: placement?.locked ?? false,
       opacity: placement?.opacity ?? 1,
-      theme: resolveWidgetTheme(
-        appearance.themeOverride,
-        this.widgetDefaultTheme(),
-        this.systemDark()
-      ),
+      theme: resolveWidgetTheme(appearance.themeOverride, 'system', this.systemDark()),
       appearance,
       cursor: this.cursor(),
       editPassthrough: isEditPassthroughWidget(managed.manifest)
@@ -1223,8 +1259,10 @@ export class LayoutService {
       checked: Math.abs(placement.opacity - value) < 0.01,
       click: () => this.setOpacity(managed.widgetId, value)
     }))
+    const contentItem = contentMenuItems(managed)
     const template: MenuItemConstructorOptions[] = [
       { label: t('menu.editLayout'), click: () => setEditMode(true) },
+      ...contentItem,
       ...(managed.widgetId.startsWith(AI_PREVIEW_PREFIX)
         ? []
         : [
@@ -1288,16 +1326,21 @@ export class LayoutService {
       return
     }
 
-    this.showBadge(managed, label)
-    if (label === 'crashed' && !this.autoReloadTimers.has(managed.widgetId)) {
-      const timer = setTimeout(() => {
-        this.autoReloadTimers.delete(managed.widgetId)
-        if (this.managed.get(managed.widgetId) === managed && !managed.win.isDestroyed()) {
-          this.reloadWidget(managed.widgetId)
-        }
-      }, 1_500)
-      this.autoReloadTimers.set(managed.widgetId, timer)
+    log.info('Widget auto-refresh scheduled', {
+      widget: managed.widgetId,
+      reason: label,
+      failures: times.length
+    })
+    if (this.autoReloadTimers.has(managed.widgetId)) {
+      return
     }
+    const timer = setTimeout(() => {
+      this.autoReloadTimers.delete(managed.widgetId)
+      if (this.managed.get(managed.widgetId) === managed && !managed.win.isDestroyed()) {
+        this.reloadWidget(managed.widgetId)
+      }
+    }, 1_500)
+    this.autoReloadTimers.set(managed.widgetId, timer)
   }
 
   private clearAutoReload(widgetId: string): void {
@@ -1306,27 +1349,6 @@ export class LayoutService {
       clearTimeout(timer)
       this.autoReloadTimers.delete(widgetId)
     }
-  }
-
-  private showBadge(managed: ManagedWidget, label: string): void {
-    if (this.badges.has(managed.widgetId) || managed.win.isDestroyed()) {
-      return
-    }
-
-    const badge = createWidgetBadge({
-      bounds: managed.win.getBounds(),
-      title: label === 'crashed' ? 'Widget crashed' : 'Widget not responding'
-    })
-    const senderId = badge.window.webContents.id
-    this.badges.set(managed.widgetId, badge)
-    this.badgeSenders.set(senderId, managed.widgetId)
-
-    badge.window.on('closed', () => {
-      if (this.badges.get(managed.widgetId) === badge) {
-        this.badges.delete(managed.widgetId)
-      }
-      this.badgeSenders.delete(senderId)
-    })
   }
 
   private destroyBadge(widgetId: string): void {

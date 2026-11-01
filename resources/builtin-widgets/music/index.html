@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Now playing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='card'] .music--card,
+    html:not([data-variant]) .music--card { display: grid; }
+    html[data-variant='mini'] .music--mini { display: flex; }
+
+    .music__art {
+      position: relative;
+      flex: none;
+      width: 84px;
+      height: 84px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: conic-gradient(from 210deg, var(--accent), var(--accent-2), color-mix(in srgb, var(--accent) 40%, #000), var(--accent));
+      box-shadow: 0 12px 24px -10px var(--glow);
+    }
+    .music__art::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-radial-gradient(circle at 50% 50%, rgba(0, 0, 0, .2) 0 1px, transparent 1px 5px);
+    }
+    .music__art::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 26%;
+      height: 26%;
+      translate: -50% -50%;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, .2);
+    }
+    .music__art.has-art {
+      background-size: cover;
+      background-position: center;
+    }
+    .music__art.has-art::before,
+    .music__art.has-art::after { display: none; }
+    .music.is-real .music__ctl { display: none; }
+    .music__meta { display: grid; gap: 7px; min-width: 0; }
+    .music__meta b {
+      font: 700 17px/1.2 var(--font-sans);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .music__meta span { font: 500 12.5px/1 var(--font-sans); color: var(--muted); }
+    .eq { display: flex; align-items: flex-end; gap: 3px; height: 16px; }
+    .eq i { width: 3px; height: 30%; border-radius: 2px; background: var(--accent); }
+    .is-playing .eq i { animation: eq 800ms ease-in-out infinite alternate; }
+    .eq i:nth-child(2) { animation-delay: -.25s !important; }
+    .eq i:nth-child(3) { animation-delay: -.5s !important; }
+    .eq i:nth-child(4) { animation-delay: -.1s !important; }
+    .music:not(.is-playing) .ico-pause,
+    .music.is-playing .ico-play { display: none; }
+
+    .music--card {
+      width: 100%;
+      display: grid;
+      gap: 18px;
+      align-content: center;
+    }
+    .music__top { display: flex; gap: 16px; align-items: center; }
+    .music__time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font: 500 11px/1 var(--font-mono);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .music--card .bar { height: 5px; }
+    .music__ctl {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .music--mini {
+      width: 100%;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 9px 12px 9px 9px;
+      border-radius: var(--pill);
+    }
+    .music--mini .music__art {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      box-shadow: none;
+      animation: spin 6s linear infinite;
+      animation-play-state: paused;
+    }
+    .music--mini.is-playing .music__art { animation-play-state: running; }
+    .music--mini .music__meta { gap: 5px; max-width: 150px; }
+    .music--mini .music__meta b { font-size: 13.5px; }
+    .music--mini .music__meta span { font-size: 11.5px; }
+    .music--mini .mbtn--play { width: 36px; height: 36px; }
+    .music--mini .mbtn svg { width: 16px; height: 16px; }
+  </style>
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7-11 7z"/></symbol>
+  </svg>
+
+  <main class="card w music music--card" data-music data-length="213" data-start="84" data-tracks="Slow Orbit — Halden|Paper Lanterns — Mio Aoki|Low Tide Signals — Kestrel">
+    <div class="music__top">
+      <div class="music__art"></div>
+      <div class="music__meta">
+        <b data-music-title>Slow Orbit</b>
+        <span data-music-artist>Halden</span>
+        <div class="eq"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+    <div>
+      <div class="bar" data-music-vn><i></i></div>
+      <div class="music__time"><span data-music-cur>1:24</span><span data-music-left>-2:09</span></div>
+    </div>
+    <div class="music__ctl">
+      <button class="mbtn" type="button" data-music-btn="prev" aria-label="Previous"><svg class="ico"><use href="#i-prev"/></svg></button>
+      <button class="mbtn mbtn--play" type="button" data-music-btn="play" aria-label="Play or pause"><svg class="ico ico-play"><use href="#i-play"/></svg><svg class="ico ico-pause"><use href="#i-pause"/></svg></button>
+      <button class="mbtn" type="button" data-music-btn="next" aria-label="Next"><svg class="ico"><use href="#i-next"/></svg></button>
+    </div>
+  </main>
+
+  <main class="card w music music--mini" data-music data-length="213" data-start="30" data-tracks="Paper Lanterns — Mio Aoki|Slow Orbit — Halden">
+    <div class="music__art"></div>
+    <div class="music__meta">
+      <b data-music-title>Paper Lanterns</b>
+      <span data-music-artist>Mio Aoki</span>
+    </div>
+    <div class="eq"><i></i><i></i><i></i><i></i></div>
+    <button class="mbtn mbtn--play" type="button" data-music-btn="play" aria-label="Play or pause"><svg class="ico ico-play"><use href="#i-play"/></svg><svg class="ico ico-pause"><use href="#i-pause"/></svg></button>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, pad, setVn, every, initEnv, initTheme, content } = window.HLW;
+      initEnv('card');
+      initTheme();
+
+      const cfg = content();
+      const cfgLength = Number(cfg.length);
+      const cfgTracks = Array.isArray(cfg.tracks)
+        ? cfg.tracks
+            .map((track) => {
+              const title =
+                track && typeof track.title === 'string' ? track.title.trim().replace(/\|/g, '/') : '';
+              const artist =
+                track && typeof track.artist === 'string' ? track.artist.trim().replace(/\|/g, '/') : '';
+              return title ? (artist ? `${title} — ${artist}` : title) : '';
+            })
+            .filter(Boolean)
+            .join('|')
+        : '';
+      $$('[data-music]').forEach((root) => {
+        if (cfgTracks) root.dataset.tracks = cfgTracks;
+        if (Number.isFinite(cfgLength) && cfgLength > 0) root.dataset.length = String(cfgLength);
+      });
+
+      const format = (seconds) => `${Math.floor(seconds / 60)}:${pad(Math.floor(seconds % 60))}`;
+
+      function view(state) {
+        const real = state.real;
+        if (!real) {
+          const [title, artist] = state.tracks[state.i];
+          return {
+            title,
+            artist,
+            t: state.t,
+            len: state.len,
+            playing: state.playing,
+            art: null,
+            real: false
+          };
+        }
+        const duration = real.durationMs > 0 ? real.durationMs / 1000 : 0;
+        const position = real.positionMs / 1000 + (real.playing ? (Date.now() - real.at) / 1000 : 0);
+        return {
+          title: real.title || 'Unknown track',
+          artist: real.artist || real.sourceApp || 'Now playing',
+          t: duration > 0 ? Math.min(position, duration) : position,
+          len: duration,
+          playing: real.playing,
+          art: real.art || null,
+          real: true
+        };
+      }
+
+      function paintMusic(root) {
+        const state = root._m;
+        const music = view(state);
+        root.classList.toggle('is-playing', music.playing);
+        root.classList.toggle('is-real', music.real);
+        root.querySelectorAll('[data-music-vn]').forEach((element) => {
+          setVn(element, music.len > 0 ? music.t / music.len : 0);
+        });
+        root.querySelectorAll('[data-music-cur]').forEach((element) => {
+          element.textContent = format(music.t);
+        });
+        root.querySelectorAll('[data-music-left]').forEach((element) => {
+          element.textContent = music.len > 0 ? `-${format(Math.max(0, music.len - music.t))}` : '';
+        });
+        root.querySelectorAll('[data-music-title]').forEach((element) => {
+          element.textContent = music.title;
+        });
+        root.querySelectorAll('[data-music-artist]').forEach((element) => {
+          element.textContent = music.artist;
+        });
+        root.querySelectorAll('.music__art').forEach((element) => {
+          const art = music.art || state.art;
+          if (art) {
+            element.classList.add('has-art');
+            element.style.backgroundImage = `url("${art}")`;
+          } else {
+            element.classList.remove('has-art');
+            element.style.backgroundImage = '';
+          }
+        });
+      }
+
+      function applyReal(root, snapshot) {
+        const state = root._m;
+        if (!state) return;
+        if (!snapshot || !snapshot.title) {
+          state.real = null;
+          state.art = null;
+        } else {
+          state.real = snapshot;
+          if (snapshot.art) state.art = snapshot.art;
+        }
+        paintMusic(root);
+      }
+
+      function initMusic(root) {
+        const tracks = (root.dataset.tracks || 'Slow Orbit — Halden').split('|').map((track) => {
+          const [title, artist = ''] = track.split(' — ');
+          return [title, artist];
+        });
+        root._m = {
+          len: Number(root.dataset.length || 213),
+          t: Number(root.dataset.start || 84),
+          playing: true,
+          i: 0,
+          tracks,
+          real: null,
+          art: null
+        };
+        paintMusic(root);
+      }
+
+      function music() {
+        $$('[data-music]').forEach((root) => {
+          const state = root._m;
+          if (!state) return;
+          if (!state.real && state.playing) state.t = (state.t + 1) % state.len;
+          paintMusic(root);
+        });
+      }
+
+      $$('[data-music]').forEach(initMusic);
+
+      if (window.hl && hl.onMedia) {
+        hl.onMedia((snapshot) => {
+          $$('[data-music]').forEach((root) => applyReal(root, snapshot));
+        });
+        hl.media
+          .get()
+          .then((snapshot) => {
+            $$('[data-music]').forEach((root) => applyReal(root, snapshot));
+          })
+          .catch(() => undefined);
+      }
+
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-music-btn]');
+        if (!button) return;
+        const root = button.closest('[data-music]');
+        if (!root || !root._m || root._m.real) return;
+        const state = root._m;
+        const action = button.dataset.musicBtn;
+        if (action === 'play') state.playing = !state.playing;
+        else {
+          state.i = (state.i + (action === 'next' ? 1 : state.tracks.length - 1)) % state.tracks.length;
+          state.t = 0;
+        }
+        paintMusic(root);
+      });
+
+      every(music, 1000);
+    })();
+  </script>
+</body>
+</html>

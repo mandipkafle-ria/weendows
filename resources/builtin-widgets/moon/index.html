@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moon phase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='disc'] .moon--disc,
+    html:not([data-variant]) .moon--disc { display: grid; }
+    html[data-variant='mini'] .moon--mini { display: flex; }
+
+    .moon__dark {
+      fill: #1f2638;
+      stroke: rgba(255, 255, 255, .14);
+      stroke-width: 1;
+    }
+    .moon__craters circle { fill: rgba(0, 0, 0, .09); }
+    .moon__art svg { width: 100%; height: 100%; }
+    .moon__name { font: 700 18px/1 var(--font-sans); }
+    .moon__sub { font: 500 12px/1.3 var(--font-mono); color: var(--muted); }
+
+    .moon--disc {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+      text-align: center;
+      padding: 28px 22px 22px;
+      align-content: center;
+    }
+    .moon--disc .moon__art {
+      width: 132px;
+      height: 132px;
+      filter: drop-shadow(0 0 24px rgba(246, 240, 220, .28));
+    }
+    .moon--disc .moon__text { display: grid; gap: 9px; }
+    .moon__next {
+      font: 600 10.5px/1 var(--font-mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .moon--mini {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .moon--mini .moon__art {
+      width: 76px;
+      height: 76px;
+      filter: drop-shadow(0 0 18px rgba(246, 240, 220, .3));
+    }
+    .moon--mini .moon__text { display: grid; gap: 8px; }
+    .moon--mini .moon__name {
+      font: 300 32px/1 var(--font-sans);
+      letter-spacing: -.03em;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w moon moon--disc">
+    <div class="moon__art" data-moon></div>
+    <div class="moon__text">
+      <h3 class="moon__name" data-moon-name>Waxing Gibbous</h3>
+      <p class="moon__sub"><span data-moon-illum>0%</span> · <span data-moon-age>Day 1</span></p>
+    </div>
+    <p class="moon__next" data-moon-next></p>
+  </main>
+
+  <main class="card w w--bare moon moon--mini">
+    <div class="moon__art" data-moon></div>
+    <div class="moon__text">
+      <h3 class="moon__name" data-moon-name>Waxing Gibbous</h3>
+      <p class="moon__sub"><span data-moon-illum>0%</span> · <span data-moon-age>Day 1</span></p>
+    </div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, every, initEnv, initTheme } = window.HLW;
+      initEnv('disc');
+      initTheme();
+
+      const SYN = 29.530588853;
+      const REF = Date.UTC(2000, 0, 6, 18, 14);
+      const MOON_NAMES = [
+        [.0339, 'New Moon'], [.2161, 'Waxing Crescent'], [.2839, 'First Quarter'],
+        [.4661, 'Waxing Gibbous'], [.5339, 'Full Moon'], [.7161, 'Waning Gibbous'],
+        [.7839, 'Last Quarter'], [.9661, 'Waning Crescent'], [1.01, 'New Moon']
+      ];
+      let moonId = 0;
+
+      function moonPath(fraction) {
+        const r = 44;
+        const c = Math.cos(2 * Math.PI * fraction);
+        const rx = Math.abs(c) * r;
+        const waxing = fraction < .5;
+        const outer = waxing ? 1 : 0;
+        const inner = waxing ? (c > 0 ? 0 : 1) : (c < 0 ? 0 : 1);
+        return `M50 ${50 - r}A${r} ${r} 0 0 ${outer} 50 ${50 + r}A${rx.toFixed(2)} ${r} 0 0 ${inner} 50 ${50 - r}Z`;
+      }
+
+      function moon() {
+        const age = (((Date.now() - REF) / 864e5) % SYN + SYN) % SYN;
+        const fraction = age / SYN;
+        const illumination = (1 - Math.cos(2 * Math.PI * fraction)) / 2;
+        const name = MOON_NAMES.find((entry) => fraction < entry[0])[1];
+        const toFull = (SYN / 2 - age + SYN) % SYN;
+
+        $$('[data-moon]').forEach((root) => {
+          if (!root.firstChild) {
+            const id = `mg${++moonId}`;
+            root.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="${id}" cx="38%" cy="34%" r="75%"><stop offset="0" stop-color="#fffbe9"/><stop offset=".6" stop-color="#f1e9cd"/><stop offset="1" stop-color="#cdc3a0"/></radialGradient></defs><circle class="moon__dark" cx="50" cy="50" r="44"/><path class="moon__lit" fill="url(#${id})" d=""/><g class="moon__craters"><circle cx="38" cy="36" r="6"/><circle cx="60" cy="53" r="9"/><circle cx="43" cy="67" r="5"/><circle cx="67" cy="32" r="4"/></g></svg>`;
+          }
+          root.querySelector('.moon__lit').setAttribute('d', moonPath(fraction));
+        });
+
+        $$('[data-moon-name]').forEach((element) => { element.textContent = name; });
+        $$('[data-moon-illum]').forEach((element) => { element.textContent = `${Math.round(illumination * 100)}% lit`; });
+        $$('[data-moon-age]').forEach((element) => { element.textContent = `Day ${Math.floor(age) + 1}`; });
+        $$('[data-moon-next]').forEach((element) => {
+          element.textContent = toFull < 1 ? 'Full moon tonight' : `Full moon in ${Math.round(toFull)} days`;
+        });
+      }
+
+      moon();
+      every(moon, 3600000);
+    })();
+  </script>
+</body>
+</html>

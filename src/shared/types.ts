@@ -64,6 +64,25 @@ export interface WidgetVariant {
   tags?: string[]
 }
 
+export type WidgetContentFieldType = 'text' | 'number' | 'list'
+
+export interface WidgetContentField {
+  key: string
+  labelKey: string
+  type: WidgetContentFieldType
+  itemFields?: WidgetContentField[]
+  min?: number
+  max?: number
+  step?: number
+  multiline?: boolean
+}
+
+export interface WidgetContentSchema {
+  fields: WidgetContentField[]
+}
+
+export type WidgetContent = Record<string, unknown>
+
 export interface WidgetManifest {
   schema: 1
   id: string
@@ -96,6 +115,7 @@ export interface WidgetPlacement extends WidgetAppearance {
   locked: boolean
   enabled: boolean
   opacity: number
+  content?: WidgetContent | null
 }
 
 export interface LayoutFile {
@@ -117,6 +137,8 @@ export interface BuiltinWidget {
   editPassthrough?: boolean
   permissions?: WidgetPermission[]
   allowedHosts?: string[]
+  contentSchema?: WidgetContentSchema
+  contentDefaults?: WidgetContent
 }
 
 export interface WidgetSummary {
@@ -418,7 +440,19 @@ export interface WidgetLogEntry {
   at: string
 }
 
-export type WidgetEventName = 'theme' | 'resize' | 'editmode' | 'apps' | 'drag'
+export interface MediaSnapshot {
+  title: string
+  artist: string
+  album: string
+  sourceApp: string
+  playing: boolean
+  positionMs: number
+  durationMs: number
+  art?: string
+  at: number
+}
+
+export type WidgetEventName = 'theme' | 'resize' | 'editmode' | 'apps' | 'drag' | 'media'
 
 export interface WidgetEvent {
   event: WidgetEventName

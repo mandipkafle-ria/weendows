@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Binary clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .bin--dots {
+      display: grid;
+      gap: 16px;
+      align-content: center;
+    }
+    .bin__grid {
+      display: grid;
+      grid-template-columns: 16px repeat(6, 1fr);
+      gap: 12px 8px;
+      justify-items: center;
+      align-items: center;
+    }
+    .bin__lab {
+      font: 600 10px/1 var(--font-mono);
+      color: var(--muted);
+      letter-spacing: .1em;
+    }
+    .bd {
+      --c: var(--accent);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--track);
+      transition: background .25s, box-shadow .25s;
+    }
+    .bd[data-c='2'],
+    .bd[data-c='3'] { --c: var(--accent-2); }
+    .bd[data-c='4'],
+    .bd[data-c='5'] { --c: var(--text); }
+    .bd.on {
+      background: var(--c);
+      box-shadow: 0 0 14px color-mix(in srgb, var(--c) 70%, transparent);
+    }
+    .bd.void { visibility: hidden; }
+  </style>
+</head>
+<body>
+
+  <main class="card w bin bin--dots">
+    <span class="w__label">Binary time</span>
+    <div class="bin__grid" data-binary></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, pad, every, initEnv, initTheme } = window.HLW;
+      initEnv('dots');
+      initTheme();
+
+      function binary() {
+        const now = new Date();
+        const digits = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+
+        $$('[data-binary]').forEach((root) => {
+          if (!root.firstChild) {
+            let html = '';
+            [8, 4, 2, 1].forEach((value, row) => {
+              html += `<span class="bin__lab">${value}</span>`;
+              for (let column = 0; column < 6; column += 1) {
+                const hidden = (column === 0 && row < 2) || ((column === 2 || column === 4) && row < 1);
+                html += `<i class="bd${hidden ? ' void' : ''}" data-c="${column}" data-r="${row}"></i>`;
+              }
+            });
+            html += '<span></span>' + ['H', 'H', 'M', 'M', 'S', 'S'].map((label) => `<span class="bin__lab">${label}</span>`).join('');
+            root.innerHTML = html;
+          }
+
+          root.querySelectorAll('.bd').forEach((dot) => {
+            const bit = (Number(digits[Number(dot.dataset.c)]) >> (3 - Number(dot.dataset.r))) & 1;
+            dot.classList.toggle('on', bit === 1);
+          });
+        });
+      }
+
+      binary();
+      every(binary, 1000);
+    })();
+  </script>
+</body>
+</html>

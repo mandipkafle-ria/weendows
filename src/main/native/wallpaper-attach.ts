@@ -19,6 +19,11 @@ export interface NativeRect {
   bottom: number
 }
 
+export interface NativePoint {
+  x: number
+  y: number
+}
+
 export interface DesktopLayout {
   kind: DesktopLayoutKind
   progman: bigint
@@ -67,6 +72,8 @@ type SetWindowPosFunction = (
   flags: number
 ) => number
 type GetWindowRectFunction = (hwnd: Handle, rect: NativeRect) => number
+type GetClientRectFunction = (hwnd: Handle, rect: NativeRect) => number
+type ClientToScreenFunction = (hwnd: Handle, point: NativePoint) => number
 type GetClassNameFunction = (hwnd: Handle, buffer: Buffer, maxCount: number) => number
 type IsWindowFunction = (hwnd: Handle) => number
 type GetWindowFunction = (hwnd: Handle, command: number) => number | bigint | null
@@ -75,6 +82,8 @@ const GWL_STYLE = -16
 const GW_HWNDNEXT = 2
 const WS_CHILD = 0x40000000
 const WS_POPUP = 0x80000000
+const WS_CAPTION = 0x00c00000
+const WS_THICKFRAME = 0x00040000
 const HWND_TOP = 0n
 const SWP_NOACTIVATE = 0x0010
 const SWP_FRAMECHANGED = 0x0020
@@ -94,6 +103,8 @@ let setParentW: SetParentFunction | null = null
 let getParentW: GetParentFunction | null = null
 let setWindowPosW: SetWindowPosFunction | null = null
 let getWindowRectW: GetWindowRectFunction | null = null
+let getClientRectW: GetClientRectFunction | null = null
+let clientToScreenW: ClientToScreenFunction | null = null
 let getClassNameW: GetClassNameFunction | null = null
 let isWindowW: IsWindowFunction | null = null
 let getWindowW: GetWindowFunction | null = null
@@ -103,6 +114,11 @@ const RECT = koffi.struct('WALLPAPER_RECT', {
   top: 'int32_t',
   right: 'int32_t',
   bottom: 'int32_t'
+})
+
+const POINT = koffi.struct('WALLPAPER_POINT', {
+  x: 'int32_t',
+  y: 'int32_t'
 })
 
 function ensureNativeApi(): void {
@@ -117,6 +133,8 @@ function ensureNativeApi(): void {
     getParentW &&
     setWindowPosW &&
     getWindowRectW &&
+    getClientRectW &&
+    clientToScreenW &&
     getClassNameW &&
     isWindowW &&
     getWindowW
@@ -151,6 +169,14 @@ function ensureNativeApi(): void {
     'uintptr_t',
     koffi.out(koffi.pointer(RECT))
   ]) as GetWindowRectFunction
+  getClientRectW = user32.func('GetClientRect', 'int', [
+    'uintptr_t',
+    koffi.out(koffi.pointer(RECT))
+  ]) as GetClientRectFunction
+  clientToScreenW = user32.func('ClientToScreen', 'int', [
+    'uintptr_t',
+    koffi.out(koffi.pointer(POINT))
+  ]) as ClientToScreenFunction
   getClassNameW = user32.func(
     'int __stdcall GetClassNameW(uintptr_t hwnd, _Out_ uint16_t *buffer, int maxCount)'
   ) as GetClassNameFunction
@@ -197,6 +223,25 @@ function getWindowRect(hwnd: Handle): NativeRect | null {
   ensureNativeApi()
   const rect: NativeRect = { left: 0, top: 0, right: 0, bottom: 0 }
   return getWindowRectW?.(hwnd, rect) ? rect : null
+}
+
+function getClientInsets(hwnd: Handle): NativeRect {
+  ensureNativeApi()
+  const windowRect = getWindowRect(hwnd)
+  const clientRect: NativeRect = { left: 0, top: 0, right: 0, bottom: 0 }
+  const origin: NativePoint = { x: 0, y: 0 }
+  if (!windowRect || !getClientRectW?.(hwnd, clientRect) || !clientToScreenW?.(hwnd, origin)) {
+    return { left: 0, top: 0, right: 0, bottom: 0 }
+  }
+
+  const clientWidth = clientRect.right - clientRect.left
+  const clientHeight = clientRect.bottom - clientRect.top
+  return {
+    left: origin.x - windowRect.left,
+    top: origin.y - windowRect.top,
+    right: windowRect.right - (origin.x + clientWidth),
+    bottom: windowRect.bottom - (origin.y + clientHeight)
+  }
 }
 
 function getClassName(hwnd: Handle): string {
@@ -313,7 +358,7 @@ async function ensureDesktopLayer(progman: Handle): Promise<DesktopLayout> {
 function makeChildStyle(hwnd: Handle): { before: number; after: number } {
   ensureNativeApi()
   const before = (getWindowLongW?.(hwnd, GWL_STYLE) ?? 0) >>> 0
-  const next = (before & ~WS_POPUP) | WS_CHILD
+  const next = (before & ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME)) | WS_CHILD
   setWindowLongW?.(hwnd, GWL_STYLE, next | 0)
   const after = (getWindowLongW?.(hwnd, GWL_STYLE) ?? 0) >>> 0
 
@@ -338,17 +383,34 @@ function placeRelative(
   }
 
   const flags = SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW
-  const placed = setWindowPosW?.(
-    hwnd,
-    insertAfter,
-    rectPx.x - parentRect.left,
-    rectPx.y - parentRect.top,
-    rectPx.width,
-    rectPx.height,
-    flags
-  )
-  if (!placed) {
+  const place = (rect: PixelRect): boolean =>
+    Boolean(
+      setWindowPosW?.(
+        hwnd,
+        insertAfter,
+        rect.x - parentRect.left,
+        rect.y - parentRect.top,
+        rect.width,
+        rect.height,
+        flags
+      )
+    )
+
+  if (!place(rectPx)) {
     throw new Error('SetWindowPos failed for the wallpaper window')
+  }
+
+  const insets = getClientInsets(hwnd)
+  if (insets.left || insets.top || insets.right || insets.bottom) {
+    const adjusted: PixelRect = {
+      x: rectPx.x - insets.left,
+      y: rectPx.y - insets.top,
+      width: rectPx.width + insets.left + insets.right,
+      height: rectPx.height + insets.top + insets.bottom
+    }
+    if (!place(adjusted)) {
+      throw new Error('SetWindowPos failed while compensating for the wallpaper window frame')
+    }
   }
 
   return {

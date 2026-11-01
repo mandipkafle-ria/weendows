@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weekday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      display: none;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    html[data-variant='giant'] .day--giant,
+    html:not([data-variant]) .day--giant { display: grid; }
+    html[data-variant='outline'] .day--outline { display: grid; }
+    html[data-variant='serif'] .day--serif { display: grid; }
+    html[data-variant='vertical'] .day--vertical { display: flex; }
+    html[data-variant='thin'] .day--thin { display: grid; }
+    html[data-variant='marker'] .day--marker { display: grid; }
+
+    .day {
+      display: grid;
+      gap: 12px;
+      align-content: center;
+      padding: 18px 22px;
+    }
+    .day__meta {
+      font: 500 13px/1 var(--font-mono);
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .day--giant .day__name {
+      font: 900 clamp(72px, 14vw, 124px)/.85 var(--font-sans);
+      letter-spacing: -.055em;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, var(--text) 38%, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      padding-bottom: .06em;
+    }
+    .day--giant .day__meta { display: flex; align-items: center; gap: 12px; }
+    .day--giant .day__meta::before {
+      content: "";
+      width: 44px;
+      height: 3px;
+      background: var(--accent-2);
+    }
+
+    .day--outline .day__name {
+      position: relative;
+      font: 900 clamp(72px, 14vw, 116px)/.95 var(--font-sans);
+      letter-spacing: -.03em;
+      text-transform: uppercase;
+      color: transparent;
+      -webkit-text-stroke: 2px var(--accent);
+    }
+    .day--outline .day__name::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 7px;
+      top: 7px;
+      z-index: -1;
+      -webkit-text-stroke: 0;
+      color: color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+    .day--outline .day__meta { padding-left: 4px; }
+
+    .day--serif .day__name {
+      font: italic 900 clamp(64px, 12vw, 104px)/.95 var(--font-serif);
+      letter-spacing: -.02em;
+    }
+    .day--serif .day__name::after { content: "."; color: var(--accent); }
+    .day--serif .day__meta {
+      font: italic 500 19px/1 var(--font-serif);
+      letter-spacing: .02em;
+      text-transform: none;
+    }
+
+    .day--vertical { display: flex; gap: 16px; align-items: stretch; }
+    .day--vertical .day__name {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: min(62px, calc((100vh - 44px) / var(--day-len, 6)));
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .day--vertical .day__meta {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+    .day--vertical .day__rule {
+      width: 4px;
+      border-radius: 4px;
+      background: var(--grad);
+    }
+
+    .day--thin { gap: 14px; }
+    .day--thin .day__name {
+      font: 200 clamp(100px, 20vw, 170px)/.78 var(--font-sans);
+      letter-spacing: -.06em;
+      text-transform: uppercase;
+    }
+    .day--thin .day__name i {
+      font-style: normal;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .day--thin .day__full {
+      font: 500 12px/1 var(--font-mono);
+      letter-spacing: .7em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .day--marker .day__name {
+      position: relative;
+      display: inline-block;
+      font: 700 clamp(84px, 16vw, 132px)/.95 var(--font-hand);
+      transform: rotate(-4deg);
+    }
+    .day--marker .day__name::after {
+      content: "";
+      position: absolute;
+      left: -2%;
+      right: -2%;
+      bottom: 8%;
+      height: .24em;
+      z-index: -1;
+      background: color-mix(in srgb, var(--accent-2) 48%, transparent);
+      border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%;
+      transform: rotate(1.5deg);
+    }
+    .day--marker .day__meta {
+      font: 600 26px/1 var(--font-hand);
+      letter-spacing: 0;
+      text-transform: none;
+      transform: rotate(-2deg);
+    }
+  </style>
+</head>
+<body>
+
+  <main class="card w w--bare day day--giant">
+    <h2 class="day__name" data-bind="weekday">Saturday</h2>
+    <p class="day__meta"><span data-bind="monthLong">October</span> <span data-bind="day">31</span> · Week <span data-bind="week">44</span></p>
+  </main>
+
+  <main class="card w w--bare day day--outline">
+    <h2 class="day__name" data-bind="weekday" data-echo>Saturday</h2>
+    <p class="day__meta"><span data-bind="mon3">Oct</span> <span data-bind="day">31</span>, <span data-bind="year">2026</span></p>
+  </main>
+
+  <main class="card w w--bare day day--serif">
+    <h2 class="day__name" data-bind="weekday">Saturday</h2>
+    <p class="day__meta"><span data-bind="monthLong">October</span> <span data-bind="dayOrd">31st</span>, <span data-bind="year">2026</span></p>
+  </main>
+
+  <main class="card w w--bare day day--vertical">
+    <p class="day__meta"><span data-bind="monthLong">October</span> <span data-bind="day">31</span></p>
+    <i class="day__rule"></i>
+    <h2 class="day__name" data-bind="weekday">Saturday</h2>
+  </main>
+
+  <main class="card w w--bare day day--thin">
+    <h2 class="day__name"><span data-bind="wd3">SAT</span><i>.</i></h2>
+    <p class="day__full" data-bind="weekday">Saturday</p>
+  </main>
+
+  <main class="card w w--bare day day--marker">
+    <h2 class="day__name" data-bind="weekday">Saturday</h2>
+    <p class="day__meta">it's the <span data-bind="dayOrd">31st</span>!</p>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, dateInfo, every, initEnv, initTheme } = window.HLW;
+      initEnv('giant');
+      initTheme();
+
+      function echo() {
+        $$('[data-echo]').forEach((element) => {
+          if (element.dataset.text !== element.textContent) {
+            element.dataset.text = element.textContent;
+          }
+        });
+      }
+
+      function tick() {
+        const info = dateInfo(new Date());
+        $$('[data-bind]').forEach((element) => {
+          const value = info[element.dataset.bind];
+          if (value !== undefined && element.textContent !== value) {
+            element.textContent = value;
+          }
+          if (element.dataset.bind === 'weekday' && value) {
+            element.style.setProperty('--day-len', String(String(value).length));
+          }
+        });
+        echo();
+      }
+
+      tick();
+      every(tick, 30000);
+    })();
+  </script>
+</body>
+</html>

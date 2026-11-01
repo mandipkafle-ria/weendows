@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Word clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .wc {
+      display: grid;
+      align-content: center;
+      padding: 20px 22px;
+    }
+    .wc__grid {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      row-gap: 3px;
+      text-align: center;
+      font: 600 clamp(15px, 5.6vh, 21px)/1.2 var(--font-sans);
+    }
+    .wc__c {
+      color: var(--muted);
+      opacity: .28;
+      transition: color .5s, opacity .5s, text-shadow .5s;
+    }
+    .wc__c.is-on {
+      color: var(--text);
+      opacity: 1;
+      text-shadow: 0 0 14px var(--glow), 0 0 2px var(--accent);
+    }
+    .wc__c.is-on.is-lead { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <main class="card w wc">
+    <div class="wc__grid" data-wordclock></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, every, initEnv, initTheme } = window.HLW;
+      initEnv('word');
+      initTheme();
+
+      const WC_ROWS = [
+        'ITLISASTIME', 'ACQUARTERDC', 'TWENTYFIVEX', 'HALFBTENFTO', 'PASTERUNINE',
+        'ONESIXTHREE', 'FOURFIVETWO', 'EIGHTELEVEN', 'SEVENTWELVE', 'TENSEOCLOCK'
+      ];
+      const WC = {
+        IT: [0, 0, 2], IS: [0, 3, 2], A: [1, 0, 1], QUARTER: [1, 2, 7],
+        TWENTY: [2, 0, 6], MFIVE: [2, 6, 4], HALF: [3, 0, 4], MTEN: [3, 5, 3],
+        TO: [3, 9, 2], PAST: [4, 0, 4], NINE: [4, 7, 4], ONE: [5, 0, 3],
+        SIX: [5, 3, 3], THREE: [5, 6, 5], FOUR: [6, 0, 4], FIVE: [6, 4, 4],
+        TWO: [6, 8, 3], EIGHT: [7, 0, 5], ELEVEN: [7, 5, 6], SEVEN: [8, 0, 5],
+        TWELVE: [8, 5, 6], TEN: [9, 0, 3], OCLOCK: [9, 5, 6]
+      };
+      const WC_HOURS = ['TWELVE', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN'];
+      const WC_MIN = [
+        [], ['MFIVE', 'PAST'], ['MTEN', 'PAST'], ['A', 'QUARTER', 'PAST'],
+        ['TWENTY', 'PAST'], ['TWENTY', 'MFIVE', 'PAST'], ['HALF', 'PAST'],
+        ['TWENTY', 'MFIVE', 'TO'], ['TWENTY', 'TO'], ['A', 'QUARTER', 'TO'],
+        ['MTEN', 'TO'], ['MFIVE', 'TO']
+      ];
+
+      function wordclock() {
+        const now = new Date();
+        const k = Math.floor(now.getMinutes() / 5);
+        const words = ['IT', 'IS', ...WC_MIN[k], WC_HOURS[(k >= 7 ? now.getHours() + 1 : now.getHours()) % 12]];
+        if (k === 0) words.push('OCLOCK');
+
+        $$('[data-wordclock]').forEach((root) => {
+          if (!root.firstChild) {
+            root.innerHTML = WC_ROWS.join('').split('').map((c) => `<span class="wc__c">${c}</span>`).join('');
+          }
+          const on = new Set();
+          const lead = new Set();
+          words.forEach((word) => {
+            const [row, column, length] = WC[word];
+            for (let i = 0; i < length; i += 1) on.add(row * 11 + column + i);
+            if (word === 'IT' || word === 'IS') {
+              for (let i = 0; i < length; i += 1) lead.add(row * 11 + column + i);
+            }
+          });
+          Array.from(root.children).forEach((element, index) => {
+            element.classList.toggle('is-on', on.has(index));
+            element.classList.toggle('is-lead', lead.has(index));
+          });
+        });
+      }
+
+      wordclock();
+      every(wordclock, 30000);
+    })();
+  </script>
+</body>
+</html>

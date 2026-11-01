@@ -21,6 +21,7 @@ const params = new URLSearchParams(location.search)
 const rawId = params.get('id') ?? ''
 const widgetId = rawId.toLowerCase()
 const widgetVariant = params.get('variant')
+const widgetContent = params.get('content')
 const gearIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.5 7.5 0 0 0-1.7-1L15 3.5h-4l-.3 2.6a7.5 7.5 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.5 7.5 0 0 0 1.7 1l.3 2.6h4l.3-2.6a7.5 7.5 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5Z"/><circle cx="12" cy="12" r="2.6"/></svg>'
 const closeIcon =
@@ -93,6 +94,7 @@ if (!root) {
   let port: MessagePort | null = null
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null
   let lastPong = 0
+  let missedHeartbeats = 0
   let pingId = 0
   let unresponsive = false
 
@@ -111,19 +113,28 @@ if (!root) {
     void window.shellApi.invoke('widget-responsive')
   }
 
+  function markAlive(): void {
+    lastPong = Date.now()
+    missedHeartbeats = 0
+    markResponsive()
+  }
+
   function startHeartbeat(activePort: MessagePort): void {
     stopHeartbeat()
     lastPong = Date.now()
+    missedHeartbeats = 0
     heartbeatTimer = setInterval(() => {
       if (port !== activePort) {
         return
       }
       if (Date.now() - lastPong > WIDGET_HEARTBEAT_TIMEOUT_MS) {
-        if (!unresponsive) {
+        missedHeartbeats += 1
+        if (missedHeartbeats >= 2 && !unresponsive) {
           unresponsive = true
           void window.shellApi.invoke('widget-unresponsive')
         }
-        return
+      } else {
+        missedHeartbeats = 0
       }
       activePort.postMessage({ type: 'hl-ping', id: ++pingId })
     }, WIDGET_HEARTBEAT_INTERVAL_MS)
@@ -153,6 +164,9 @@ if (!root) {
     const frameUrl = new URL(`widget://${widgetId}/index.html`)
     if (widgetVariant) {
       frameUrl.searchParams.set('variant', widgetVariant)
+    }
+    if (widgetContent) {
+      frameUrl.searchParams.set('content', widgetContent)
     }
     if (frameLoads > 0) {
       frameUrl.searchParams.set('rev', String(frameLoads))
@@ -262,9 +276,8 @@ if (!root) {
       port = activePort
       activePort.onmessage = (event: MessageEvent) => {
         const data = event.data as { type?: unknown } | null
+        markAlive()
         if (data && data.type === 'hl-pong') {
-          lastPong = Date.now()
-          markResponsive()
           return
         }
         void handleWidgetCall(activePort, event.data)

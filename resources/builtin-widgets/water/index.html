@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Water intake</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,500&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="widget://_builtins/env/theme.css">
+  <link rel="stylesheet" href="widget://_builtins/env/extras.css">
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    .card.w {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .water--cups {
+      display: grid;
+      gap: 18px;
+      align-content: center;
+    }
+    .water__head { display: grid; gap: 10px; }
+    .water__head b {
+      font: 700 32px/1 var(--font-sans);
+      letter-spacing: -.04em;
+    }
+    .water__head b small {
+      font: 500 13px/1 var(--font-mono);
+      letter-spacing: 0;
+      color: var(--muted);
+    }
+    .cups {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+    .cup {
+      appearance: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      height: 58px;
+      background: var(--track);
+      clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);
+      transition: transform .15s;
+    }
+    .cup:hover { transform: translateY(-2px); }
+    .cup i {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0;
+      background: linear-gradient(180deg, var(--accent-2), var(--accent));
+      transition: height .55s cubic-bezier(.3, 1.35, .5, 1);
+    }
+    .cup.is-on i { height: 86%; }
+  </style>
+</head>
+<body>
+
+  <main class="card w water water--cups">
+    <div class="water__head">
+      <span class="w__label">Hydration</span>
+      <b><span data-water-text>1.25</span> <small data-water-total>/ 2.00 L</small></b>
+    </div>
+    <div class="cups" data-water data-cups="8" data-ml="250" data-start="5"></div>
+  </main>
+
+  <script src="widget://_builtins/env/extras.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const { $$, dayKey, store, every, initEnv, initTheme, content } = window.HLW;
+      initEnv('cups');
+      initTheme();
+
+      const cfg = content();
+      const cfgCups = Number(cfg.cups);
+      const cfgMl = Number(cfg.ml);
+      $$('[data-water]').forEach((root) => {
+        if (Number.isFinite(cfgCups) && cfgCups > 0) root.dataset.cups = String(cfgCups);
+        if (Number.isFinite(cfgMl) && cfgMl > 0) root.dataset.ml = String(cfgMl);
+      });
+
+      async function initWater(root) {
+        const cups = Number(root.dataset.cups || 8);
+        const millilitres = Number(root.dataset.ml || 250);
+        const key = `water-${dayKey(new Date())}`;
+        let level = await store.get(key);
+        if (typeof level !== 'number') level = Number(root.dataset.start || 0);
+
+        root.innerHTML = Array.from({ length: cups }, (_, index) =>
+          `<button class="cup" type="button" data-i="${index}" aria-label="Glass ${index + 1}"><i></i></button>`
+        ).join('');
+
+        const paint = () => {
+          root.querySelectorAll('.cup').forEach((cup, index) => {
+            cup.classList.toggle('is-on', index < level);
+          });
+          const card = root.closest('.water');
+          if (card) {
+            card.querySelectorAll('[data-water-text]').forEach((element) => {
+              element.textContent = (level * millilitres / 1000).toFixed(2);
+            });
+            card.querySelectorAll('[data-water-total]').forEach((element) => {
+              element.textContent = `/ ${(cups * millilitres / 1000).toFixed(2)} L`;
+            });
+          }
+        };
+
+        root._water = {
+          key,
+          toggle(index) {
+            level = index + 1 === level ? index : index + 1;
+            store.set(key, level);
+            paint();
+          }
+        };
+        paint();
+      }
+
+      $$('[data-water]').forEach(initWater);
+
+      document.addEventListener('click', (event) => {
+        const cup = event.target.closest('.cup');
+        if (!cup) return;
+        const root = cup.closest('[data-water]');
+        if (root && root._water) root._water.toggle(Number(cup.dataset.i));
+      });
+
+      every(() => {
+        const key = `water-${dayKey(new Date())}`;
+        $$('[data-water]').forEach((root) => {
+          if (root._water && root._water.key !== key) initWater(root);
+        });
+      }, 60000);
+    })();
+  </script>
+</body>
+</html>

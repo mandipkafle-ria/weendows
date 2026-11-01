@@ -130,17 +130,6 @@ export default function GeneralPanel({
     }
   }
 
-  const setWidgetDefaultTheme = async (theme: ThemeSource): Promise<void> => {
-    setPending('widget-theme')
-    try {
-      onGeneral(await window.api.setWidgetDefaultTheme(theme))
-    } catch (error) {
-      toast(errorMessage(error), 'error')
-    } finally {
-      setPending(null)
-    }
-  }
-
   const setStartWithWindows = async (enabled: boolean): Promise<void> => {
     setPending('login')
     try {
@@ -271,42 +260,6 @@ export default function GeneralPanel({
                 key={value}
                 disabled={pending !== null}
                 onClick={() => void setTheme(value)}
-              >
-                <ThemeIcon mode={value} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="appearance-group">
-          <div className="appearance-label">
-            <strong>{t('general.widgetDefaultTheme')}</strong>
-            <span>{t('general.widgetDefaultThemeHint')}</span>
-          </div>
-          <div
-            className="segmented-control mode-switch"
-            data-tone={
-              general.widgetDefaultTheme === 'system' ? 'auto' : general.widgetDefaultTheme
-            }
-            role="radiogroup"
-            aria-label={t('general.widgetDefaultTheme')}
-          >
-            {(
-              [
-                ['dark', t('general.themeDark')],
-                ['light', t('general.themeLight')],
-                ['system', t('general.themeSystem')]
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={general.widgetDefaultTheme === value}
-                className={general.widgetDefaultTheme === value ? 'segment-active' : ''}
-                key={value}
-                disabled={pending !== null}
-                onClick={() => void setWidgetDefaultTheme(value)}
               >
                 <ThemeIcon mode={value} />
                 {label}
